@@ -6,7 +6,7 @@ AgriSense is an AI-powered smart agriculture platform for real-time soil telemet
 
 ## 🌟 Key Features
 
-- **Live Crop Health AI Scanner**: Snap leaf photos for instant AI computer vision disease diagnosis, health score analysis, and actionable remedy treatment plans.
+- **Live Crop Health AI Scanner**: Snap leaf photos using physical camera or photo gallery for instant AI computer vision disease diagnosis, health score analysis, and actionable remedy treatment plans.
 - **Real-Time Telemetry & AI Diagnosis**: Live monitoring of soil moisture (VWC), ambient temperature, relative humidity, air quality (MQ-135), and solar irradiance with pre-symptomatic fungal stress prediction.
 - **Dynamic Local Time Greeting**: Custom greeting based on device local time (`Good Morning`, `Good Afternoon`, `Good Evening`).
 - **Location-Based Live Weather**: Automatic GPS location recognition with real-time Open-Meteo weather forecasting.
@@ -17,21 +17,12 @@ AgriSense is an AI-powered smart agriculture platform for real-time soil telemet
 
 ---
 
-## 🚀 Automated Laptop Setup Scripts
-
-We provide two pre-configured batch scripts for instant setup on any Windows machine:
-
-1. **`setup_agrisense_laptop.bat`**: Automated 1-click script that clones/pulls code, installs Python dependencies, resolves Tailnet IPs, builds `AgriSense_v1.7.1.apk`, outputs the release folder location (`%USERPROFILE%\AgriSense_Builds`), and launches the backend.
-2. **`run_backend.bat`**: Launches the FastAPI backend server with unbuffered real-time log monitoring.
-
----
-
 ## 💻 Manual Setup & Installation Guide
 
 ### 📋 Prerequisites
 
 1. **Python 3.10+**: Ensure Python is installed (`python --version`).
-2. **Flutter SDK 3.x+**: (Optional for mobile development) Ensure Flutter is installed (`flutter --version`).
+2. **Flutter SDK 3.x+**: Ensure Flutter is installed (`flutter --version`).
 3. **Android Studio / ADB**: (Optional) For deploying APKs to physical Android phones or emulators.
 
 ---
@@ -72,22 +63,9 @@ flutter run
 
 #### To Compile a Standalone Release APK:
 
-From the root directory, execute the SSOT release builder script:
-
 ```bash
-python build_release.py 1.7.1
-```
-
-The compiled APK will be stored in `C:\Users\<username>\AgriSense_Builds\AgriSense_v1.7.1.apk`.
-
----
-
-### 4️⃣ Run Automated Virtual User Verification Suite
-
-To verify that all backend endpoints, authentication guards, lowercased email handlers, ESP32 ingest endpoints, live AI scanner, and OTA update services are functioning 100% cleanly:
-
-```bash
-python test_virtual_user.py
+cd seashark_dart_app
+flutter build apk --release
 ```
 
 ---
@@ -103,10 +81,6 @@ agrisense/
 │   ├── lib/              # UI screens, widgets, models, & WebSocket services
 │   └── pubspec.yaml      # Flutter dependencies
 ├── esp32/                # ESP32 C++/Arduino Soil Sensor Firmware & Hardware Diagrams
-├── build_release.py      # Unified SSOT APK Build & Version Sync Automation
-├── setup_agrisense_laptop.bat # 1-Click Automated Setup Batch Script
-├── run_backend.bat       # Live Backend Log Launcher Batch Script
-├── test_virtual_user.py  # End-to-End Automated Virtual User Testing Suite
 ├── requirements.txt      # Root Python Dependencies
 └── README.md             # Setup & Architecture Guide
 ```
