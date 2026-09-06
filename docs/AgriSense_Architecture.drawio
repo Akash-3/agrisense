@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-08-06T23:45:00.000Z" agent="AgriSense" version="21.0.0">
+  <diagram id="agrisense-architecture" name="AgriSense System Architecture">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="#ffffff">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Aerial Payload Node -->
+        <mxCell id="aerial_node" value="AERIAL DRONE PAYLOAD NODE&#10;(ESP32 DevKit V1 [1] + AS7341 Multi-Spectral [2]&#10;+ DHT22 Climate + MQ-2 Hazard)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#E0F2FE;strokeColor=#0284C7;fontStyle=1;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="300" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="as7341" value="Adafruit AS7341 Optical Sensor [2]&#10;(10 Wavelength Channels 415nm-885nm)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#38BDF8;strokeColor=#0284C7;fontColor=#ffffff;fontStyle=1;" vertex="1" parent="aerial_node">
+          <mxGeometry x="20" y="40" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="dht22" value="DHT22 Temp &amp; Humidity Sensor" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BAE6FD;strokeColor=#0284C7;" vertex="1" parent="aerial_node">
+          <mxGeometry x="20" y="90" width="260" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="mq2" value="MQ-2 Smoke/Gas Hazard Detector" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BAE6FD;strokeColor=#0284C7;" vertex="1" parent="aerial_node">
+          <mxGeometry x="20" y="135" width="260" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="esp32_aerial" value="ESP32 Dual-Core LX6 Microcontroller [1]&#10;(JSON Serializer &amp; Wi-Fi Client Stack)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0284C7;strokeColor=#0369A1;fontColor=#ffffff;fontStyle=1;" vertex="1" parent="aerial_node">
+          <mxGeometry x="20" y="180" width="260" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Terrestrial Ground Node -->
+        <mxCell id="ground_node" value="TERRESTRIAL GROUND NODE&#10;(ESP32 DevKit V1 [1] + Capacitive Soil Sensor [12])" style="swimlane;whiteSpace=wrap;html=1;fillColor=#DCFCE7;strokeColor=#16A34A;fontStyle=1;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="40" y="340" width="300" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="soil_probe" value="Capacitive Soil Moisture Probe v1.2 [12]&#10;(Volumetric Water Content VWC%)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4ADE80;strokeColor=#16A34A;fontStyle=1;" vertex="1" parent="ground_node">
+          <mxGeometry x="20" y="45" width="260" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="esp32_ground" value="ESP32 Ground Station Controller [1]&#10;(Wi-Fi Telemetry Transmitter)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#16A34A;strokeColor=#15803D;fontColor=#ffffff;fontStyle=1;" vertex="1" parent="ground_node">
+          <mxGeometry x="20" y="105" width="260" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- FastAPI Backend Microservice -->
+        <mxCell id="backend" value="FASTAPI BACKEND MICROSERVICE ENGINE&#10;(Python FastAPI [3] + Starlette ASGI + Pydantic)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#F3E8FF;strokeColor=#9333EA;fontStyle=1;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="420" y="60" width="340" height="460" as="geometry" />
+        </mxCell>
+        <mxCell id="pydantic" value="Pydantic Schema Ingestion &amp; Validation [3]&#10;(POST /api/v1/sensors)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C084FC;strokeColor=#9333EA;fontColor=#ffffff;fontStyle=1;" vertex="1" parent="backend">
+          <mxGeometry x="20" y="40" width="300" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="mmssnet" value="MM-SSNet Dual-Stream AI Diagnostic Model&#10;(1D-Spectral CNN + 2D-Spatial MobileNetV3 [15]&#10;+ Cross-Attention Fusion)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#9333EA;strokeColor=#7E22CE;fontColor=#ffffff;fontStyle=1;" vertex="1" parent="backend">
+          <mxGeometry x="20" y="110" width="300" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="chi_engine" value="Crop Health Index (CHI) Evaluator&#10;(R_CRI Chlorophyll + S_NIR Stress Ratios [8, 13])" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E9D5FF;strokeColor=#9333EA;" vertex="1" parent="backend">
+          <mxGeometry x="20" y="200" width="300" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="hazard_engine" value="Field Hazard &amp; Alert Engine&#10;(MQ-2 &gt; 400 PPM / Soil &lt; 30% Warnings)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E9D5FF;strokeColor=#9333EA;" vertex="1" parent="backend">
+          <mxGeometry x="20" y="270" width="300" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="db" value="PostgreSQL Relational Database &amp; ORM&#10;(SQLAlchemy Persistent Storage)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#A855F7;strokeColor=#7E22CE;fontColor=#ffffff;fontStyle=1;" vertex="1" parent="backend">
+          <mxGeometry x="60" y="340" width="220" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- React Glassmorphism Web Dashboard -->
+        <mxCell id="frontend" value="REACT GLASSMORPHISM WEB DASHBOARD&#10;(React.js SPA [4] + Chart.js [5] + Lucide [6])" style="swimlane;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#D97706;fontStyle=1;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="820" y="60" width="300" height="460" as="geometry" />
+        </mxCell>
+        <mxCell id="chartjs" value="Chart.js 10-Channel Spectral Graph [5]&#10;(Real-Time 415nm-885nm Bar Chart)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FBBF24;strokeColor=#D97706;fontStyle=1;" vertex="1" parent="frontend">
+          <mxGeometry x="20" y="50" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="telemetry_cards" value="Live Telemetry Cards &amp; Gauges&#10;(Temp, Humidity, Soil %, Gas PPM)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDE68A;strokeColor=#D97706;" vertex="1" parent="frontend">
+          <mxGeometry x="20" y="130" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="alerts_panel" value="Emergency Field Hazard Alert Banner&#10;(High-Priority Warning Logs)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F87171;strokeColor=#DC2626;fontColor=#ffffff;fontStyle=1;" vertex="1" parent="frontend">
+          <mxGeometry x="20" y="200" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="sim_engine" value="Live System Simulation Controller&#10;(POST /api/v1/simulate Demonstration)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FDE68A;strokeColor=#D97706;" vertex="1" parent="frontend">
+          <mxGeometry x="20" y="270" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="polling_loop" value="Dynamic Asynchronous Polling Loop&#10;(5-Second Polling via GET /api/v1/dashboard)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D97706;strokeColor=#B45309;fontColor=#ffffff;fontStyle=1;" vertex="1" parent="frontend">
+          <mxGeometry x="20" y="340" width="260" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Connections -->
+        <mxCell id="edge1" value="HTTP POST /api/v1/sensors&#10;(Wi-Fi JSON Telemetry)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthoLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#0284C7;fontStyle=1;fontSize=10;" edge="1" parent="1" source="esp32_aerial" target="pydantic">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge2" value="HTTP POST /api/v1/sensors&#10;(Ground Moisture Telemetry)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthoLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#16A34A;fontStyle=1;fontSize=10;" edge="1" parent="1" source="esp32_ground" target="pydantic">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge3" value="HTTP GET /api/v1/dashboard&#10;(5s Polling Loop)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthoLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#9333EA;fontStyle=1;fontSize=10;" edge="1" parent="1" source="backend" target="polling_loop">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

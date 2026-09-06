@@ -1,0 +1,25 @@
+{
+  "id": "/",
+  "short_name": "AgriSense",
+  "name": "AgriSense AgriSense IoT AI Engine",
+  "description": "AgriSense IoT Drone Platform & Multi-Modal AI Early Pre-Symptomatic Crop Disease Engine",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/628/628324.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/628/628324.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#090D16",
+  "theme_color": "#090D16",
+  "display": "standalone",
+  "orientation": "any"
+}
