@@ -4224,12 +4224,16 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
+                            color: aiReport!['severity'] == 'INVALID_IMAGE'
+                                ? const Color(0xFFFEF2F2)
+                                : const Color(0xFFF8FAFC),
                             borderRadius: BorderRadius.circular(18),
                             border: Border.all(
-                              color: aiReport!['severity'] == 'HEALTHY'
-                                  ? const Color(0xFF059669)
-                                  : (aiReport!['severity'] == 'HIGH_RISK' ? Colors.redAccent : Colors.amber[800]!),
+                              color: aiReport!['severity'] == 'INVALID_IMAGE'
+                                  ? Colors.redAccent
+                                  : (aiReport!['severity'] == 'HEALTHY'
+                                      ? const Color(0xFF059669)
+                                      : (aiReport!['severity'] == 'HIGH_RISK' ? Colors.redAccent : Colors.amber[800]!)),
                               width: 1.5,
                             ),
                           ),
@@ -4240,26 +4244,32 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    'AI DIAGNOSTIC RESULT',
+                                    aiReport!['severity'] == 'INVALID_IMAGE' ? '⚠️ NO PLANT DETECTED' : 'AI DIAGNOSTIC RESULT',
                                     style: TextStyle(
                                       fontSize: 10.5,
                                       fontWeight: FontWeight.w900,
-                                      color: aiReport!['severity'] == 'HEALTHY' ? const Color(0xFF059669) : Colors.amber[900],
+                                      color: aiReport!['severity'] == 'INVALID_IMAGE'
+                                          ? Colors.red[900]
+                                          : (aiReport!['severity'] == 'HEALTHY' ? const Color(0xFF059669) : Colors.amber[900]),
                                       letterSpacing: 0.8,
                                     ),
                                   ),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: aiReport!['severity'] == 'HEALTHY' ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
+                                      color: aiReport!['severity'] == 'INVALID_IMAGE'
+                                          ? const Color(0xFFFEE2E2)
+                                          : (aiReport!['severity'] == 'HEALTHY' ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7)),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
-                                      'Score: ${aiReport!['health_score']}%',
+                                      aiReport!['severity'] == 'INVALID_IMAGE' ? 'Invalid Target' : 'Score: ${aiReport!['health_score']}%',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 12,
-                                        color: aiReport!['severity'] == 'HEALTHY' ? const Color(0xFF166534) : const Color(0xFF92400E),
+                                        color: aiReport!['severity'] == 'INVALID_IMAGE'
+                                            ? Colors.red[800]
+                                            : (aiReport!['severity'] == 'HEALTHY' ? const Color(0xFF166534) : const Color(0xFF92400E)),
                                       ),
                                     ),
                                   ),
@@ -4269,7 +4279,11 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
 
                               Text(
                                 aiReport!['crop_condition'] ?? 'Crop Analysis Complete',
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: aiReport!['severity'] == 'INVALID_IMAGE' ? Colors.red[900] : const Color(0xFF0F172A),
+                                ),
                               ),
                               Text(
                                 'Vector: ${aiReport!['disease_type'] ?? "Foliar Analysis"} • ${aiReport!['confidence_pct']}% AI Confidence',
@@ -4279,7 +4293,10 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                               const Divider(height: 1),
                               const SizedBox(height: 12),
 
-                              const Text('Symptoms Detected:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: Color(0xFF0F172A))),
+                              Text(
+                                aiReport!['severity'] == 'INVALID_IMAGE' ? 'Scan Analysis Notes:' : 'Symptoms Detected:',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: Color(0xFF0F172A)),
+                              ),
                               const SizedBox(height: 6),
                               ...((aiReport!['symptoms_detected'] as List<dynamic>? ?? [])
                                   .map((s) => Padding(
@@ -4287,7 +4304,11 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                                         child: Row(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            const Icon(Icons.check_circle_outline_rounded, color: Color(0xFF059669), size: 15),
+                                            Icon(
+                                              aiReport!['severity'] == 'INVALID_IMAGE' ? Icons.warning_amber_rounded : Icons.check_circle_outline_rounded,
+                                              color: aiReport!['severity'] == 'INVALID_IMAGE' ? Colors.redAccent : const Color(0xFF059669),
+                                              size: 15,
+                                            ),
                                             const SizedBox(width: 8),
                                             Expanded(child: Text(s.toString(), style: const TextStyle(fontSize: 11.5, color: Color(0xFF475569)))),
                                           ],
@@ -4296,7 +4317,10 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                                   .toList()),
                               const SizedBox(height: 12),
 
-                              const Text('Actionable AI Remedies & Treatment Plan:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: Color(0xFF0F172A))),
+                              Text(
+                                aiReport!['severity'] == 'INVALID_IMAGE' ? 'How to Scan Properly:' : 'Actionable AI Remedies & Treatment Plan:',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5, color: Color(0xFF0F172A)),
+                              ),
                               const SizedBox(height: 6),
                               ...((aiReport!['ai_remedy_recommendations'] as List<dynamic>? ?? [])
                                   .map((r) => Padding(
@@ -4304,7 +4328,11 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                                         child: Row(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            const Icon(Icons.medical_services_outlined, color: Color(0xFF047857), size: 15),
+                                            Icon(
+                                              aiReport!['severity'] == 'INVALID_IMAGE' ? Icons.center_focus_strong_rounded : Icons.medical_services_outlined,
+                                              color: aiReport!['severity'] == 'INVALID_IMAGE' ? const Color(0xFF059669) : const Color(0xFF047857),
+                                              size: 15,
+                                            ),
                                             const SizedBox(width: 8),
                                             Expanded(child: Text(r.toString(), style: const TextStyle(fontSize: 11.5, color: Color(0xFF0F172A), fontWeight: FontWeight.w500))),
                                           ],
