@@ -3,8 +3,8 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-val flutterVersionCode = project.findProperty("flutter-version-code")?.toString()?.toInt() ?: 25
-val flutterVersionName = project.findProperty("flutter-version-name")?.toString() ?: "1.7.0"
+val flutterVersionCode = project.findProperty("flutter-version-code")?.toString()?.toInt() ?: 26
+val flutterVersionName = project.findProperty("flutter-version-name")?.toString() ?: "1.7.1"
 
 android {
     namespace = "com.example.agrisense_seashark_app"
