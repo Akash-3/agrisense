@@ -146,6 +146,14 @@ def run_virtual_user_tests():
     ota_data = res_ota.json()
     log_test("OTA Update Check Endpoint", res_ota.status_code == 200, f"Has update: {ota_data.get('has_update')}, Latest: v{ota_data.get('latest_version')}")
 
+    # 16. Test Live Crop Health AI Image Scanner Endpoint
+    res_img = requests.post(f"{BASE_URL}/api/v1/ai/diagnose-crop-image", json={
+        "crop_type": "Wheat & Paddy",
+        "note": "Sample Leaf Scan Test"
+    })
+    diag_info = res_img.json().get("diagnosis", {})
+    log_test("Live Crop Health AI Image Scanner Endpoint", res_img.status_code == 200, f"Condition: {diag_info.get('crop_condition')}")
+
     print("=" * 80)
     print(" ALL VIRTUAL USER SUITE TESTS COMPLETED SUCCESSFULLY!")
     print("=" * 80)
