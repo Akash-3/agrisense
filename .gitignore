@@ -5,6 +5,9 @@ __pycache__/
 *.sqlite3
 *.db
 
+# Markdown Files
+*.md
+
 # Flutter & Dart
 .dart_tool/
 .idea/
