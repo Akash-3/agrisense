@@ -5,8 +5,10 @@ __pycache__/
 *.sqlite3
 *.db
 
-# Markdown Files
+# Ignore all markdown files EXCEPT root README.md
 *.md
+!README.md
+!readme.md
 
 # Flutter & Dart
 .dart_tool/
