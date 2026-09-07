@@ -60,9 +60,8 @@ class AppConfig {
   static Future<String> resolveActiveHost() async {
     List<String> candidates = [
       'agrisense.tail0d103f.ts.net:8000',
+      '100.126.23.88:8000',
       'agrisense.tail0d103f.ts.net',
-      'agrisense.ts.net:8000',
-      'agrisense.ts.net',
     ];
 
     Completer<String> completer = Completer<String>();
