@@ -15,7 +15,7 @@ def load_latest_app_version():
                         return ver_name, ver_code
     except Exception as e:
         print(f"[SSOT VERSION LOADER ERROR] {e}")
-    return "1.7.3", 28
+    return "1.7.4", 29
 
 LATEST_APP_VERSION, LATEST_VERSION_CODE = load_latest_app_version()
 
