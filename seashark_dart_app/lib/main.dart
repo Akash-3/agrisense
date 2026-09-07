@@ -39,7 +39,7 @@ void main() {
 }
 
 class AppConfig {
-  static String activeHost = '100.126.23.88:8000';
+  static String activeHost = 'filename-enjoying-evaluation-gear.trycloudflare.com';
 
   static String get backendHttpUrl {
     if (activeHost.startsWith('http://') || activeHost.startsWith('https://')) return activeHost;
@@ -59,13 +59,34 @@ class AppConfig {
 
   static Future<String> resolveActiveHost() async {
     List<String> candidates = [
+      'filename-enjoying-evaluation-gear.trycloudflare.com',
+      '172.19.18.46:8000',
       '100.126.23.88:8000',
       'akash.tail0d103f.ts.net:8000',
       'akash.tail0d103f.ts.net',
-      'howard-limiting-provide-ongoing.trycloudflare.com',
       '10.0.2.2:8000',
       'localhost:8000',
     ];
+
+    try {
+      final interfaces = await NetworkInterface.list(type: InternetAddressType.IPv4);
+      for (var interface in interfaces) {
+        for (var addr in interface.addresses) {
+          if (!addr.isLoopback && !addr.address.startsWith('100.')) {
+            final parts = addr.address.split('.');
+            if (parts.length == 4) {
+              final prefix = '${parts[0]}.${parts[1]}.${parts[2]}';
+              for (int lastByte in [46, 44, 127, 100, 1, 2, 10, 88]) {
+                final candidate = '$prefix.$lastByte:8000';
+                if (!candidates.contains(candidate)) {
+                  candidates.add(candidate);
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (_) {}
 
     Completer<String> completer = Completer<String>();
     int pending = candidates.length;
@@ -73,7 +94,7 @@ class AppConfig {
     for (String host in candidates) {
       final scheme = (host.contains('trycloudflare.com') || (host.contains('.ts.net') && !host.contains(':'))) ? 'https' : 'http';
       final uri = Uri.parse('$scheme://$host/api/v1/health');
-      http.get(uri).timeout(const Duration(milliseconds: 2200)).then((res) {
+      http.get(uri).timeout(const Duration(milliseconds: 2500)).then((res) {
         if (res.statusCode == 200 && !completer.isCompleted) {
           activeHost = host;
           completer.complete(host);
