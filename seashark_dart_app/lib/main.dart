@@ -82,10 +82,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   Future<void> _requestStartupPermissions() async {
     try {
       if (!kIsWeb) {
-        await Permission.location.request();
+        await Permission.location.request().timeout(const Duration(milliseconds: 1500));
       }
     } catch (e) {
-      // Fallback
+      // Fallback if permission dialog is dismissed or times out
     }
 
     if (mounted) {
