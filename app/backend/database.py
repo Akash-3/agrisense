@@ -143,7 +143,6 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
     return True, "Password is strong."
 
 def is_account_locked(identifier: str) -> tuple[bool, int]:
-    init_db()
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT failed_count, last_failed_at FROM login_attempts WHERE identifier = ?", (identifier.lower(),))
@@ -158,7 +157,6 @@ def is_account_locked(identifier: str) -> tuple[bool, int]:
     return False, 0
 
 def record_failed_attempt(identifier: str):
-    init_db()
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT failed_count FROM login_attempts WHERE identifier = ?", (identifier.lower(),))
@@ -172,7 +170,6 @@ def record_failed_attempt(identifier: str):
     conn.close()
 
 def clear_failed_attempts(identifier: str):
-    init_db()
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM login_attempts WHERE identifier = ?", (identifier.lower(),))
@@ -180,7 +177,6 @@ def clear_failed_attempts(identifier: str):
     conn.close()
 
 def check_farmer_exists(phone_or_email: str) -> bool:
-    init_db()
     clean_id = phone_or_email.strip().lower()
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -225,7 +221,6 @@ def send_real_email_otp(to_email: str, otp_code: str, full_name: str = "Farmer")
         print(f"[GMAIL SMTP ERROR] {e}")
 
 def generate_otp(email_or_phone: str, full_name: str = "Farmer") -> str:
-    init_db()
     clean_id = email_or_phone.strip().lower()
     otp = str(random.randint(100000, 999999))
     expires = time.time() + 600
@@ -244,7 +239,6 @@ def generate_otp(email_or_phone: str, full_name: str = "Farmer") -> str:
     return otp
 
 def verify_otp(email_or_phone: str, otp_code: str) -> bool:
-    init_db()
     clean_id = email_or_phone.strip().lower()
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -274,7 +268,6 @@ def verify_otp(email_or_phone: str, otp_code: str) -> bool:
     return False
 
 def register_farmer(full_name: str, phone_or_email: str, farm_name: str = "Main Farm", farm_acres: float = 10.0, password: str = "", gender: str = "Farmer", age: int = 32, avatar_id: int = 1, crop_type: str = "Wheat & Paddy"):
-    init_db()
     clean_id = phone_or_email.strip().lower()
     
     is_valid, msg = validate_password_strength(password)
@@ -331,7 +324,6 @@ def register_farmer(full_name: str, phone_or_email: str, farm_name: str = "Main 
         }
 
 def login_farmer(phone_or_email: str, password: str):
-    init_db()
     clean_id = phone_or_email.strip().lower()
     
     locked, remaining_mins = is_account_locked(clean_id)
@@ -400,7 +392,6 @@ def reset_password_with_otp(phone_or_email: str, new_password: str, otp_code: st
         return {"status": "error", "message": msg}
         
     # 3. Check Farmer Account Exists
-    init_db()
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT id FROM farmers WHERE LOWER(phone_or_email) = ?", (clean_id,))
@@ -421,7 +412,6 @@ def reset_password_with_otp(phone_or_email: str, new_password: str, otp_code: st
     return {"status": "success", "message": "Password reset successfully! You can now log in with your new password."}
 
 def create_session_token(farmer_id: int) -> str:
-    init_db()
     token = secrets.token_hex(32)
     expires = time.time() + 86400 * 30 # 30 Days
     conn = sqlite3.connect(DB_PATH)
@@ -435,7 +425,6 @@ def create_session_token(farmer_id: int) -> str:
     return token
 
 def add_farm(farmer_id: int, farm_name: str, farm_acres: float, crop_type: str):
-    init_db()
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute(
@@ -444,8 +433,10 @@ def add_farm(farmer_id: int, farm_name: str, farm_acres: float, crop_type: str):
     )
     conn.commit()
     farm_id = cursor.lastrowid
+    conn.close()
+    return {"status": "success", "farm_id": farm_id}
+
 def update_farmer_profile(farmer_id: int, full_name: str, gender: str, age: int, avatar_id: int):
-    init_db()
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute(
@@ -466,5 +457,5 @@ def update_farmer_profile(farmer_id: int, full_name: str, gender: str, age: int,
         }
     }
 
-if __name__ == "__main__":
-    init_db()
+# Run table initialization on module load
+init_db()

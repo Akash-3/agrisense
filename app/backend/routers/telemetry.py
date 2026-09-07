@@ -62,7 +62,7 @@ async def download_apk_update(request: Request):
                     with open(apk_path, "rb") as f:
                         f.seek(start)
                         remaining = content_length
-                        chunk_size = 64 * 1024
+                        chunk_size = 1024 * 1024  # 1MB chunk size for high-throughput 5G/Wi-Fi streaming
                         while remaining > 0:
                             read_bytes = min(remaining, chunk_size)
                             data = f.read(read_bytes)
