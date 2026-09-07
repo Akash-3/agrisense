@@ -147,11 +147,13 @@ async def diagnose_crop_image(payload: CropImageDiagnosisRequest):
             print(f"[IMAGE CV ERROR] {e}")
 
     if not has_valid_plant_leaf:
+        non_plant_scale = (1.0 - (plant_pixel_ratio / 0.15)) if plant_pixel_ratio < 0.15 else 0.0
+        rejection_confidence = round(95.0 + non_plant_scale * 4.9, 1)
         diagnosis = {
             "crop_condition": "No Crop or Plant Foliage Detected",
             "disease_type": "Invalid Target / Non-Plant Surface",
             "health_score": 0.0,
-            "confidence_pct": 98.9,
+            "confidence_pct": rejection_confidence,
             "severity": "INVALID_IMAGE",
             "symptoms_detected": [
                 f"No crop leaves or green foliage detected in camera frame ({round(plant_pixel_ratio * 100, 1)}% plant pixels)",
