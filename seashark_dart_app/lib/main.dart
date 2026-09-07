@@ -39,7 +39,7 @@ void main() {
 }
 
 class AppConfig {
-  static String activeHost = '172.19.17.44:8000';
+  static String activeHost = '100.126.23.88:8000';
 
   static String get backendHttpUrl {
     if (activeHost.startsWith('http://') || activeHost.startsWith('https://')) return activeHost;
@@ -59,12 +59,10 @@ class AppConfig {
 
   static Future<String> resolveActiveHost() async {
     List<String> candidates = [
-      '172.19.17.44:8000',
-      'produce-newsletter-low-signatures.trycloudflare.com',
-      '172.19.17.127:8000',
+      '100.126.23.88:8000',
       'akash.tail0d103f.ts.net:8000',
       'akash.tail0d103f.ts.net',
-      '100.126.23.88:8000',
+      'howard-limiting-provide-ongoing.trycloudflare.com',
       '10.0.2.2:8000',
       'localhost:8000',
     ];
@@ -75,7 +73,7 @@ class AppConfig {
     for (String host in candidates) {
       final scheme = (host.contains('trycloudflare.com') || (host.contains('.ts.net') && !host.contains(':'))) ? 'https' : 'http';
       final uri = Uri.parse('$scheme://$host/api/v1/health');
-      http.get(uri).timeout(const Duration(milliseconds: 1800)).then((res) {
+      http.get(uri).timeout(const Duration(milliseconds: 2200)).then((res) {
         if (res.statusCode == 200 && !completer.isCompleted) {
           activeHost = host;
           completer.complete(host);
