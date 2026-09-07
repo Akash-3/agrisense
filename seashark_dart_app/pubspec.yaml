@@ -1,7 +1,7 @@
 name: agrisense_seashark_app
 description: "AgriSense - Smart Farmer Autonomous Drone Platform"
 publish_to: 'none'
-version: 1.7.1+26
+version: 1.7.2+27
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
