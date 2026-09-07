@@ -86,6 +86,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
+    AppConfig.resolveActiveHost();
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),

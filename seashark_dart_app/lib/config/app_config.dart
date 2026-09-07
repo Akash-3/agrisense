@@ -36,9 +36,9 @@ class AppConfig {
     }
 
     List<String> candidates = [
+      'filename-enjoying-evaluation-gear.trycloudflare.com',
       'agrisense.tail0d103f.ts.net:8000',
       '172.19.18.46:8000',
-      'filename-enjoying-evaluation-gear.trycloudflare.com',
       '100.126.23.88:8000',
       'agrisense.tail0d103f.ts.net',
     ];
