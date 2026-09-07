@@ -19,6 +19,27 @@ import 'services/websocket_service.dart';
 import 'config/app_config.dart';
 import 'widgets/agri_logo_badge.dart';
 
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // GLOBAL UNCAUGHT ERROR & CRASH GUARD
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    if (kDebugMode) {
+      print('[AGRIVISION CRASH GUARD] Captured Flutter Error: ${details.exception}');
+    }
+  };
+
+  PlatformDispatcher.instance.onError = (error, stack) {
+    if (kDebugMode) {
+      print('[AGRIVISION ASYNC GUARD] Captured Unhandled Async Error: $error');
+    }
+    return true; // Prevents app crash
+  };
+
+  runApp(const AgriSenseApp());
+}
+
 class AgriSenseApp extends StatelessWidget {
   const AgriSenseApp({super.key});
 
