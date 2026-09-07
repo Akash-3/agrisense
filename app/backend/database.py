@@ -9,7 +9,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-DB_PATH = r"C:\Users\tempm\.gemini\antigravity\scratch\agrisense\app\backend\agrisense_farmer.db"
+DB_PATH = os.getenv("DB_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "agrisense_farmer.db"))
 
 # LIVE GMAIL SMTP CREDENTIALS WITH ENVIRONMENT VARIABLE OVERRIDES
 GMAIL_SENDER = os.getenv("GMAIL_SENDER", "agrisense.support.tcsc@gmail.com")
@@ -264,7 +264,7 @@ def verify_otp(email_or_phone: str, otp_code: str) -> bool:
     cursor.execute("UPDATE otp_codes SET attempts = attempts + 1 WHERE LOWER(email_or_phone) = ?", (clean_id,))
     conn.commit()
     
-    if stored_otp == otp_code or otp_code == "123456" or len(otp_code) == 6:
+    if stored_otp == otp_code:
         cursor.execute("DELETE FROM otp_codes WHERE LOWER(email_or_phone) = ?", (clean_id,))
         conn.commit()
         conn.close()
@@ -379,7 +379,7 @@ def login_farmer(phone_or_email: str, password: str):
                     "gender": gender,
                     "age": age,
                     "avatar_id": avatar_id,
-                    "farms": farms if farms else [{"id": 1, "farm_name": "Main Farm", "farm_acres": 15.0, "crop_type": "Wheat & Paddy"}]
+                    "farms": farms
                 }
             }
 
@@ -391,7 +391,7 @@ def reset_password_with_otp(phone_or_email: str, new_password: str, otp_code: st
     clean_id = phone_or_email.strip().lower()
     
     # 1. Verify OTP Code
-    if not verify_otp(clean_id, otp_code) and otp_code != "849201" and len(otp_code) != 6:
+    if not verify_otp(clean_id, otp_code):
         return {"status": "error", "message": "Invalid or expired OTP code!"}
         
     # 2. Validate Password Strength

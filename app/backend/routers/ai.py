@@ -13,8 +13,8 @@ async def diagnose_crop_image(payload: CropImageDiagnosisRequest):
     note = payload.note or ""
     image_raw = payload.image_base64 or ""
 
-    # Quick Sample Preset buttons handling
-    if note in ["Leaf Blight Scan", "Yellow Rust Scan", "Chlorosis Scan", "Healthy Canopy"]:
+    # Quick Sample Preset buttons handling (Only when no image is uploaded)
+    if not image_raw and note in ["Leaf Blight Scan", "Yellow Rust Scan", "Chlorosis Scan", "Healthy Canopy"]:
         if note == "Healthy Canopy":
             diagnosis = {
                 "crop_condition": f"Healthy {crop} Canopy",

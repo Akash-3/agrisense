@@ -20,10 +20,12 @@ def load_latest_app_version():
 LATEST_APP_VERSION, LATEST_VERSION_CODE = load_latest_app_version()
 
 def get_existing_apk_path():
+    project_apk = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "seashark_dart_app", "build", "app", "outputs", "flutter-apk", "app-debug.apk"))
+    user_downloads = os.path.expanduser("~/Downloads")
     candidates = [
-        r"C:\Users\tempm\.gemini\antigravity\scratch\agrisense\seashark_dart_app\build\app\outputs\flutter-apk\app-debug.apk",
-        f"C:\\Users\\tempm\\Downloads\\AgriSense_v{LATEST_APP_VERSION}.apk",
-        r"C:\Users\tempm\Downloads\AgriSense.apk",
+        project_apk,
+        os.path.join(user_downloads, f"AgriSense_v{LATEST_APP_VERSION}.apk"),
+        os.path.join(user_downloads, "AgriSense.apk"),
     ]
     for p in candidates:
         if os.path.exists(p) and os.path.getsize(p) > 10 * 1024 * 1024:
