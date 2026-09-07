@@ -1,10 +1,11 @@
+from typing import Optional
 from fastapi import APIRouter, HTTPException
 from database import (
     register_farmer, login_farmer, generate_otp, verify_otp,
     check_farmer_exists, reset_password_with_otp, update_farmer_profile
 )
 from models.schemas import (
-    RegisterRequest, LoginRequest, OTPRequest, VerifyOTPRequest,
+    RegisterRequest, LoginRequest, SSORequest, OTPRequest, VerifyOTPRequest,
     ResetPasswordRequest, UpdateProfileRequest
 )
 
@@ -45,16 +46,17 @@ async def handle_login(req: LoginRequest):
     return res
 
 @router.post("/sso/{provider}")
-async def handle_sso_login(provider: str):
+async def handle_sso_login(provider: str, payload: Optional[SSORequest] = None):
     provider_clean = provider.lower()
     if provider_clean not in ["google", "microsoft"]:
         raise HTTPException(status_code=400, detail="Unsupported SSO provider")
 
-    sso_email = f"{provider_clean}.farmer@agrisense.io"
-    sso_name = f"Akash Satapathy ({provider_clean.capitalize()})"
+    sso_name = (payload.full_name if payload and payload.full_name else f"{provider_clean.capitalize()} Farmer")
+    sso_email = (payload.email if payload and payload.email else f"{provider_clean}.farmer@agrisense.io")
+    avatar_id = (payload.avatar_id if payload and payload.avatar_id else 1)
 
     if not check_farmer_exists(sso_email):
-        register_farmer(sso_name, sso_email, "Green Valley Farm", 15.0, "AgriPass123!", "Farmer", 32, 1, "Wheat & Paddy")
+        register_farmer(sso_name, sso_email, "Green Valley Farm", 15.0, "AgriPass123!", "Farmer", 32, avatar_id, "Wheat & Paddy")
 
     res = login_farmer(sso_email, "AgriPass123!")
     return {

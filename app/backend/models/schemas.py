@@ -30,6 +30,11 @@ class LoginRequest(BaseModel):
     def sanitize_email(cls, v):
         return sanitize_email_or_phone(v)
 
+class SSORequest(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[str] = None
+    avatar_id: Optional[int] = 1
+
 class OTPRequest(BaseModel):
     phone_or_email: str
     full_name: str = "Farmer"
