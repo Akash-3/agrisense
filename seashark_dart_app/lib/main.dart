@@ -39,7 +39,7 @@ void main() {
 }
 
 class AppConfig {
-  static String activeHost = 'akash.tail0d103f.ts.net:8000';
+  static String activeHost = 'agrisense.tail0d103f.ts.net:8000';
 
   static String get backendHttpUrl {
     if (activeHost.startsWith('http://') || activeHost.startsWith('https://')) return activeHost;
@@ -59,8 +59,10 @@ class AppConfig {
 
   static Future<String> resolveActiveHost() async {
     List<String> candidates = [
-      'akash.tail0d103f.ts.net:8000',
-      'akash.tail0d103f.ts.net',
+      'agrisense.tail0d103f.ts.net:8000',
+      'agrisense.tail0d103f.ts.net',
+      'agrisense.ts.net:8000',
+      'agrisense.ts.net',
     ];
 
     Completer<String> completer = Completer<String>();
