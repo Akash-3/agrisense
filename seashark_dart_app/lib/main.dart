@@ -3009,46 +3009,54 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                         ),
 
                         // 2. CENTER: EXTENDED CURVED-EDGE FARM SELECTOR CAPSULE
-                        InkWell(
-                          onTap: _showExtendedFarmSelectorDialog,
-                          borderRadius: BorderRadius.circular(25),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF047857),
-                              borderRadius: BorderRadius.circular(25),
-                              boxShadow: [BoxShadow(color: const Color(0xFF047857).withOpacity(0.35), blurRadius: 8)],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.landscape_rounded, color: Colors.white, size: 18),
-                                const SizedBox(width: 8),
-                                Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      activeFarm['farm_name'] ?? 'Main Farm',
-                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12.5),
+                        Flexible(
+                          child: InkWell(
+                            onTap: _showExtendedFarmSelectorDialog,
+                            borderRadius: BorderRadius.circular(25),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF047857),
+                                borderRadius: BorderRadius.circular(25),
+                                boxShadow: [BoxShadow(color: const Color(0xFF047857).withOpacity(0.35), blurRadius: 8)],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.landscape_rounded, color: Colors.white, size: 18),
+                                  const SizedBox(width: 6),
+                                  Flexible(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          activeFarm['farm_name'] ?? 'Main Farm',
+                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12.5),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
+                                        ),
+                                        Text(
+                                          '${activeFarm['farm_acres'] ?? 15.0} Acres',
+                                          style: const TextStyle(color: Colors.white70, fontSize: 9.5, fontWeight: FontWeight.w500),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
+                                        ),
+                                      ],
                                     ),
-                                    Text(
-                                      '${activeFarm['farm_acres'] ?? 15.0} Acres',
-                                      style: const TextStyle(color: Colors.white70, fontSize: 9.5, fontWeight: FontWeight.w500),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(width: 6),
-                                const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 20),
-                                const SizedBox(width: 6),
-                                Container(height: 16, width: 1, color: Colors.white30),
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.all(3),
-                                  decoration: const BoxDecoration(color: Colors.white24, shape: BoxShape.circle),
-                                  child: const Icon(Icons.add_rounded, color: Colors.white, size: 14),
-                                ),
-                              ],
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 18),
+                                  const SizedBox(width: 4),
+                                  Container(height: 14, width: 1, color: Colors.white30),
+                                  const SizedBox(width: 4),
+                                  Container(
+                                    padding: const EdgeInsets.all(3),
+                                    decoration: const BoxDecoration(color: Colors.white24, shape: BoxShape.circle),
+                                    child: const Icon(Icons.add_rounded, color: Colors.white, size: 13),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -4665,13 +4673,15 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
+                            Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 6,
+                              runSpacing: 4,
                               children: [
                                 const Text(
                                   'Live Crop Health AI Scanner',
-                                  style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.bold, color: Colors.white),
+                                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.bold, color: Colors.white),
                                 ),
-                                const SizedBox(width: 6),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: const BoxDecoration(color: Color(0xFF34D399), borderRadius: BorderRadius.all(Radius.circular(6))),
