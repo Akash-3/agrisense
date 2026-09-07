@@ -1,3 +1,4 @@
+import hashlib
 from typing import Optional
 from fastapi import APIRouter, HTTPException
 from database import (
@@ -54,11 +55,18 @@ async def handle_sso_login(provider: str, payload: Optional[SSORequest] = None):
     sso_name = (payload.full_name if payload and payload.full_name else f"{provider_clean.capitalize()} Farmer")
     sso_email = (payload.email if payload and payload.email else f"{provider_clean}.farmer@agrisense.io")
     avatar_id = (payload.avatar_id if payload and payload.avatar_id else 1)
+    farm_name = (payload.farm_name if payload and payload.farm_name else f"{sso_name}'s Farm")
+    farm_acres = (payload.farm_acres if payload and payload.farm_acres is not None else 10.0)
+    crop_type = (payload.crop_type if payload and payload.crop_type else "Wheat & Paddy")
+    gender = (payload.gender if payload and payload.gender else "Farmer")
+    age = (payload.age if payload and payload.age is not None else 30)
+
+    sso_internal_pass = f"SSO_SECURE_{hashlib.sha256(sso_email.encode()).hexdigest()[:16]}"
 
     if not check_farmer_exists(sso_email):
-        register_farmer(sso_name, sso_email, "Green Valley Farm", 15.0, "AgriPass123!", "Farmer", 32, avatar_id, "Wheat & Paddy")
+        register_farmer(sso_name, sso_email, farm_name, farm_acres, sso_internal_pass, gender, age, avatar_id, crop_type)
 
-    res = login_farmer(sso_email, "AgriPass123!")
+    res = login_farmer(sso_email, sso_internal_pass)
     return {
         "status": "success",
         "provider": provider_clean,

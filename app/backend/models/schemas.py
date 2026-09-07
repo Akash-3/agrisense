@@ -34,6 +34,11 @@ class SSORequest(BaseModel):
     full_name: Optional[str] = None
     email: Optional[str] = None
     avatar_id: Optional[int] = 1
+    farm_name: Optional[str] = None
+    farm_acres: Optional[float] = None
+    crop_type: Optional[str] = None
+    gender: Optional[str] = None
+    age: Optional[int] = None
 
 class OTPRequest(BaseModel):
     phone_or_email: str
