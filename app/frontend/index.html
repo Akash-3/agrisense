@@ -1291,42 +1291,95 @@
         </div>
     </div>
 
-    <!-- MODAL: FIELD DETAIL -->
-    <div id="fieldDetailModal" class="hidden fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl border border-slate-100">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 id="modalFieldName" class="text-base font-bold text-slate-900">Field Plot Details</h3>
-                <button onclick="UI.closeFieldDetailModal()" class="text-slate-400 hover:text-slate-600">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
-            </div>
+    <!-- ==================== RESPONSIVE FIELD DETAILS DRAWER / PANEL ==================== -->
+    <div id="fieldDetailBackdrop" onclick="UI.closeFieldDetailPanel()" class="fixed inset-0 bg-slate-950/25 z-40 transition-opacity duration-300 opacity-0 pointer-events-none"></div>
 
-            <div class="space-y-3 text-xs">
-                <div class="flex justify-between py-2 border-b border-slate-100">
-                    <span class="text-slate-500">Acreage Area</span>
-                    <strong id="modalFieldAcres" class="text-slate-900">15.0 Acres</strong>
+    <div id="fieldDetailPanel" class="fixed z-50 bg-white/95 backdrop-blur-md border border-slate-200/80 shadow-2xl transition-all duration-300 ease-out transform translate-y-full md:translate-y-0 md:translate-x-full hidden flex flex-col pointer-events-auto
+         left-0 right-0 bottom-0 rounded-t-3xl max-h-[85vh] p-5
+         md:left-auto md:right-4 md:top-20 md:bottom-4 md:w-[380px] md:max-h-[calc(100vh-6rem)] md:rounded-2xl md:p-6 overflow-y-auto">
+
+        <!-- Mobile Drag Handle -->
+        <div class="w-12 h-1.5 bg-slate-300 rounded-full mx-auto mb-3 md:hidden"></div>
+
+        <!-- Header -->
+        <div class="flex items-start justify-between pb-3 border-b border-slate-100 mb-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-agri-primary flex items-center justify-center font-bold shadow-sm">
+                    <i class="fa-solid fa-wheat-awn text-lg"></i>
                 </div>
-                <div class="flex justify-between py-2 border-b border-slate-100">
-                    <span class="text-slate-500">Crop Cultivated</span>
-                    <strong id="modalFieldCrop" class="text-slate-900">Wheat & Paddy</strong>
-                </div>
-                <div class="flex justify-between py-2 border-b border-slate-100">
-                    <span class="text-slate-500">Crop Health Index</span>
-                    <strong id="modalFieldHealth" class="text-agri-primary font-bold">85.0 / 100</strong>
-                </div>
-                <div class="flex justify-between py-2 border-b border-slate-100">
-                    <span class="text-slate-500">Soil Hydration VWC</span>
-                    <strong id="modalFieldHydration" class="text-cyan-600">42.5%</strong>
-                </div>
-                <div class="flex justify-between py-2">
-                    <span class="text-slate-500">Pathogen Risk Level</span>
-                    <strong id="modalFieldRisk" class="text-emerald-700 font-bold">9.9%</strong>
+                <div>
+                    <h3 id="panelFieldName" class="text-base font-black text-slate-900 leading-snug">Green Valley Field Plot</h3>
+                    <div class="flex items-center space-x-2 mt-0.5 text-xs text-slate-500 font-medium">
+                        <span id="panelFieldAcres">15.0 Acres</span>
+                        <span>•</span>
+                        <span id="panelFieldCrop" class="text-emerald-700 font-bold">Wheat & Paddy</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="flex justify-end pt-2">
-                <button onclick="UI.closeFieldDetailModal()" class="px-5 py-2.5 rounded-xl btn-agri-primary text-xs font-bold">Close</button>
+            <button onclick="UI.closeFieldDetailPanel()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 hover:bg-slate-200 flex items-center justify-center transition shadow-sm ml-2">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Metric Details Cards -->
+        <div class="space-y-3.5 text-xs flex-1">
+            <!-- Metric 1: Crop Health -->
+            <div class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/80 flex items-center justify-between">
+                <div class="space-y-0.5">
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Crop Health Index (CHI)</span>
+                    <div class="text-lg font-black text-slate-900" id="panelFieldHealth">85.0 / 100</div>
+                </div>
+                <span id="panelFieldHealthBadge" class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px]">
+                    Excellent
+                </span>
             </div>
+
+            <!-- Metric 2: Soil Hydration -->
+            <div class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/80 flex items-center justify-between">
+                <div class="space-y-0.5">
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Soil Hydration VWC</span>
+                    <div class="text-lg font-black text-cyan-700" id="panelFieldHydration">42.5%</div>
+                </div>
+                <span id="panelFieldHydrationBadge" class="px-2.5 py-1 rounded-full bg-cyan-100 text-cyan-800 font-bold text-[11px]">
+                    Optimal
+                </span>
+            </div>
+
+            <!-- Metric 3: Pathogen Risk -->
+            <div class="bg-slate-50/80 p-3.5 rounded-xl border border-slate-200/80 flex items-center justify-between">
+                <div class="space-y-0.5">
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pathogen Risk Level</span>
+                    <div class="text-lg font-black text-emerald-700" id="panelFieldRisk">9.9%</div>
+                </div>
+                <span id="panelFieldRiskBadge" class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px]">
+                    Low Risk
+                </span>
+            </div>
+
+            <!-- Metadata Info -->
+            <div class="pt-2 border-t border-slate-100 space-y-2 text-slate-500 text-[11px]">
+                <div class="flex justify-between">
+                    <span>Telemetry Sync:</span>
+                    <strong id="panelFieldSync" class="text-slate-700 font-semibold">2 min ago (Live)</strong>
+                </div>
+                <div class="flex justify-between">
+                    <span>IoT Sensor Station:</span>
+                    <strong class="text-slate-700 font-semibold">Node-01 (Capacitive)</strong>
+                </div>
+                <div class="flex justify-between">
+                    <span>Drone Coverage Status:</span>
+                    <strong class="text-emerald-600 font-semibold">Optimal Scan Completed</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Button -->
+        <div class="pt-4 border-t border-slate-100 mt-3 flex items-center space-x-2">
+            <button onclick="UI.switchView('telemetry')" class="btn-agri-primary w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5 shadow-md">
+                <i class="fa-solid fa-chart-line text-xs"></i>
+                <span>View Full Telemetry Data</span>
+            </button>
         </div>
     </div>
 

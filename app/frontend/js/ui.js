@@ -589,23 +589,95 @@ const UI = {
         setTimeout(() => container.classList.add('hidden'), 4000);
     },
 
-    showFieldDetailModal(field) {
-        const modal = document.getElementById('fieldDetailModal');
-        if (!modal) return;
+    showFieldDetailPanel(field, polygon) {
+        const panel = document.getElementById('fieldDetailPanel');
+        const backdrop = document.getElementById('fieldDetailBackdrop');
+        if (!panel) return;
 
-        document.getElementById('modalFieldName').innerText = field.name;
-        document.getElementById('modalFieldAcres').innerText = `${field.acres} Acres`;
-        document.getElementById('modalFieldCrop').innerText = field.crop;
-        document.getElementById('modalFieldHealth').innerText = `${field.health.toFixed(1)} / 100`;
-        document.getElementById('modalFieldHydration').innerText = `${field.hydration.toFixed(1)}%`;
-        document.getElementById('modalFieldRisk').innerText = `${field.risk.toFixed(1)}%`;
+        // Set Values with fallback for data availability
+        document.getElementById('panelFieldName').innerText = field.name || "Field Plot";
+        document.getElementById('panelFieldAcres').innerText = field.acres ? `${field.acres} Acres` : "Not available";
+        document.getElementById('panelFieldCrop').innerText = field.crop || "Not available";
+        document.getElementById('panelFieldHealth').innerText = field.health !== undefined ? `${field.health.toFixed(1)} / 100` : "Not available";
+        document.getElementById('panelFieldHydration').innerText = field.hydration !== undefined ? `${field.hydration.toFixed(1)}%` : "Not available";
+        document.getElementById('panelFieldRisk').innerText = field.risk !== undefined ? `${field.risk.toFixed(1)}%` : "Not available";
 
-        modal.classList.remove('hidden');
+        // Badges
+        const healthBadge = document.getElementById('panelFieldHealthBadge');
+        if (healthBadge && field.health !== undefined) {
+            if (field.health >= 80) {
+                healthBadge.innerText = "Excellent";
+                healthBadge.className = "px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px]";
+            } else if (field.health >= 60) {
+                healthBadge.innerText = "Moderate";
+                healthBadge.className = "px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-[11px]";
+            } else {
+                healthBadge.innerText = "Attention Needed";
+                healthBadge.className = "px-2.5 py-1 rounded-full bg-red-100 text-red-800 font-bold text-[11px]";
+            }
+        }
+
+        const hydBadge = document.getElementById('panelFieldHydrationBadge');
+        if (hydBadge && field.hydration !== undefined) {
+            if (field.hydration >= 35) {
+                hydBadge.innerText = "Optimal";
+                hydBadge.className = "px-2.5 py-1 rounded-full bg-cyan-100 text-cyan-800 font-bold text-[11px]";
+            } else {
+                hydBadge.innerText = "Low VWC";
+                hydBadge.className = "px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-[11px]";
+            }
+        }
+
+        const riskBadge = document.getElementById('panelFieldRiskBadge');
+        if (riskBadge && field.risk !== undefined) {
+            if (field.risk < 15) {
+                riskBadge.innerText = "Low Risk";
+                riskBadge.className = "px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px]";
+            } else {
+                riskBadge.innerText = "Elevated Risk";
+                riskBadge.className = "px-2.5 py-1 rounded-full bg-rose-100 text-rose-800 font-bold text-[11px]";
+            }
+        }
+
+        // Display panel & backdrop
+        if (backdrop) {
+            backdrop.classList.remove('opacity-0', 'pointer-events-none');
+            backdrop.classList.add('opacity-100', 'pointer-events-auto');
+        }
+
+        panel.classList.remove('hidden');
+        setTimeout(() => {
+            panel.classList.remove('translate-y-full', 'md:translate-x-full');
+            panel.classList.add('translate-y-0', 'md:translate-x-0');
+        }, 10);
     },
 
-    closeFieldDetailModal() {
-        const modal = document.getElementById('fieldDetailModal');
-        if (modal) modal.classList.add('hidden');
+    closeFieldDetailPanel() {
+        const panel = document.getElementById('fieldDetailPanel');
+        const backdrop = document.getElementById('fieldDetailBackdrop');
+
+        if (panel) {
+            panel.classList.remove('translate-y-0', 'md:translate-x-0');
+            panel.classList.add('translate-y-full', 'md:translate-x-full');
+        }
+        if (backdrop) {
+            backdrop.classList.remove('opacity-100', 'pointer-events-auto');
+            backdrop.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        setTimeout(() => {
+            if (panel) panel.classList.add('hidden');
+        }, 300);
+
+        if (window.MapService) {
+            window.MapService.clearSelectedPolygon();
+        }
+    },
+
+    closeAllModalsAndDrawers() {
+        this.closeFieldDetailPanel();
+        this.closeAddFarmModal();
+        this.closeOTPAuthModal();
     },
 
     openAddFarmModal() {
@@ -912,4 +984,11 @@ window.UI = UI;
 
 document.addEventListener('DOMContentLoaded', () => {
     window.UI.init();
+
+    // Global ESC key listener to close open modals and drawers
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' || e.key === 'Esc') {
+            if (window.UI) window.UI.closeAllModalsAndDrawers();
+        }
+    });
 });

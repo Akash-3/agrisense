@@ -86,12 +86,38 @@ const MapService = {
         this.renderFields();
     },
 
+    selectedPolygon: null,
+
+    clearSelectedPolygon() {
+        if (this.selectedPolygon) {
+            if (this.selectedPolygon.defaultStyle) {
+                this.selectedPolygon.setStyle(this.selectedPolygon.defaultStyle);
+            }
+            this.selectedPolygon = null;
+        }
+    },
+
+    setSelectedPolygon(polygon) {
+        this.clearSelectedPolygon();
+        this.selectedPolygon = polygon;
+        if (polygon) {
+            polygon.setStyle({
+                color: '#059669',
+                weight: 4,
+                fillColor: '#059669',
+                fillOpacity: 0.55
+            });
+            polygon.bringToFront();
+        }
+    },
+
     renderFields() {
         if (!this.map) return;
 
         // Remove existing polygons
         this.fieldPolygons.forEach(p => this.map.removeLayer(p));
         this.fieldPolygons = [];
+        this.selectedPolygon = null;
 
         const fieldData = [
             {
@@ -153,12 +179,15 @@ const MapService = {
                 fillColor = field.risk > 20 ? "#EF5B67" : "#079A70";
             }
 
-            const polygon = L.polygon(field.coords, {
+            const defaultStyle = {
                 color: fillColor,
                 weight: 2,
                 fillColor: fillColor,
                 fillOpacity: 0.35
-            }).addTo(this.map);
+            };
+
+            const polygon = L.polygon(field.coords, defaultStyle).addTo(this.map);
+            polygon.defaultStyle = defaultStyle;
 
             polygon.bindTooltip(`<b>${field.name}</b><br>${field.acres} Acres • ${field.crop}`, {
                 permanent: false,
@@ -167,8 +196,12 @@ const MapService = {
             });
 
             polygon.on('click', () => {
+                this.setSelectedPolygon(polygon);
+                if (this.map) {
+                    this.map.fitBounds(polygon.getBounds(), { padding: [60, 60], maxZoom: 16, animate: true });
+                }
                 if (window.UI) {
-                    window.UI.showFieldDetailModal(field);
+                    window.UI.showFieldDetailPanel(field, polygon);
                 }
             });
 
