@@ -2,18 +2,32 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 
 class AppConfig {
-  static String activeHost = '100.126.23.88:8000';
+  static String activeHost = 'https://agrisense.tail0d103f.ts.net';
   static String? userCustomHost;
 
   static String get backendHttpUrl {
     String host = userCustomHost ?? activeHost;
     if (host.startsWith('http://') || host.startsWith('https://')) return host;
+    if (host.contains('agrisense.tail0d103f.ts.net') && !host.contains(':8000')) {
+      return 'https://$host';
+    }
     return 'http://$host';
   }
 
   static String get backendWsUrl {
     String host = userCustomHost ?? activeHost;
-    if (host.startsWith('ws://') || host.startsWith('wss://')) return host;
+    if (host.startsWith('ws://') || host.startsWith('wss://')) {
+      return host;
+    }
+    if (host.startsWith('http://')) {
+      return host.replaceFirst('http://', 'ws://');
+    }
+    if (host.startsWith('https://')) {
+      return host.replaceFirst('https://', 'wss://');
+    }
+    if (host.contains('agrisense.tail0d103f.ts.net') && !host.contains(':8000')) {
+      return 'wss://$host';
+    }
     return 'ws://$host';
   }
 
@@ -23,22 +37,23 @@ class AppConfig {
       return activeHost;
     }
 
-    // TAILSCALE TAILNET EXCLUSIVE HOST LIST
+    // EXCLUSIVE TAILNET DOMAIN & TAILNET IP CANDIDATES (NO CLOUDFLARE)
     List<String> candidates = [
-      '100.126.23.88:8000',
-      'agrisense.tail0d103f.ts.net:8000',
-      '172.19.17.125:8000',
+      'https://agrisense.tail0d103f.ts.net',
+      'http://100.126.23.88:8000',
+      'http://agrisense.tail0d103f.ts.net:8000',
+      'http://172.19.17.125:8000',
     ];
 
     Completer<String> completer = Completer<String>();
     int pending = candidates.length;
 
-    for (String host in candidates) {
-      final uri = Uri.parse('http://$host/api/v1/health');
-      http.get(uri).timeout(const Duration(milliseconds: 2500)).then((res) {
+    for (String url in candidates) {
+      final uri = Uri.parse('$url/api/v1/health');
+      http.get(uri).timeout(const Duration(milliseconds: 3500)).then((res) {
         if (res.statusCode == 200 && !completer.isCompleted) {
-          activeHost = host;
-          completer.complete(host);
+          activeHost = url;
+          completer.complete(url);
         } else {
           pending--;
           if (pending <= 0 && !completer.isCompleted) {
@@ -56,3 +71,4 @@ class AppConfig {
     return completer.future;
   }
 }
+

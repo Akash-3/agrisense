@@ -500,7 +500,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         Uri.parse('${AppConfig.backendHttpUrl}/api/v1/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'phone_or_email': id, 'password': pass}),
-      ).timeout(const Duration(seconds: 5));
+      ).timeout(const Duration(seconds: 12));
 
       final data = jsonDecode(res.body);
       if (res.statusCode == 200 && data['status'] == 'success') {
@@ -511,7 +511,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         return;
       }
     } catch (e) {
-      _showMsg('Server Connection Error: Unable to reach backend server at ${AppConfig.activeHost}. Ensure phone is on same Wi-Fi network as server.');
+      _showMsg('Server Connection Error: Unable to reach backend server at ${AppConfig.backendHttpUrl}.\n($e)');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -525,7 +525,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       final res = await http.post(
         Uri.parse('${AppConfig.backendHttpUrl}/api/v1/auth/sso/$provider'),
         headers: {'Content-Type': 'application/json'},
-      ).timeout(const Duration(seconds: 5));
+      ).timeout(const Duration(seconds: 12));
 
       final data = jsonDecode(res.body);
       if (res.statusCode == 200 && data['status'] == 'success') {
@@ -536,7 +536,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         _showMsg(data['detail'] ?? data['message'] ?? 'SSO authentication failed.');
       }
     } catch (e) {
-      _showMsg('Server Connection Error: Unable to reach backend server at ${AppConfig.activeHost}.');
+      _showMsg('Server Connection Error: Unable to reach backend server at ${AppConfig.backendHttpUrl}.\n($e)');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -1033,6 +1033,78 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     );
   }
 
+  void _showServerSettingsDialog() {
+    final controller = TextEditingController(text: AppConfig.userCustomHost ?? AppConfig.activeHost);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: const [
+            Icon(Icons.dns_rounded, color: Color(0xFF10B981)),
+            SizedBox(width: 10),
+            Text('Server Settings', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Backend Host / Server URL:',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: controller,
+              decoration: InputDecoration(
+                hintText: 'e.g. https://agrisense.tail0d103f.ts.net',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Available Host Endpoints:\n• https://agrisense.tail0d103f.ts.net (Tailscale Funnel)\n• http://100.126.23.88:8000 (Tailnet VPN)\n• http://172.19.17.125:8000 (Local Wi-Fi)',
+              style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              AppConfig.userCustomHost = null;
+              AppConfig.resolveActiveHost().then((_) {
+                if (mounted) setState(() {});
+              });
+              Navigator.pop(ctx);
+              _showMsg('Reset to automatic server auto-discovery.', isError: false);
+            },
+            child: const Text('Auto-Detect', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              final val = controller.text.trim();
+              if (val.isNotEmpty) {
+                AppConfig.userCustomHost = val;
+                AppConfig.activeHost = val;
+                if (mounted) setState(() {});
+                _showMsg('Updated Server Host to: ${AppConfig.backendHttpUrl}', isError: false);
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('Save Host'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -1059,7 +1131,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
               child: Column(
                 children: [
-                  // Top Tagline Bar & Floating Drone Badge
+                  // Top Tagline Bar & Floating Server Config Badge
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -1082,20 +1154,23 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                           ],
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0F172A),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF10B981).withOpacity(0.3),
-                              blurRadius: 10,
-                              spreadRadius: 1,
-                            ),
-                          ],
+                      GestureDetector(
+                        onTap: _showServerSettingsDialog,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0F172A),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF10B981).withOpacity(0.3),
+                                blurRadius: 10,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(Icons.dns_rounded, color: Color(0xFF34D399), size: 18),
                         ),
-                        child: const Icon(Icons.sensors_rounded, color: Color(0xFF34D399), size: 18),
                       ),
                     ],
                   ),
@@ -2180,7 +2255,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
                         // 2. Direct High-Speed Stream Downloader via HTTP
                         final rawUrl = updateInfo['download_url'].toString();
-                        final downloadUrl = rawUrl.replaceAll('localhost', AppConfig.activeHost).replaceAll('127.0.0.1', AppConfig.activeHost);
+                        final String downloadUrl = rawUrl.startsWith('http')
+                            ? rawUrl
+                            : '${AppConfig.backendHttpUrl}$rawUrl';
 
                         httpClient = http.Client();
                         final req = http.Request('GET', Uri.parse(downloadUrl));
