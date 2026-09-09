@@ -1,5 +1,5 @@
 /*
- * AgriSense Multi-Sensor IoT Station Firmware
+ * AgriSense ESP32 Multi-Sensor IoT Station Firmware
  * Microcontroller: ESP32-WROOM-32 30-Pin USB-C DevKit
  * 
  * Connected Sensors:
@@ -7,22 +7,9 @@
  *   2. MQ-135 Air Quality / Smoke Sensor (Analog -> D35 / GPIO 35)
  *   3. DHT22 Temperature & Humidity Sensor (Digital Data -> D4 / GPIO 4)
  * 
- * Hardware Wiring:
- *   - Soil Sensor VCC  -> ESP32 3V3
- *   - Soil Sensor GND  -> ESP32 GND
- *   - Soil Sensor AOUT -> ESP32 D34 (GPIO 34)
- * 
- *   - MQ-135 VCC       -> ESP32 VIN (5V) [Heater requires 5V]
- *   - MQ-135 GND       -> ESP32 GND
- *   - MQ-135 AOUT      -> ESP32 D35 (GPIO 35)
- * 
- *   - DHT22 VCC        -> ESP32 3V3
- *   - DHT22 GND        -> ESP32 GND
- *   - DHT22 DATA       -> ESP32 D4  (GPIO 4)
- * 
- * Features:
- *   - Complete Fault-Tolerance & Error Handling (Won't crash if sensors are unplugged)
- *   - Live Ingestion to AgriSense FastAPI Backend & Real-time Flutter Dashboard
+ * Calibration Note:
+ *   - Dry Air ADC = 4095 (0.0% Moisture)
+ *   - Submerged Water ADC = 1200 (100.0% Moisture)
  */
 
 #include <WiFi.h>
@@ -33,10 +20,10 @@
 const char* WIFI_SSID     = "YOUR_WIFI_SSID";       // Replace with your Wi-Fi name
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";   // Replace with your Wi-Fi password
 
-// Server Endpoint (Replace with your Laptop IP or Cloudflare URL)
-// Example Local IP: "http://192.168.1.100:8000/api/v1/telemetry/ingest"
-// Example Cloudflare: "https://your-tunnel.trycloudflare.com/api/v1/telemetry/ingest"
-const char* SERVER_URL = "http://192.168.1.100:8000/api/v1/telemetry/ingest";
+// Server Endpoint (Using your Laptop's actual Wi-Fi IP address or Cloudflare Tunnel)
+// Local Wi-Fi IP: "http://172.19.17.125:8000/api/v1/telemetry/ingest"
+// Cloudflare Tunnel: "https://pressing-introducing-knit-matters.trycloudflare.com/api/v1/telemetry/ingest"
+const char* SERVER_URL = "http://172.19.17.125:8000/api/v1/telemetry/ingest";
 
 const char* DEVICE_ID  = "ESP32_MULTI_NODE_01";
 
@@ -48,8 +35,8 @@ const char* DEVICE_ID  = "ESP32_MULTI_NODE_01";
 
 DHT dht(DHT_PIN, DHTTYPE);
 
-// Soil Calibration Constants (12-bit ADC: 0 - 4095)
-const int AirValue   = 3200; // Sensor in dry air (0% moisture)
+// Soil Calibration Constants (Dry Air ADC = 4095, Submerged Water ADC = 1200)
+const int AirValue   = 4095; // Sensor in dry air (0% moisture)
 const int WaterValue = 1200; // Sensor submerged in water (100% moisture)
 
 // Read Intervals
@@ -65,16 +52,13 @@ void setup() {
   Serial.println("   🌱 AgriSense ESP32 Multi-Sensor Station Booting       ");
   Serial.println("==========================================================");
 
-  // Configure ADC resolution (12-bit = 0-4095 range)
   analogReadResolution(12);
   pinMode(SOIL_PIN, INPUT);
   pinMode(MQ135_PIN, INPUT);
 
-  // Initialize DHT22 Sensor
   dht.begin();
   Serial.println("[DHT22] Sensor driver initialized on GPIO 4.");
 
-  // Connect to Wi-Fi
   Serial.print("[Wi-Fi] Connecting to network: ");
   Serial.println(WIFI_SSID);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -91,7 +75,6 @@ void setup() {
   Serial.println("==========================================================");
 }
 
-// Multi-sample ADC filter to smooth out noise
 int readAveragedAnalog(int pin, int samples = 10) {
   long sum = 0;
   for (int i = 0; i < samples; i++) {
@@ -103,44 +86,35 @@ int readAveragedAnalog(int pin, int samples = 10) {
 
 // ------------------- SENSOR READERS WITH FAULT TOLERANCE -------------------
 
-// 1. Soil Moisture Reader with Disconnection Check
+// 1. Soil Moisture Reader (Dry Air = 4095 -> 0.0% Moisture)
 float getSoilMoisture(int &rawADC) {
   rawADC = readAveragedAnalog(SOIL_PIN, 10);
 
-  // Disconnection check: Only trigger if pin is completely shorted/disconnected (0 or 4095)
-  if (rawADC <= 10 || rawADC >= 4094) {
-    Serial.printf("[SOIL WARN] Sensor pin floating or completely disconnected (Raw ADC: %d). Using fallback 50.0%%\n", rawADC);
-    return 50.0f; // Safe default fallback
-  }
-
-  // Capacitive sensors output HIGH ADC when DRY (AirValue ~3400) and LOW ADC when WET (WaterValue ~1200)
+  // Capacitive sensors output 4095 ADC when DRY (AirValue = 4095) and ~1200 ADC when WET (WaterValue = 1200)
   float moisturePct = (float)map(rawADC, AirValue, WaterValue, 0, 100);
   return constrain(moisturePct, 0.0f, 100.0f);
 }
 
-// 2. MQ-135 Gas / Air Quality Reader with Fault Check
+// 2. MQ-135 Gas / Air Quality Reader
 float getSmokePPM(int &rawADC) {
   rawADC = readAveragedAnalog(MQ135_PIN, 10);
 
-  // Fault check: Floating or missing MQ-135 pin
-  if (rawADC < 30) {
-    Serial.printf("[MQ135 WARN] Sensor disconnected (Raw ADC: %d). Using fallback 85.0 PPM\n", rawADC);
-    return 85.0f; // Safe default fallback
+  if (rawADC < 10) {
+    Serial.printf("[MQ135 WARN] Sensor unplugged (Raw ADC: %d). Using fallback 85.0 PPM\n", rawADC);
+    return 85.0f;
   }
 
-  // Convert raw 12-bit ADC reading to estimated PPM value
   float ppm = map(rawADC, 200, 3500, 50, 600);
   return constrain(ppm, 20.0f, 999.0f);
 }
 
-// 3. DHT22 Temperature & Humidity Reader with NaN Check
+// 3. DHT22 Temp & Humidity Reader with NaN Protection
 void getDHTData(float &tempC, float &humidityPct) {
   float t = dht.readTemperature();
   float h = dht.readHumidity();
 
-  // Check if reading failed (unplugged or missing sensor)
   if (isnan(t) || isnan(h)) {
-    Serial.println("[DHT22 WARN] Sensor not detected / disconnected! Using fallback defaults (26.5°C, 62.0%)");
+    Serial.println("[DHT22 WARN] Sensor disconnected / NaN! Using fallback (26.5°C, 62.0%)");
     tempC = 26.5f;
     humidityPct = 62.0f;
   } else {
@@ -153,7 +127,7 @@ void getDHTData(float &tempC, float &humidityPct) {
 
 void sendTelemetry(float soilMoisture, float tempC, float humidity, float smokePPM) {
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("[Wi-Fi] Network lost! Attempting background reconnect...");
+    Serial.println("[Wi-Fi] Network connection lost! Reconnecting...");
     WiFi.reconnect();
     return;
   }
@@ -167,17 +141,17 @@ void sendTelemetry(float soilMoisture, float tempC, float humidity, float smokeP
            "{\"device_id\":\"%s\",\"soil_moisture\":%.1f,\"temperature\":%.1f,\"humidity\":%.1f,\"smoke_ppm\":%.1f}",
            DEVICE_ID, soilMoisture, tempC, humidity, smokePPM);
 
-  Serial.print("[HTTP] Outgoing Telemetry: ");
+  Serial.print("[HTTP] Telemetry Payload: ");
   Serial.println(jsonBuffer);
 
-  int httpResponseCode = http.POST(jsonBuffer);
+  int httpCode = http.POST(jsonBuffer);
 
-  if (httpResponseCode > 0) {
+  if (httpCode > 0) {
     String response = http.getString();
-    Serial.printf("[HTTP] ✅ Success! Response Code: %d\n", httpResponseCode);
+    Serial.printf("[HTTP] ✅ Server Response Code: %d\n", httpCode);
   } else {
-    Serial.printf("[HTTP] ❌ POST Failed, Error: %s (Code: %d)\n",
-                  http.errorToString(httpResponseCode).c_str(), httpResponseCode);
+    Serial.printf("[HTTP] ❌ POST Error: %s (Code: %d)\n",
+                  http.errorToString(httpCode).c_str(), httpCode);
   }
 
   http.end();
@@ -191,20 +165,17 @@ void loop() {
   if (currentMillis - lastSendTime >= SEND_INTERVAL_MS) {
     lastSendTime = currentMillis;
 
-    int rawSoilADC = 0;
-    int rawMQADC = 0;
+    int rawSoilADC = 0, rawMQADC = 0;
+    float tempC = 0.0f, humidity = 0.0f;
 
-    // Read all 3 sensors with individual error handling
     float soilMoisture = getSoilMoisture(rawSoilADC);
     float smokePPM     = getSmokePPM(rawMQADC);
-    float tempC = 0.0f, humidity = 0.0f;
     getDHTData(tempC, humidity);
 
     Serial.println("----------------------------------------------------------");
-    Serial.printf("[READINGS] Soil: %.1f%% | Temp: %.1f°C | Humidity: %.1f%% | Smoke: %.1f PPM\n",
-                  soilMoisture, tempC, humidity, smokePPM);
+    Serial.printf("[SENSOR READINGS] Raw Soil ADC (D34): %d -> Moisture: %.1f%%\n", rawSoilADC, soilMoisture);
+    Serial.printf("[SENSOR READINGS] Temp: %.1f°C | Humidity: %.1f%% | Air: %.1f PPM\n", tempC, humidity, smokePPM);
 
-    // Send payload to backend REST endpoint
     sendTelemetry(soilMoisture, tempC, humidity, smokePPM);
   }
 }
