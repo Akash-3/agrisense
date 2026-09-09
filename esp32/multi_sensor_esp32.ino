@@ -107,12 +107,13 @@ int readAveragedAnalog(int pin, int samples = 10) {
 float getSoilMoisture(int &rawADC) {
   rawADC = readAveragedAnalog(SOIL_PIN, 10);
 
-  // Fault check: Open/floating pin reads extreme high/low
-  if (rawADC < 100 || rawADC > 4050) {
-    Serial.printf("[SOIL WARN] Sensor unplugged or disconnected (Raw ADC: %d). Using fallback 50.0%%\n", rawADC);
+  // Disconnection check: Only trigger if pin is completely shorted/disconnected (0 or 4095)
+  if (rawADC <= 10 || rawADC >= 4094) {
+    Serial.printf("[SOIL WARN] Sensor pin floating or completely disconnected (Raw ADC: %d). Using fallback 50.0%%\n", rawADC);
     return 50.0f; // Safe default fallback
   }
 
+  // Capacitive sensors output HIGH ADC when DRY (AirValue ~3400) and LOW ADC when WET (WaterValue ~1200)
   float moisturePct = (float)map(rawADC, AirValue, WaterValue, 0, 100);
   return constrain(moisturePct, 0.0f, 100.0f);
 }
