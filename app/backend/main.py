@@ -63,8 +63,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
+
 @app.get("/")
-async def root_redirect():
+async def serve_web_dashboard():
+    index_path = os.path.join(frontend_dir, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
     return RedirectResponse(url="/docs")
 
 # MOUNT MODULAR ROUTERS
