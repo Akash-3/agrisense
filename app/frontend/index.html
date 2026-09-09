@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AgriSense • Enterprise Autonomous Agriculture Dashboard</title>
-    
-    <!-- PWA & Mobile Meta Tags -->
+    <title>AGRI-SENSE • Autonomous Agriculture Platform</title>
+
+    <!-- PWA & Mobile Meta -->
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#F8FAFC">
+    <meta name="theme-color" content="#079A70">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -21,112 +21,49 @@
             theme: {
                 extend: {
                     colors: {
-                        brand: {
-                            50: '#ecfdf5',
-                            100: '#d1fae5',
-                            200: '#a7f3d0',
-                            300: '#6ee7b7',
-                            400: '#34d399',
-                            500: '#10b981',
-                            600: '#059669',
-                            700: '#047857',
-                            800: '#065f46',
-                            900: '#064e3b',
+                        navy: {
+                            DEFAULT: '#0D172B',
+                            dark: '#080E1B',
+                            light: '#16233B',
+                        },
+                        agri: {
+                            primary: '#079A70',
+                            dark: '#006B50',
+                            secondary: '#159B7A',
+                            mint: '#DDF4EC',
+                            verylight: '#EFFAF6',
                         }
                     },
                     fontFamily: {
-                        sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+                        sans: ['Inter', 'Manrope', 'sans-serif'],
                     }
                 }
             }
         }
     </script>
+
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <!-- FontAwesome Icons CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
+
+    <!-- Google Fonts: Inter & Manrope -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <style>
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #F8FAFC;
-            color: #0F172A;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .btn-emerald {
-            background: linear-gradient(135deg, #059669 0%, #10B981 100%);
-            color: #FFFFFF;
-            box-shadow: 0 4px 14px rgba(5, 150, 105, 0.25);
-            transition: all 0.2s ease-in-out;
-        }
-
-        .btn-emerald:hover {
-            background: linear-gradient(135deg, #047857 0%, #059669 100%);
-            box-shadow: 0 6px 20px rgba(5, 150, 105, 0.35);
-            transform: translateY(-1px);
-        }
-
-        .card-white {
-            background: #FFFFFF;
-            border-radius: 20px;
-            box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
-            border: 1px solid #E2E8F0;
-            transition: all 0.2s ease;
-        }
-
-        .card-white:hover {
-            box-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.08);
-        }
-
-        .input-field {
-            background: #F8FAFC;
-            border: 1px solid #E2E8F0;
-            border-radius: 12px;
-            padding: 12px 16px;
-            font-size: 14px;
-            color: #0F172A;
-            transition: all 0.2s;
-        }
-
-        .input-field:focus {
-            outline: none;
-            border-color: #059669;
-            background: #FFFFFF;
-            box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15);
-        }
-
-        .badge-pill {
-            background: #ECFDF5;
-            border: 1px solid #A7F3D0;
-            color: #047857;
-            border-radius: 9999px;
-        }
-
-        .custom-toast {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            max-width: 420px;
-            z-index: 9999;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        /* Smooth scrollbars */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #F1F5F9; }
-        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
-    </style>
+    <!-- AgriSense Custom Stylesheet -->
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
-<body class="h-full flex flex-col antialiased">
+<body class="h-full flex flex-col antialiased bg-slate-50 text-slate-900">
 
-    <!-- ==================== TOAST NOTIFICATION ==================== -->
-    <div id="toastContainer" class="hidden custom-toast p-4 rounded-2xl bg-slate-900 text-white shadow-2xl flex items-center space-x-3 border border-slate-800">
+    <!-- ==================== TOAST NOTIFICATION CONTAINER ==================== -->
+    <div id="toastContainer" class="hidden custom-toast p-4 rounded-2xl bg-slate-900 text-white shadow-2xl flex items-center space-x-3 border border-slate-800 z-50">
         <div id="toastIconBg" class="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400">
             <i id="toastIcon" class="fa-solid fa-circle-check text-lg"></i>
         </div>
@@ -139,74 +76,68 @@
     <div id="authScreen" class="min-h-screen flex items-center justify-center p-4 sm:p-8 bg-slate-50">
         <div class="max-w-5xl w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             
-            <!-- LEFT HERO COLUMN (DESKTOP) -->
+            <!-- LEFT HERO COLUMN -->
             <div class="lg:col-span-7 space-y-6">
-                <div class="inline-flex items-center space-x-2 badge-pill px-4 py-1.5 text-xs font-bold uppercase tracking-wider">
-                    <i class="fa-solid fa-seedling text-emerald-600"></i>
-                    <span>SMART FARMS • HEALTHY CROPS</span>
+                <div class="inline-flex items-center space-x-2 badge-agri px-4 py-1.5 text-xs font-bold uppercase tracking-wider">
+                    <i class="fa-solid fa-seedling text-agri-primary"></i>
+                    <span>SMART FARMS • HEALTHY CROPS • BRIGHTER TOMORROW</span>
                 </div>
 
                 <h1 class="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight leading-none">
-                    Next-Gen Precision <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">Autonomous Agriculture</span>
+                    AGRIVISION Pro <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-agri-primary to-agri-secondary">AgriSense Autonomous Platform</span>
                 </h1>
 
                 <p class="text-slate-600 text-base font-normal max-w-lg leading-relaxed">
-                    AgriSense connects IoT micro-sensors, 10-channel optical NIR spectroscopy, and MM-SSNet deep learning models for sub-surface moisture tracking and early pathogen diagnosis.
+                    Connecting precision IoT micro-sensors, 10-channel optical NIR spectroscopy, and MM-SSNet deep learning models for sub-surface moisture tracking and early pathogen diagnosis.
                 </p>
 
-                <!-- FEATURE GRID -->
+                <!-- FEATURE CARDS -->
                 <div class="grid grid-cols-2 gap-4 pt-2">
-                    <div class="card-white p-4 space-y-1">
-                        <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-base">
+                    <div class="card-agri p-4 space-y-1">
+                        <div class="w-9 h-9 rounded-xl bg-agri-mint text-agri-dark flex items-center justify-center font-bold text-base">
                             <i class="fa-solid fa-tower-cell"></i>
                         </div>
-                        <div class="font-bold text-sm text-slate-900">Live Hardware Telemetry</div>
-                        <div class="text-xs text-slate-500">Soil VWC, DHT22 Temp/Humidity, MQ-135 Air Quality</div>
+                        <div class="font-bold text-sm text-slate-900">Live Telemetry & Sensors</div>
+                        <div class="text-xs text-slate-500">Soil VWC, DHT22 Temp/Humidity, MQ-135 Air</div>
                     </div>
 
-                    <div class="card-white p-4 space-y-1">
+                    <div class="card-agri p-4 space-y-1">
                         <div class="w-9 h-9 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-base">
-                            <i class="fa-solid fa-microscope"></i>
+                            <i class="fa-solid fa-plane-up"></i>
                         </div>
-                        <div class="font-bold text-sm text-slate-900">AS7341 10-Ch Spectrometrics</div>
-                        <div class="text-xs text-slate-500">Pre-symptomatic NIR reflectance & CHI indexing</div>
+                        <div class="font-bold text-sm text-slate-900">Autonomous Drones</div>
+                        <div class="text-xs text-slate-500">AS7341 optics, flight path planning & spray control</div>
                     </div>
                 </div>
             </div>
 
-            <!-- RIGHT FORM COLUMN -->
+            <!-- RIGHT AUTH FORM CARD -->
             <div class="lg:col-span-5">
-                <div class="card-white p-6 sm:p-8 space-y-6 shadow-xl border-slate-200">
+                <div class="card-agri p-6 sm:p-8 space-y-6 shadow-xl border-slate-200">
                     
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-3">
-                            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white text-2xl shadow-lg shadow-emerald-600/30">
-                                <i class="fa-solid fa-seedling"></i>
-                            </div>
-                            <div>
-                                <h2 class="text-xl font-black text-slate-900 tracking-tight">AgriSense</h2>
-                                <p class="text-xs text-slate-500 font-medium">Enterprise Web Portal</p>
-                            </div>
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-agri-primary to-agri-secondary flex items-center justify-center text-white text-2xl shadow-lg shadow-emerald-600/30">
+                            <i class="fa-solid fa-seedling"></i>
                         </div>
-
-                        <button onclick="openServerDialog()" class="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center justify-center text-sm transition" title="Server DNS Settings">
-                            <i class="fa-solid fa-network-wired"></i>
-                        </button>
+                        <div>
+                            <h2 class="text-xl font-black text-slate-900 tracking-tight">AgriSense</h2>
+                            <p class="text-xs text-slate-500 font-medium">Autonomous Agriculture Platform</p>
+                        </div>
                     </div>
 
-                    <!-- TAB TOGGLE -->
+                    <!-- TAB SWITCHER -->
                     <div class="bg-slate-100 p-1 rounded-xl flex items-center">
-                        <button onclick="switchAuthTab('login')" id="authTabLogin" class="flex-1 py-2.5 rounded-lg text-xs font-bold btn-emerald transition">Account Login</button>
-                        <button onclick="switchAuthTab('register')" id="authTabReg" class="flex-1 py-2.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition">Register</button>
+                        <button onclick="UI.switchAuthTab('login')" id="authTabLogin" class="flex-1 py-2.5 rounded-lg text-xs font-bold btn-agri-primary transition">Account Login</button>
+                        <button onclick="UI.switchAuthTab('register')" id="authTabReg" class="flex-1 py-2.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition">Register</button>
                     </div>
 
-                    <!-- LOGIN CARD -->
+                    <!-- LOGIN FORM -->
                     <div id="loginCard" class="space-y-4">
                         <div>
-                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Registered Mobile or Email</label>
+                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Mobile Number or Email</label>
                             <div class="relative">
                                 <i class="fa-solid fa-envelope text-slate-400 absolute left-4 top-3.5 text-sm"></i>
-                                <input type="text" id="loginIdInput" value="akashpsatapathy@gmail.com" placeholder="Enter phone or email" class="input-field w-full pl-10">
+                                <input type="text" id="loginIdInput" value="akashpsatapathy@gmail.com" placeholder="Enter phone or email" class="input-agri w-full pl-10">
                             </div>
                         </div>
 
@@ -214,8 +145,8 @@
                             <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Password</label>
                             <div class="relative">
                                 <i class="fa-solid fa-lock text-slate-400 absolute left-4 top-3.5 text-sm"></i>
-                                <input type="password" id="loginPassInput" value="Farmer@123" placeholder="Enter password" class="input-field w-full pl-10 pr-10">
-                                <button onclick="togglePassVisibility()" class="absolute right-4 top-3.5 text-slate-400 hover:text-slate-600">
+                                <input type="password" id="loginPassInput" value="Farmer@123" placeholder="Enter password" class="input-agri w-full pl-10 pr-10">
+                                <button onclick="UI.togglePassVisibility()" class="absolute right-4 top-3.5 text-slate-400 hover:text-slate-600">
                                     <i id="eyeIcon" class="fa-solid fa-eye-slash text-sm"></i>
                                 </button>
                             </div>
@@ -223,804 +154,890 @@
 
                         <div class="flex items-center justify-between text-xs">
                             <label class="flex items-center space-x-2 text-slate-600 cursor-pointer">
-                                <input type="checkbox" checked class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
-                                <span class="font-medium">Remember Session</span>
+                                <input type="checkbox" checked class="rounded border-slate-300 text-agri-primary focus:ring-agri-primary">
+                                <span class="font-medium">Remember Me</span>
                             </label>
-                            <a href="#" onclick="showToast('Password reset link sent to your inbox.', false)" class="font-bold text-emerald-600 hover:underline">Forgot Password?</a>
+                            <a href="#" onclick="UI.showToast('Password reset link sent.', false)" class="font-bold text-agri-primary hover:underline">Forgot Password?</a>
                         </div>
 
-                        <button onclick="submitLogin()" id="loginBtn" class="btn-emerald w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center space-x-2">
-                            <span>Sign In to Dashboard</span>
+                        <button onclick="UI.switchView('dashboard')" class="btn-agri-primary w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center space-x-2">
+                            <span>Sign In to Account</span>
                             <i class="fa-solid fa-arrow-right text-xs"></i>
                         </button>
 
                         <div class="relative flex items-center justify-center my-2">
                             <div class="border-t border-slate-200 w-full"></div>
-                            <span class="bg-white px-3 text-[10px] uppercase font-bold text-slate-400 absolute">OR CONTINUE WITH</span>
+                            <span class="bg-white px-3 text-[10px] uppercase font-bold text-slate-400 absolute">OR</span>
                         </div>
 
                         <div class="grid grid-cols-2 gap-3">
-                            <button onclick="submitLogin()" class="py-2.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center space-x-2 transition">
+                            <button onclick="UI.switchView('dashboard')" class="py-2.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center space-x-2 transition">
                                 <i class="fa-brands fa-google text-red-500"></i>
-                                <span>Google</span>
+                                <span>Continue with Google</span>
                             </button>
-                            <button onclick="submitLogin()" class="py-2.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center space-x-2 transition">
+                            <button onclick="UI.switchView('dashboard')" class="py-2.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center space-x-2 transition">
                                 <i class="fa-brands fa-microsoft text-blue-500"></i>
-                                <span>Microsoft</span>
+                                <span>Continue with Microsoft</span>
                             </button>
                         </div>
                     </div>
 
-                    <!-- REGISTER CARD (HIDDEN) -->
+                    <!-- REGISTER FORM (HIDDEN BY DEFAULT) -->
                     <div id="registerCard" class="space-y-3 hidden">
                         <div>
                             <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Full Name</label>
-                            <input type="text" id="regName" placeholder="Akash Satapathy" class="input-field w-full">
+                            <input type="text" placeholder="Akash Satapathy" class="input-agri w-full">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Mobile or Email</label>
-                            <input type="text" id="regId" placeholder="farmer@agrisense.io" class="input-field w-full">
+                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Email</label>
+                            <input type="email" placeholder="farmer@agrisense.io" class="input-agri w-full">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Farm Name</label>
-                            <input type="text" id="regFarm" value="Green Valley Field" class="input-field w-full">
+                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Mobile Number</label>
+                            <input type="text" placeholder="+91 98765 43210" class="input-agri w-full">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Password</label>
-                            <input type="password" id="regPass" placeholder="Farmer@123" class="input-field w-full">
+                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Farm Name & Size</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" value="Green Valley Field" class="input-agri w-full">
+                                <input type="number" value="15.0" placeholder="Acres" class="input-agri w-full">
+                            </div>
                         </div>
-                        <button onclick="submitLogin()" class="btn-emerald w-full py-3.5 rounded-xl font-bold text-sm transition mt-2">Create Farmer Account</button>
+                        <button onclick="UI.switchView('dashboard')" class="btn-agri-primary w-full py-3.5 rounded-xl font-bold text-sm transition mt-2">Create Account</button>
                     </div>
 
-                    <div class="text-center text-xs text-slate-400 border-t border-slate-100 pt-3">
-                        AgriSense Web Client • Version <strong class="text-slate-700">v1.7.8</strong>
-                    </div>
                 </div>
             </div>
 
         </div>
     </div>
 
-    <!-- ==================== 2. MAIN DASHBOARD PAGE (LOGGED IN) ==================== -->
-    <div id="mainDashboardScreen" class="min-h-screen flex flex-col hidden bg-slate-50">
-        
-        <!-- TOP NAVIGATION NAVBAR -->
-        <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex items-center justify-between h-16">
-                    
-                    <!-- BRAND & TAGLINE -->
-                    <div class="flex items-center space-x-4">
-                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white text-xl shadow-md shadow-emerald-600/20">
-                            <i class="fa-solid fa-seedling"></i>
+    <!-- ==================== 2. MAIN APPLICATION SCREEN (LOGGED IN) ==================== -->
+    <div id="mainAppScreen" class="min-h-screen flex hidden bg-slate-50">
+
+        <!-- MOBILE OVERLAY BACKDROP -->
+        <div id="sidebarOverlay" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden"></div>
+
+        <!-- PERSISTENT LEFT SIDEBAR (DESKTOP) -->
+        <aside id="sidebar" class="fixed lg:static inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white flex flex-col justify-between transition-transform duration-300 transform -translate-x-full lg:translate-x-0 border-r border-slate-800">
+            
+            <div class="p-6 space-y-6">
+                <!-- BRAND LOGO -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-agri-primary to-agri-secondary flex items-center justify-center text-white text-xl shadow-lg">
+                        <i class="fa-solid fa-seedling"></i>
+                    </div>
+                    <div>
+                        <div class="text-lg font-black text-white tracking-tight">AgriSense</div>
+                        <div class="text-[10px] text-emerald-400 font-extrabold uppercase tracking-wider">AGRIVISION Pro</div>
+                    </div>
+                </div>
+
+                <!-- NAVIGATION GROUP -->
+                <nav class="space-y-1 text-xs font-semibold">
+                    <button onclick="UI.switchView('dashboard')" data-view="dashboard" class="nav-link w-full px-4 py-3 rounded-xl flex items-center space-x-3 text-slate-300 hover:text-white hover:bg-slate-800 transition nav-item-active">
+                        <i class="fa-solid fa-chart-pie w-5"></i>
+                        <span>Dashboard</span>
+                    </button>
+                    <button onclick="UI.switchView('map')" data-view="map" class="nav-link w-full px-4 py-3 rounded-xl flex items-center space-x-3 text-slate-300 hover:text-white hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-map-location-dot w-5"></i>
+                        <span>Satellite Terrain Map</span>
+                    </button>
+                    <button onclick="UI.switchView('droneStation')" data-view="droneStation" class="nav-link w-full px-4 py-3 rounded-xl flex items-center space-x-3 text-slate-300 hover:text-white hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-plane-up w-5"></i>
+                        <span>Autonomous Drones</span>
+                    </button>
+                    <button onclick="UI.switchView('missionPlanner')" data-view="missionPlanner" class="nav-link w-full px-4 py-3 rounded-xl flex items-center space-x-3 text-slate-300 hover:text-white hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-route w-5"></i>
+                        <span>Mission Planner</span>
+                    </button>
+                    <button onclick="UI.switchView('analytics')" data-view="analytics" class="nav-link w-full px-4 py-3 rounded-xl flex items-center space-x-3 text-slate-300 hover:text-white hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-wave-square w-5"></i>
+                        <span>Analytics</span>
+                    </button>
+                    <button onclick="UI.switchView('scenarios')" data-view="scenarios" class="nav-link w-full px-4 py-3 rounded-xl flex items-center space-x-3 text-slate-300 hover:text-white hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-flask-vial w-5"></i>
+                        <span>Crop Scenarios</span>
+                    </button>
+                    <button onclick="UI.switchView('telemetry')" data-view="telemetry" class="nav-link w-full px-4 py-3 rounded-xl flex items-center space-x-3 text-slate-300 hover:text-white hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-microchip w-5"></i>
+                        <span>All Telemetry</span>
+                    </button>
+                    <button onclick="UI.switchView('alerts')" data-view="alerts" class="nav-link w-full px-4 py-3 rounded-xl flex items-center justify-between text-slate-300 hover:text-white hover:bg-slate-800 transition">
+                        <div class="flex items-center space-x-3">
+                            <i class="fa-solid fa-bell w-5"></i>
+                            <span>Alerts & Notifications</span>
                         </div>
+                        <span class="unread-badge-count px-2 py-0.5 rounded-full bg-emerald-500 text-slate-900 text-[10px] font-extrabold">2</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- BOTTOM SIDEBAR USER & SETTINGS -->
+            <div class="p-6 border-t border-slate-800 space-y-3">
+                <nav class="space-y-1 text-xs font-semibold">
+                    <button onclick="UI.switchView('farms')" data-view="farms" class="nav-link w-full px-4 py-2.5 rounded-xl flex items-center space-x-3 text-slate-300 hover:text-white hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-wheat-awn w-5"></i>
+                        <span>Farm Management</span>
+                    </button>
+                    <button onclick="UI.switchView('settings')" data-view="settings" class="nav-link w-full px-4 py-2.5 rounded-xl flex items-center space-x-3 text-slate-300 hover:text-white hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-gear w-5"></i>
+                        <span>Settings</span>
+                    </button>
+                    <button onclick="UI.switchView('profile')" data-view="profile" class="nav-link w-full px-4 py-2.5 rounded-xl flex items-center space-x-3 text-slate-300 hover:text-white hover:bg-slate-800 transition">
+                        <i class="fa-solid fa-user-gear w-5"></i>
+                        <span>Profile & Account</span>
+                    </button>
+                </nav>
+
+                <div class="pt-2 border-t border-slate-800 flex items-center justify-between">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="user-avatar w-8 h-8 rounded-full bg-agri-primary text-white font-bold text-xs flex items-center justify-center">AS</div>
                         <div>
-                            <div class="flex items-center space-x-2">
-                                <span class="text-lg font-black text-slate-900 tracking-tight">AgriSense</span>
-                                <span class="badge-pill px-2.5 py-0.5 text-[10px] font-extrabold uppercase">SMART FARMS • HEALTHY CROPS</span>
-                            </div>
-                            <div class="text-[11px] text-slate-500 font-medium hidden sm:block">Autonomous Precision Agriculture Platform</div>
+                            <div class="user-name text-xs font-bold text-white leading-tight">Akash Satapathy</div>
+                            <div class="user-farm text-[10px] text-slate-400">Green Valley Field</div>
                         </div>
                     </div>
+                    <button onclick="UI.switchView('auth')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-red-900/50 text-red-400 flex items-center justify-center text-xs transition" title="Sign Out">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
 
-                    <!-- DESKTOP NAV TABS -->
-                    <nav class="hidden md:flex items-center space-x-1">
-                        <button onclick="switchTab('dashboard')" id="navTabDashboard" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 flex items-center space-x-2 transition">
-                            <i class="fa-solid fa-chart-pie"></i>
-                            <span>Dashboard</span>
-                        </button>
-                        <button onclick="switchTab('spectrometry')" id="navTabSpectrometry" class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-2 transition">
-                            <i class="fa-solid fa-wave-square"></i>
-                            <span>AS7341 Optics</span>
-                        </button>
-                        <button onclick="switchTab('leafScan')" id="navTabLeafScan" class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-2 transition">
-                            <i class="fa-solid fa-camera-retro"></i>
-                            <span>AI Leaf Scanner</span>
-                        </button>
-                        <button onclick="switchTab('fieldMaps')" id="navTabFieldMaps" class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center space-x-2 transition">
-                            <i class="fa-solid fa-map-location-dot"></i>
-                            <span>Field Polygons</span>
-                        </button>
-                    </nav>
+        </aside>
 
-                    <!-- RIGHT USER CONTROL PANEL -->
+        <!-- MAIN MAIN CONTENT AREA -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+            
+            <!-- STICKY TOP HEADER -->
+            <header class="sticky top-0 z-30 glass-header border-b border-slate-200">
+                <div class="px-4 sm:px-6 py-3 flex items-center justify-between">
+                    
                     <div class="flex items-center space-x-3">
-                        <!-- WEBSOCKET LIVE INDICATOR -->
-                        <div id="wsBadge" class="hidden sm:flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            <span id="wsStatusText">Live Telemetry Connected</span>
-                        </div>
+                        <!-- MOBILE MENU BUTTON -->
+                        <button id="mobileMenuBtn" class="lg:hidden p-2 rounded-xl text-slate-700 hover:bg-slate-100">
+                            <i class="fa-solid fa-bars text-lg"></i>
+                        </button>
 
                         <!-- FARM SELECTOR -->
-                        <div class="relative hidden sm:block">
-                            <select id="farmSelect" onchange="showToast('Switched field focus.', false)" class="bg-slate-100 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                                <option value="1">Green Valley Field (15.0 Acres)</option>
-                                <option value="2">North Sector Plot (22.4 Acres)</option>
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-wheat-field text-agri-primary hidden sm:block"></i>
+                            <select id="farmSelect" onchange="UI.switchFarm(this.value)" class="bg-slate-100 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-agri-primary">
+                                <!-- Options rendered via JS -->
                             </select>
-                        </div>
-
-                        <!-- SERVER SETTINGS BUTTON -->
-                        <button onclick="openServerDialog()" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center text-sm transition" title="Server Config">
-                            <i class="fa-solid fa-dns"></i>
-                        </button>
-
-                        <!-- USER LOGOUT BUTTON -->
-                        <div class="flex items-center space-x-2 pl-2 border-l border-slate-200">
-                            <div class="w-9 h-9 rounded-full bg-emerald-600 text-white font-bold text-xs flex items-center justify-center shadow-sm">
-                                AS
-                            </div>
-                            <button onclick="logout()" class="w-8 h-8 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center text-xs transition" title="Logout Account">
-                                <i class="fa-solid fa-right-from-bracket"></i>
+                            <button onclick="UI.openAddFarmModal()" class="px-2.5 py-1.5 rounded-xl btn-agri-secondary text-xs font-bold hidden sm:inline-flex items-center space-x-1">
+                                <i class="fa-solid fa-plus text-[10px]"></i>
+                                <span>Add Farm</span>
                             </button>
                         </div>
                     </div>
 
-                </div>
-            </div>
-        </header>
+                    <!-- RIGHT ACTIONS -->
+                    <div class="flex items-center space-x-3">
+                        <!-- LIVE TELEMETRY PULSE -->
+                        <div class="hidden md:flex items-center space-x-2 px-3 py-1 rounded-full bg-agri-verylight border border-agri-mint text-agri-primary text-xs font-bold">
+                            <span class="w-2 h-2 rounded-full bg-agri-primary animate-pulse"></span>
+                            <span>LIVE TELEMETRY</span>
+                        </div>
 
-        <!-- MAIN CONTENT CONTAINER -->
-        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-            
-            <!-- HARDWARE FAULT ALERT BANNER -->
-            <div id="sensorFaultBanner" class="hidden p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-900 flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="p-2 bg-amber-500 text-white rounded-xl">
-                        <i class="fa-solid fa-triangle-exclamation text-base"></i>
+                        <!-- DRONE STATUS BADGE -->
+                        <span id="headerDroneStatus" class="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                            AGRIDRONE-01 • READY (87%)
+                        </span>
+
+                        <!-- TEMP UNIT TOGGLE -->
+                        <button onclick="UI.toggleTempUnit()" class="px-2.5 py-1 rounded-xl bg-slate-100 text-slate-800 text-xs font-bold hover:bg-slate-200 transition" title="Toggle °C / °F">
+                            <span class="temp-unit-label">°C</span>
+                        </button>
+
+                        <!-- NOTIFICATIONS BELL -->
+                        <button onclick="UI.switchView('alerts')" class="relative p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition">
+                            <i class="fa-solid fa-bell text-base"></i>
+                            <span class="unread-badge-count absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-agri-primary"></span>
+                        </button>
+
+                        <!-- USER AVATAR -->
+                        <button onclick="UI.switchView('profile')" class="user-avatar w-8 h-8 rounded-full bg-agri-primary text-white font-bold text-xs flex items-center justify-center shadow-sm">
+                            AS
+                        </button>
                     </div>
-                    <div>
-                        <div class="font-bold text-sm text-slate-900">Hardware Telemetry Fault Detected</div>
-                        <div id="sensorFaultText" class="text-xs text-amber-800 font-medium">Soil Moisture Sensor DISCONNECTED. Operating with reduced diagnostic capability.</div>
-                    </div>
+
                 </div>
-                <button onclick="document.getElementById('sensorFaultBanner').classList.add('hidden')" class="text-amber-700 hover:text-amber-900 text-xs font-bold px-3 py-1 rounded-lg bg-amber-100">
-                    Dismiss
-                </button>
-            </div>
+            </header>
 
-            <!-- ==================== DASHBOARD VIEW ==================== -->
-            <div id="viewDashboard" class="space-y-6">
+            <!-- CONTAINER PAGE VIEWS -->
+            <main class="flex-1 p-4 sm:p-6 space-y-6">
 
-                <!-- ROW 1: 4 METRIC CARDS -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- ---------------- VIEW 1: DASHBOARD ---------------- -->
+                <div id="pageDashboard" class="space-y-6">
                     
-                    <!-- 1. SOIL HYDRATION -->
-                    <div class="card-white p-5 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Soil Hydration</span>
-                            <div class="w-8 h-8 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center">
-                                <i class="fa-solid fa-droplet text-sm"></i>
+                    <!-- HERO GREETING BANNER -->
+                    <div class="card-agri p-6 sm:p-8 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white relative overflow-hidden">
+                        <div class="relative z-10 space-y-2 max-w-2xl">
+                            <div class="inline-flex items-center space-x-2 badge-agri px-3 py-1 text-[11px] font-extrabold uppercase bg-emerald-500/20 border-emerald-400/30 text-emerald-300">
+                                <span>SMARTER INSIGHTS • HEALTHIER CROPS • BRIGHTER TOMORROW</span>
                             </div>
-                        </div>
-                        <div class="flex items-baseline justify-between">
-                            <div id="homeSoilVal" class="text-3xl font-black text-slate-900">--</div>
-                            <span id="soilBadge" class="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">OPTIMAL</span>
-                        </div>
-                        <div class="text-xs text-slate-500 flex items-center justify-between border-t border-slate-100 pt-2">
-                            <span>Capacitive Sensor v1.2</span>
-                            <span class="font-semibold text-slate-700">VWC Volumetric</span>
+                            <h2 class="text-2xl sm:text-3xl font-black tracking-tight">Good Morning, <span class="user-name">Akash Satapathy</span></h2>
+                            <p class="text-xs sm:text-sm text-slate-300 font-medium leading-relaxed">
+                                Sub-surface soil hydration levels are optimal. Autonomous spectroradiometer scan scheduled for 14:00 today.
+                            </p>
                         </div>
                     </div>
 
-                    <!-- 2. TEMPERATURE -->
-                    <div class="card-white p-5 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Temperature</span>
-                            <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                                <i class="fa-solid fa-temperature-half text-sm"></i>
+                    <!-- CROP CONDITION CARD -->
+                    <div class="card-agri p-6 space-y-4 border-emerald-500/30">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <div>
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Main Farm Crop Condition</span>
+                                <h3 class="text-lg font-black text-slate-900">Green Valley Field Plot</h3>
+                            </div>
+                            <span id="cropConditionBadge" class="px-4 py-1.5 rounded-full text-xs font-black tracking-wider bg-emerald-100 text-emerald-800">
+                                ✓ EXCELLENT
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center">
+                                <div class="text-xs font-bold text-slate-400 uppercase">CHI Score</div>
+                                <div id="chiVal" class="text-3xl font-black text-slate-900 mt-1">85.0 / 100</div>
+                                <div class="text-[11px] text-emerald-600 font-bold mt-0.5">Optimal NIR Scattering</div>
+                            </div>
+
+                            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center">
+                                <div class="text-xs font-bold text-slate-400 uppercase">Pathogen Risk</div>
+                                <div id="riskVal" class="text-3xl font-black text-agri-primary mt-1">9.9%</div>
+                                <div class="text-[11px] text-slate-500 font-medium mt-0.5">Low Infection Risk</div>
+                            </div>
+
+                            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center">
+                                <div class="text-xs font-bold text-slate-400 uppercase">Early Lead Time</div>
+                                <div id="leadVal" class="text-3xl font-black text-teal-600 mt-1">5.4 Days Early</div>
+                                <div class="text-[11px] text-slate-500 font-medium mt-0.5">Pre-symptomatic Advantage</div>
                             </div>
                         </div>
-                        <div class="flex items-baseline justify-between">
-                            <div id="homeTempVal" class="text-3xl font-black text-slate-900">--°C</div>
-                            <span id="tempBadge" class="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">NORMAL</span>
-                        </div>
-                        <div class="text-xs text-slate-500 flex items-center justify-between border-t border-slate-100 pt-2">
-                            <span>DHT22 Thermal Probe</span>
-                            <span class="font-semibold text-slate-700">Ambient Canopy</span>
+
+                        <div id="cropConditionAdvice" class="p-4 rounded-2xl bg-agri-verylight border border-agri-mint text-xs text-agri-dark font-medium leading-relaxed">
+                            ✅ Optimal Crop Health: Leaf canopy NIR scattering & soil hydration levels are within ideal target ranges.
                         </div>
                     </div>
 
-                    <!-- 3. HUMIDITY -->
-                    <div class="card-white p-5 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Humidity</span>
-                            <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                                <i class="fa-solid fa-cloud-rain text-sm"></i>
+                    <!-- LIVE FIELD METRICS (4 CARDS) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        
+                        <!-- SOIL HYDRATION -->
+                        <div onclick="UI.switchView('telemetry')" class="card-agri p-5 space-y-3 cursor-pointer hover:border-agri-primary transition">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Soil Hydration</span>
+                                <div class="w-8 h-8 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center">
+                                    <i class="fa-solid fa-droplet text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="flex items-baseline justify-between">
+                                <div id="soilVal" class="text-3xl font-black text-slate-900">42.5%</div>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-cyan-100 text-cyan-800">OPTIMAL</span>
+                            </div>
+                            <div class="h-10 relative">
+                                <canvas id="soilSparkline"></canvas>
                             </div>
                         </div>
-                        <div class="flex items-baseline justify-between">
-                            <div id="homeHumVal" class="text-3xl font-black text-slate-900">--%</div>
-                            <span id="humBadge" class="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800">BALANCED</span>
-                        </div>
-                        <div class="text-xs text-slate-500 flex items-center justify-between border-t border-slate-100 pt-2">
-                            <span>DHT22 Relative Vapor</span>
-                            <span class="font-semibold text-slate-700">Canopy Level</span>
-                        </div>
-                    </div>
 
-                    <!-- 4. AIR QUALITY / SMOKE -->
-                    <div class="card-white p-5 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Air Quality</span>
-                            <div class="w-8 h-8 rounded-xl bg-red-50 text-red-500 flex items-center justify-center">
-                                <i class="fa-solid fa-smog text-sm"></i>
+                        <!-- FIELD TEMPERATURE -->
+                        <div onclick="UI.switchView('telemetry')" class="card-agri p-5 space-y-3 cursor-pointer hover:border-agri-primary transition">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Field Temperature</span>
+                                <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                                    <i class="fa-solid fa-temperature-half text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="flex items-baseline justify-between">
+                                <div id="tempVal" class="text-3xl font-black text-slate-900">26.1°C</div>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800">NORMAL</span>
+                            </div>
+                            <div class="h-10 relative">
+                                <canvas id="tempSparkline"></canvas>
                             </div>
                         </div>
-                        <div class="flex items-baseline justify-between">
-                            <div id="homeSmokeVal" class="text-3xl font-black text-slate-900">-- PPM</div>
-                            <span id="smokeBadge" class="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">CLEAN</span>
+
+                        <!-- AIR QUALITY -->
+                        <div onclick="UI.switchView('telemetry')" class="card-agri p-5 space-y-3 cursor-pointer hover:border-agri-primary transition">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Air Quality</span>
+                                <div class="w-8 h-8 rounded-xl bg-emerald-50 text-agri-primary flex items-center justify-center">
+                                    <i class="fa-solid fa-smog text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="flex items-baseline justify-between">
+                                <div id="airVal" class="text-3xl font-black text-slate-900">80 PPM</div>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">CLEAN AIR</span>
+                            </div>
+                            <div class="h-10 relative">
+                                <canvas id="airSparkline"></canvas>
+                            </div>
                         </div>
-                        <div class="text-xs text-slate-500 flex items-center justify-between border-t border-slate-100 pt-2">
-                            <span>MQ-135 Gas Array</span>
-                            <span class="font-semibold text-slate-700">Fire Hazard Index</span>
+
+                        <!-- PATHOGEN RISK -->
+                        <div onclick="UI.switchView('telemetry')" class="card-agri p-5 space-y-3 cursor-pointer hover:border-agri-primary transition">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pathogen Risk</span>
+                                <div class="w-8 h-8 rounded-xl bg-red-50 text-red-500 flex items-center justify-center">
+                                    <i class="fa-solid fa-shield-virus text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="flex items-baseline justify-between">
+                                <div id="riskValCard" class="text-3xl font-black text-slate-900">9.9%</div>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">5.4 DAYS EARLY</span>
+                            </div>
+                            <div class="h-10 relative">
+                                <canvas id="riskSparkline"></canvas>
+                            </div>
                         </div>
+
                     </div>
 
-                </div>
-
-                <!-- ROW 2: SPECTROMETRY + AI DIAGNOSIS GRID (7:5 SPLIT) -->
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    
-                    <!-- LEFT 7 COLS: OPTICAL SPECTROMETRY CHART -->
-                    <div class="lg:col-span-7 card-white p-6 space-y-4">
+                    <!-- 10-CHANNEL SPECTROMETRY OPTICS -->
+                    <div class="card-agri p-6 space-y-4">
                         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                             <div>
                                 <h3 class="text-base font-bold text-slate-900">10-Channel Reflectance Spectrum</h3>
-                                <p class="text-xs text-slate-500">Adafruit AS7341 Multi-Spectral NIR Optics (415nm - 885nm)</p>
+                                <p class="text-xs text-slate-500">Adafruit AS7341 Multi-Spectral Optics (415nm - 885nm NIR)</p>
                             </div>
-                            <div class="flex items-center space-x-2">
-                                <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-mono font-bold">AS7341</span>
-                                <button onclick="fetchLatest()" class="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition" title="Refresh Telemetry">
-                                    <i class="fa-solid fa-arrows-rotate text-xs"></i>
-                                </button>
-                            </div>
+                            <button onclick="UI.switchView('analytics')" class="px-3 py-1.5 rounded-xl btn-agri-secondary text-xs font-bold">
+                                View Full Analytics
+                            </button>
                         </div>
-
-                        <!-- CHART CANVAS -->
-                        <div class="h-64 sm:h-72 relative">
-                            <canvas id="spectralChart"></canvas>
+                        <div class="h-64 relative">
+                            <canvas id="dashboardSpectralChart"></canvas>
                         </div>
-
-                        <!-- SPECTRAL INDICES SUMMARY -->
-                        <div class="grid grid-cols-3 gap-3 border-t border-slate-100 pt-4">
-                            <div class="bg-slate-50 p-3 rounded-xl">
-                                <div class="text-[10px] font-bold text-slate-400 uppercase">S_NIR Ratio</div>
-                                <div id="snirVal" class="text-base font-black text-emerald-600">6.89</div>
-                                <div class="text-[10px] text-slate-500">Canopy Scattering</div>
-                            </div>
-
-                            <div class="bg-slate-50 p-3 rounded-xl">
-                                <div class="text-[10px] font-bold text-slate-400 uppercase">Clear Channel</div>
-                                <div id="clearVal" class="text-base font-black text-slate-900">12,400</div>
-                                <div class="text-[10px] text-slate-500">Ambient Light Intensity</div>
-                            </div>
-
-                            <div class="bg-slate-50 p-3 rounded-xl">
-                                <div class="text-[10px] font-bold text-slate-400 uppercase">Early Lead Time</div>
-                                <div class="text-base font-black text-teal-600">5.4 Days</div>
-                                <div class="text-[10px] text-slate-500">Pre-symptomatic Warning</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- RIGHT 5 COLS: MM-SSNet AI DIAGNOSIS PANEL -->
-                    <div class="lg:col-span-5 card-white p-6 space-y-5 flex flex-col justify-between border-emerald-500/30">
-                        <div class="space-y-4">
-                            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                                <div class="flex items-center space-x-2">
-                                    <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">
-                                        <i class="fa-solid fa-brain"></i>
-                                    </div>
-                                    <h3 class="text-base font-bold text-slate-900">MM-SSNet AI Crop Diagnosis</h3>
-                                </div>
-                                <span id="homeRiskBadge" class="text-xs font-extrabold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">OPTIMAL HEALTH</span>
-                            </div>
-
-                            <!-- RISK GAUGE & CHI -->
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
-                                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Pathogen Risk %</div>
-                                    <div id="homeRiskPct" class="text-4xl font-black text-emerald-600">3.2%</div>
-                                    <div class="text-[11px] text-emerald-700 font-semibold mt-1">Low Infection Risk</div>
-                                </div>
-
-                                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
-                                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">CHI Score</div>
-                                    <div id="homeChiScore" class="text-3xl font-black text-slate-900">85.0</div>
-                                    <div class="text-[11px] text-slate-500 font-medium mt-1">out of 100 Index</div>
-                                </div>
-                            </div>
-
-                            <!-- AGRONOMIC ACTION BOX -->
-                            <div class="space-y-2">
-                                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Agronomic Recommendation</span>
-                                <div id="homeAgronomicText" class="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-xs text-slate-800 font-medium leading-relaxed">
-                                    ✅ Optimal Crop Health: Leaf canopy NIR scattering & soil hydration levels are within ideal target ranges. No targeted pesticide or drone spray required.
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- SIMULATION PRESETS TOOLBAR -->
-                        <div class="space-y-2 pt-2 border-t border-slate-100">
-                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Simulate Agronomic Stress Presets</span>
-                            <div class="grid grid-cols-2 gap-2">
-                                <button onclick="triggerPreset('HEALTHY')" class="py-2.5 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-200 transition">
-                                    1. Optimal Health
-                                </button>
-                                <button onclick="triggerPreset('PRE_SYMPTOMATIC_STRESS')" class="py-2.5 px-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold border border-amber-200 transition">
-                                    2. Fungal Stress
-                                </button>
-                                <button onclick="triggerPreset('SEVERE_DROUGHT')" class="py-2.5 px-3 rounded-xl bg-cyan-50 hover:bg-cyan-100 text-cyan-800 text-xs font-bold border border-cyan-200 transition">
-                                    3. Soil Drought
-                                </button>
-                                <button onclick="triggerPreset('SMOKE_HAZARD')" class="py-2.5 px-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-800 text-xs font-bold border border-red-200 transition">
-                                    4. Stubble Fire
-                                </button>
-                            </div>
-                        </div>
-
                     </div>
 
                 </div>
 
-                <!-- ROW 3: OPERATIONAL MODULES GRID (3 COLUMNS) -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    
-                    <!-- AI CROP LEAF DISEASE SCANNER -->
-                    <div class="card-white p-6 space-y-4">
-                        <div class="flex items-center space-x-3 border-b border-slate-100 pb-3">
-                            <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-base">
-                                <i class="fa-solid fa-camera"></i>
-                            </div>
-                            <div>
-                                <h3 class="text-sm font-bold text-slate-900">AI Leaf Disease Scanner</h3>
-                                <p class="text-xs text-slate-500">PyTorch Computer Vision Diagnosis</p>
-                            </div>
+                <!-- ---------------- VIEW 2: SATELLITE TERRAIN MAP ---------------- -->
+                <div id="pageMap" class="space-y-4 hidden">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-black text-slate-900">Satellite Terrain Farm Map</h2>
+                            <p class="text-xs text-slate-500">Interactive Field Boundaries, Overlay Heatmaps & Autonomous Drone Tracking</p>
                         </div>
 
-                        <div class="space-y-3">
-                            <input type="file" id="leafInput" accept="image/*" class="hidden" onchange="diagnoseLeafImage(event)">
-                            <div onclick="document.getElementById('leafInput').click()" class="border-2 border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50 hover:bg-emerald-50/40 rounded-2xl p-6 text-center cursor-pointer transition space-y-2">
-                                <i class="fa-solid fa-cloud-arrow-up text-3xl text-emerald-600"></i>
-                                <div class="text-xs font-bold text-slate-800">Click or Drag Leaf Photo</div>
-                                <div class="text-[11px] text-slate-400">Supports PNG, JPG (Max 10MB)</div>
-                            </div>
-
-                            <div id="scanPreview" class="hidden rounded-xl overflow-hidden max-h-48 border border-slate-200">
-                                <img id="leafPreviewImg" class="w-full h-40 object-cover">
-                            </div>
-
-                            <div id="scanResultBox" class="hidden p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
-                                <div id="scanResultTitle" class="font-bold text-slate-900 text-sm">Diagnosis Result</div>
-                                <div id="scanResultDesc" class="text-slate-600 leading-relaxed">Details...</div>
+                        <!-- LAYER CONTROLS -->
+                        <div class="flex items-center space-x-2">
+                            <div class="bg-slate-100 p-1 rounded-xl flex items-center text-xs font-bold">
+                                <button onclick="MapService.setBaseLayer('satellite')" class="px-3 py-1.5 rounded-lg bg-white shadow-sm text-slate-800">Satellite</button>
+                                <button onclick="MapService.setBaseLayer('terrain')" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900">Terrain</button>
+                                <button onclick="MapService.setBaseLayer('street')" class="px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900">Street</button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- FIELD POLYGON FARM MANAGER -->
-                    <div class="card-white p-6 space-y-4">
-                        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-9 h-9 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center font-bold text-base">
-                                    <i class="fa-solid fa-map-location-dot"></i>
+                    <!-- MAP OVERLAY TOGGLES -->
+                    <div class="flex items-center space-x-2 text-xs font-bold">
+                        <span class="text-slate-400">Map Overlays:</span>
+                        <button onclick="MapService.setOverlayMode('cropHealth')" class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Crop Health</button>
+                        <button onclick="MapService.setOverlayMode('hydration')" class="px-3 py-1 rounded-full bg-cyan-100 text-cyan-800">Hydration</button>
+                        <button onclick="MapService.setOverlayMode('pathogen')" class="px-3 py-1 rounded-full bg-red-100 text-red-800">Pathogen Risk</button>
+                    </div>
+
+                    <!-- LEAFLET MAP CONTAINER -->
+                    <div class="card-agri p-2 h-[600px] relative overflow-hidden">
+                        <div id="mapContainer"></div>
+                    </div>
+                </div>
+
+                <!-- ---------------- VIEW 3: AUTONOMOUS DRONES ---------------- -->
+                <div id="pageDroneStation" class="space-y-6 hidden">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-black text-slate-900">Autonomous Drone Station</h2>
+                            <p class="text-xs text-slate-500">Fleet Control, Live Telemetry Instrumentation & Mission Execution</p>
+                        </div>
+                        <button onclick="UI.switchView('missionPlanner')" class="btn-agri-primary px-4 py-2 rounded-xl text-xs font-bold">
+                            + Plan New Mission
+                        </button>
+                    </div>
+
+                    <!-- DRONE CONTROLS & STATE PANEL -->
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        
+                        <!-- PRIMARY DRONE INSTRUMENTATION (8 COLS) -->
+                        <div class="lg:col-span-8 card-agri p-6 space-y-6 border-agri-primary/30">
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-12 h-12 rounded-2xl bg-slate-900 text-emerald-400 flex items-center justify-center text-xl shadow-lg">
+                                        <i class="fa-solid fa-plane-up"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-lg font-black text-slate-900">AGRIDRONE-01</h3>
+                                        <p class="text-xs text-slate-500">AgriVision Pro Drone Alpha • Payload: AS7341 Spectrometer</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 class="text-sm font-bold text-slate-900">Field Polygon Manager</h3>
-                                    <p class="text-xs text-slate-500">Multi-Field Land Acreage</p>
+                                <div class="text-right">
+                                    <span id="droneStateText" class="px-3.5 py-1.5 rounded-full text-xs font-black tracking-wider bg-emerald-100 text-emerald-800">IDLE</span>
                                 </div>
                             </div>
-                            <button onclick="openAddFieldModal()" class="px-3 py-1.5 rounded-xl btn-emerald text-xs font-bold">
-                                + Add Field
+
+                            <!-- INSTRUMENTATION TELEMETRY -->
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
+                                    <div class="text-xs font-bold text-slate-400 uppercase">Battery Level</div>
+                                    <div id="droneBattText" class="text-2xl font-black text-slate-900 mt-1">87%</div>
+                                </div>
+                                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
+                                    <div class="text-xs font-bold text-slate-400 uppercase">Altitude</div>
+                                    <div id="droneAltText" class="text-2xl font-black text-slate-900 mt-1">0.0 m</div>
+                                </div>
+                                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
+                                    <div class="text-xs font-bold text-slate-400 uppercase">Speed</div>
+                                    <div id="droneSpeedText" class="text-2xl font-black text-slate-900 mt-1">0.0 m/s</div>
+                                </div>
+                                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
+                                    <div class="text-xs font-bold text-slate-400 uppercase">GPS Locked</div>
+                                    <div class="text-2xl font-black text-agri-primary mt-1">14 Sats</div>
+                                </div>
+                            </div>
+
+                            <!-- MISSION PROGRESS -->
+                            <div class="space-y-2">
+                                <div class="flex justify-between text-xs font-bold">
+                                    <span class="text-slate-600">Active Mission Scan Progress</span>
+                                    <span id="droneProgText" class="text-agri-primary">0%</span>
+                                </div>
+                                <div class="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                                    <div id="droneProgBar" class="h-full bg-agri-primary transition-all duration-500 w-0"></div>
+                                </div>
+                            </div>
+
+                            <!-- ACTION CONTROLS BUTTONS -->
+                            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2">
+                                <button onclick="DroneService.launchMission()" class="btn-agri-primary py-3 rounded-xl font-bold text-xs flex items-center justify-center space-x-1.5">
+                                    <i class="fa-solid fa-play"></i>
+                                    <span>Launch</span>
+                                </button>
+                                <button onclick="DroneService.pauseMission()" class="py-3 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 font-bold text-xs flex items-center justify-center space-x-1.5 transition">
+                                    <i class="fa-solid fa-pause"></i>
+                                    <span>Pause</span>
+                                </button>
+                                <button onclick="DroneService.resumeMission()" class="py-3 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 font-bold text-xs flex items-center justify-center space-x-1.5 transition">
+                                    <i class="fa-solid fa-forward"></i>
+                                    <span>Resume</span>
+                                </button>
+                                <button onclick="DroneService.returnToBase()" class="py-3 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 font-bold text-xs flex items-center justify-center space-x-1.5 transition">
+                                    <i class="fa-solid fa-house"></i>
+                                    <span>Return</span>
+                                </button>
+                                <button onclick="DroneService.emergencyStop()" class="py-3 rounded-xl bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 font-bold text-xs flex items-center justify-center space-x-1.5 transition">
+                                    <i class="fa-solid fa-circle-stop"></i>
+                                    <span>Stop</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- FLEET SUMMARY (4 COLS) -->
+                        <div class="lg:col-span-4 space-y-4">
+                            <div class="card-agri p-5 space-y-3">
+                                <h4 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">Drone Fleet Inventory</h4>
+                                
+                                <div class="space-y-3 text-xs">
+                                    <div class="p-3 rounded-xl bg-emerald-50/50 border border-emerald-200 flex items-center justify-between">
+                                        <div>
+                                            <div class="font-bold text-slate-900">AGRIDRONE-01</div>
+                                            <div class="text-slate-500">Spectrometry Scanner</div>
+                                        </div>
+                                        <span class="px-2 py-0.5 rounded-full bg-emerald-600 text-white font-bold text-[10px]">READY</span>
+                                    </div>
+
+                                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                                        <div>
+                                            <div class="font-bold text-slate-900">AGRIDRONE-02</div>
+                                            <div class="text-slate-500">NDVI Multispectral</div>
+                                        </div>
+                                        <span class="px-2 py-0.5 rounded-full bg-amber-500 text-white font-bold text-[10px]">CHARGING (42%)</span>
+                                    </div>
+
+                                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                                        <div>
+                                            <div class="font-bold text-slate-900">AGRIDRONE-03</div>
+                                            <div class="text-slate-500">Targeted Spray Nozzle</div>
+                                        </div>
+                                        <span class="px-2 py-0.5 rounded-full bg-slate-600 text-white font-bold text-[10px]">STANDBY</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- ---------------- VIEW 4: MISSION PLANNER ---------------- -->
+                <div id="pageMissionPlanner" class="space-y-6 hidden">
+                    <div>
+                        <h2 class="text-xl font-black text-slate-900">Autonomous Mission Planner</h2>
+                        <p class="text-xs text-slate-500">Configure Flight Waypoints, Altitude & Payload Parameters</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <!-- MISSION FORM (5 COLS) -->
+                        <div class="lg:col-span-5 card-agri p-6 space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Target Farm Field</label>
+                                <select class="input-agri w-full">
+                                    <option>Green Valley Field Plot (15.0 Acres)</option>
+                                    <option>North Sector Plot (22.4 Acres)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Flight Pattern</label>
+                                <select class="input-agri w-full">
+                                    <option>Grid Lawnmover Pattern</option>
+                                    <option>Perimeter Boundary Scan</option>
+                                    <option>Spiral Concentric</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Flight Altitude: 25 meters</label>
+                                <input type="range" min="10" max="50" value="25" class="w-full accent-agri-primary">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Sensor Payload</label>
+                                <select class="input-agri w-full">
+                                    <option>Adafruit AS7341 10-Channel Spectrometry</option>
+                                    <option>NDVI Multispectral Vegetation Index</option>
+                                    <option>High-Resolution RGB Leaf Disease Vision</option>
+                                </select>
+                            </div>
+
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs space-y-2">
+                                <div class="flex justify-between text-slate-600">
+                                    <span>Estimated Distance:</span>
+                                    <strong class="text-slate-900">2.4 km</strong>
+                                </div>
+                                <div class="flex justify-between text-slate-600">
+                                    <span>Estimated Duration:</span>
+                                    <strong class="text-slate-900">14 mins</strong>
+                                </div>
+                                <div class="flex justify-between text-slate-600">
+                                    <span>Battery Consumption:</span>
+                                    <strong class="text-agri-primary">32%</strong>
+                                </div>
+                            </div>
+
+                            <button onclick="DroneService.launchMission(); UI.switchView('droneStation');" class="btn-agri-primary w-full py-3.5 rounded-xl font-bold text-xs">
+                                Start Autonomous Mission
                             </button>
                         </div>
 
-                        <div class="space-y-3 text-xs">
-                            <div class="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/50 flex items-center justify-between">
-                                <div>
-                                    <div class="font-bold text-slate-900">Green Valley Field Plot</div>
-                                    <div class="text-slate-500">15.0 Acres • Wheat / Paddy</div>
-                                </div>
-                                <span class="px-2 py-1 bg-emerald-600 text-white font-bold rounded-lg text-[10px]">Active</span>
-                            </div>
+                        <!-- PLANNER MAP PREVIEW (7 COLS) -->
+                        <div class="lg:col-span-7 card-agri p-2 h-[450px]">
+                            <div id="plannerMapContainer" class="h-full w-full rounded-2xl"></div>
+                        </div>
+                    </div>
+                </div>
 
-                            <div class="p-3.5 rounded-xl border border-slate-200 bg-white flex items-center justify-between hover:bg-slate-50 cursor-pointer">
-                                <div>
-                                    <div class="font-bold text-slate-900">North Sector Plot</div>
-                                    <div class="text-slate-500">22.4 Acres • Corn Canopy</div>
-                                </div>
-                                <span class="px-2 py-1 bg-slate-200 text-slate-700 font-bold rounded-lg text-[10px]">Idle</span>
-                            </div>
+                <!-- ---------------- VIEW 5: ANALYTICS ---------------- -->
+                <div id="pageAnalytics" class="space-y-6 hidden">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-black text-slate-900">Crop Analytics & Trends</h2>
+                            <p class="text-xs text-slate-500">Historical Health Index, Moisture & Spectrometry Data</p>
+                        </div>
+                        <div class="bg-slate-100 p-1 rounded-xl flex items-center text-xs font-bold">
+                            <button class="px-3 py-1.5 rounded-lg bg-white shadow-sm text-slate-800">Daily</button>
+                            <button class="px-3 py-1.5 rounded-lg text-slate-600">Weekly</button>
+                            <button class="px-3 py-1.5 rounded-lg text-slate-600">Monthly</button>
                         </div>
                     </div>
 
-                    <!-- REAL-TIME TELEMETRY SYSTEM INSPECTOR -->
-                    <div class="card-white p-6 space-y-4">
-                        <div class="flex items-center space-x-3 border-b border-slate-100 pb-3">
-                            <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-base">
-                                <i class="fa-solid fa-terminal"></i>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="card-agri p-6 space-y-4">
+                            <h3 class="text-sm font-bold text-slate-900">Crop Health Index vs Pathogen Risk</h3>
+                            <div class="h-64 relative">
+                                <canvas id="analyticsTrendChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="card-agri p-6 space-y-4">
+                            <h3 class="text-sm font-bold text-slate-900">10-Channel Reflectance Spectrum</h3>
+                            <div class="h-64 relative">
+                                <canvas id="analyticsSpectralChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ---------------- VIEW 6: CROP SCENARIOS ---------------- -->
+                <div id="pageScenarios" class="space-y-6 hidden">
+                    <div>
+                        <h2 class="text-xl font-black text-slate-900">Crop Health Scenarios & Simulation</h2>
+                        <p class="text-xs text-slate-500">Simulate Agronomic Stress Presets & Machine Learning Inference</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div onclick="AgriState.triggerScenario('HEALTHY'); UI.switchView('scenarios');" class="card-agri p-5 space-y-2 cursor-pointer hover:border-emerald-500 transition">
+                            <div class="text-agri-primary text-2xl"><i class="fa-solid fa-leaf"></i></div>
+                            <div class="font-bold text-sm text-slate-900">1. Optimal Health</div>
+                            <div class="text-xs text-slate-500">Normal NIR scattering and soil moisture.</div>
+                        </div>
+
+                        <div onclick="AgriState.triggerScenario('FUNGAL'); UI.switchView('scenarios');" class="card-agri p-5 space-y-2 cursor-pointer hover:border-amber-500 transition">
+                            <div class="text-amber-500 text-2xl"><i class="fa-solid fa-shield-virus"></i></div>
+                            <div class="font-bold text-sm text-slate-900">2. Fungal Stress</div>
+                            <div class="text-xs text-slate-500">Pre-symptomatic spore germination alert.</div>
+                        </div>
+
+                        <div onclick="AgriState.triggerScenario('DROUGHT'); UI.switchView('scenarios');" class="card-agri p-5 space-y-2 cursor-pointer hover:border-cyan-500 transition">
+                            <div class="text-cyan-500 text-2xl"><i class="fa-solid fa-sun"></i></div>
+                            <div class="font-bold text-sm text-slate-900">3. Soil Drought</div>
+                            <div class="text-xs text-slate-500">VWC moisture below 15% threshold.</div>
+                        </div>
+
+                        <div onclick="AgriState.triggerScenario('FIRE'); UI.switchView('scenarios');" class="card-agri p-5 space-y-2 cursor-pointer hover:border-red-500 transition">
+                            <div class="text-red-500 text-2xl"><i class="fa-solid fa-fire-flame-curved"></i></div>
+                            <div class="font-bold text-sm text-slate-900">4. Stubble Fire</div>
+                            <div class="text-xs text-slate-500">MQ-135 smoke PPM elevated hazard.</div>
+                        </div>
+                    </div>
+
+                    <div class="card-agri p-6 space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <h3 class="text-base font-bold text-slate-900">Interactive Scenario Simulation</h3>
+                            <button onclick="AgriState.triggerScenario('HEALTHY'); UI.switchView('scenarios');" class="px-3 py-1.5 rounded-xl btn-agri-secondary text-xs font-bold">Reset Simulation</button>
+                        </div>
+                        <div class="h-72 relative">
+                            <canvas id="scenarioSimChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ---------------- VIEW 7: TELEMETRY ---------------- -->
+                <div id="pageTelemetry" class="space-y-6 hidden">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-black text-slate-900">All Micro-Sensor Telemetry</h2>
+                            <p class="text-xs text-slate-500">Live Hardware Data Stream Ingest</p>
+                        </div>
+                        <button onclick="UI.showToast('Telemetry log exported to CSV.', false)" class="px-3.5 py-2 rounded-xl btn-agri-secondary text-xs font-bold">
+                            <i class="fa-solid fa-download mr-1"></i> Export CSV
+                        </button>
+                    </div>
+
+                    <div class="card-agri p-6 space-y-4">
+                        <div class="bg-slate-900 text-emerald-400 p-4 rounded-xl font-mono text-xs space-y-2 overflow-x-auto">
+                            <div>[TELEMETRY STREAM] Client connected via WebSocket.</div>
+                            <div>Device ID: ESP32_AgriSense_01</div>
+                            <div>Soil Moisture (Capacitive v1.2): 42.5%</div>
+                            <div>Ambient Temperature (DHT22): 26.1°C</div>
+                            <div>Relative Humidity (DHT22): 68.4%</div>
+                            <div>Air Quality (MQ-135): 80 PPM</div>
+                            <div>AS7341 Spectrometry NIR 885nm: 6893 counts</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ---------------- VIEW 8: ALERTS ---------------- -->
+                <div id="pageAlerts" class="space-y-6 hidden">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-black text-slate-900">Alerts & Notifications</h2>
+                            <p class="text-xs text-slate-500">System Logs, Hardware Warning Events & Agronomic Advisories</p>
+                        </div>
+                        <button onclick="UI.markAllNotificationsRead()" class="px-3.5 py-2 rounded-xl btn-agri-secondary text-xs font-bold">
+                            Mark All as Read
+                        </button>
+                    </div>
+
+                    <div id="notificationsList" class="space-y-3">
+                        <!-- Rendered via JS -->
+                    </div>
+                </div>
+
+                <!-- ---------------- VIEW 9: SETTINGS ---------------- -->
+                <div id="pageSettings" class="space-y-6 hidden">
+                    <div>
+                        <h2 class="text-xl font-black text-slate-900">Application Settings</h2>
+                        <p class="text-xs text-slate-500">Configure Units, Telemetry Refresh Rate & System Preferences</p>
+                    </div>
+
+                    <div class="card-agri p-6 space-y-5 max-w-2xl">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <div>
+                                <div class="font-bold text-sm text-slate-900">Temperature Unit</div>
+                                <div class="text-xs text-slate-500">Choose display scale for thermal metrics.</div>
+                            </div>
+                            <button onclick="UI.toggleTempUnit()" class="px-4 py-2 rounded-xl btn-agri-primary text-xs font-bold">
+                                Toggle <span class="temp-unit-label">°C</span>
+                            </button>
+                        </div>
+
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <div>
+                                <div class="font-bold text-sm text-slate-900">Telemetry Refresh Interval</div>
+                                <div class="text-xs text-slate-500">Rate of continuous sensor polling.</div>
+                            </div>
+                            <select class="input-agri text-xs font-bold">
+                                <option>5 Seconds</option>
+                                <option>10 Seconds</option>
+                                <option>30 Seconds</option>
+                            </select>
+                        </div>
+
+                        <div class="pt-2">
+                            <button onclick="UI.showToast('Settings saved successfully.', false)" class="btn-agri-primary px-6 py-2.5 rounded-xl font-bold text-xs">
+                                Save Preferences
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ---------------- VIEW 10: PROFILE ---------------- -->
+                <div id="pageProfile" class="space-y-6 hidden">
+                    <div>
+                        <h2 class="text-xl font-black text-slate-900">User Profile & Account</h2>
+                        <p class="text-xs text-slate-500">Manage Registered Farmer Credentials & Farm Details</p>
+                    </div>
+
+                    <div class="card-agri p-6 space-y-4 max-w-2xl">
+                        <div class="flex items-center space-x-4 border-b border-slate-100 pb-4">
+                            <div class="user-avatar w-16 h-16 rounded-2xl bg-agri-primary text-white font-black text-2xl flex items-center justify-center shadow-lg">AS</div>
+                            <div>
+                                <h3 class="user-name text-lg font-bold text-slate-900">Akash Satapathy</h3>
+                                <p class="user-email text-xs text-slate-500">akashpsatapathy@gmail.com</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                            <div>
+                                <label class="block text-slate-500 font-bold mb-1">Full Name</label>
+                                <input type="text" value="Akash Satapathy" class="input-agri w-full">
                             </div>
                             <div>
-                                <h3 class="text-sm font-bold text-slate-900">System Telemetry Log</h3>
-                                <p class="text-xs text-slate-500">Live Hardware Packet Ingest</p>
+                                <label class="block text-slate-500 font-bold mb-1">Mobile Phone</label>
+                                <input type="text" value="+91 98765 43210" class="input-agri w-full">
                             </div>
                         </div>
 
-                        <div class="bg-slate-900 rounded-xl p-3 font-mono text-[11px] text-emerald-400 space-y-1 overflow-x-auto max-h-44">
-                            <div>[WS STREAM] Client handshake connected.</div>
-                            <div id="logDevice">Device: ESP32_AgriSense_01</div>
-                            <div id="logIp">Ingest: 152.58.42.119 (HTTPS Tailnet)</div>
-                            <div id="logStatus" class="text-slate-300">DHT22: 32.7°C, MQ135: 139 PPM</div>
-                            <div class="text-slate-500 text-[10px] pt-1">// Continuous 10s sensor polling active</div>
+                        <button onclick="UI.showToast('Profile updated.', false)" class="btn-agri-primary px-6 py-2.5 rounded-xl font-bold text-xs">
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ---------------- VIEW 11: FARMS MANAGEMENT ---------------- -->
+                <div id="pageFarms" class="space-y-6 hidden">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-black text-slate-900">Farm Management</h2>
+                            <p class="text-xs text-slate-500">Registered Farm Land Plots & Acreage</p>
                         </div>
+                        <button onclick="UI.openAddFarmModal()" class="btn-agri-primary px-4 py-2 rounded-xl text-xs font-bold">
+                            + Register New Farm
+                        </button>
                     </div>
 
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div class="card-agri p-5 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-slate-900 text-sm">Green Valley Field Plot</span>
+                                <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">ACTIVE</span>
+                            </div>
+                            <div class="text-xs text-slate-500">15.0 Acres • Wheat & Paddy</div>
+                            <button onclick="UI.switchFarm(1)" class="w-full py-2 rounded-xl btn-agri-secondary text-xs font-bold">Select Active</button>
+                        </div>
+
+                        <div class="card-agri p-5 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-slate-900 text-sm">North Sector Plot</span>
+                                <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold">IDLE</span>
+                            </div>
+                            <div class="text-xs text-slate-500">22.4 Acres • Corn Canopy</div>
+                            <button onclick="UI.switchFarm(2)" class="w-full py-2 rounded-xl btn-agri-secondary text-xs font-bold">Select Active</button>
+                        </div>
+                    </div>
                 </div>
 
-            </div>
-
-        </main>
-
-        <!-- FOOTER -->
-        <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
-                <div>
-                    AgriSense Precision Agriculture • Engineered for High-Yield Autonomous Farming
-                </div>
-                <div class="flex items-center space-x-4">
-                    <span>Host: <strong class="text-slate-700">agrisense.tail0d103f.ts.net</strong></span>
-                    <span>Version: <strong class="text-slate-700">v1.7.8</strong></span>
-                </div>
-            </div>
-        </footer>
-
-    </div>
-
-    <!-- SERVER CONFIG MODAL -->
-    <div id="serverModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-6 max-w-md w-full space-y-5 shadow-2xl border border-slate-100">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div class="flex items-center space-x-2 text-emerald-600 font-bold text-base">
-                    <i class="fa-solid fa-network-wired"></i>
-                    <span class="text-slate-900">Backend Server Settings</span>
-                </div>
-                <button onclick="closeServerDialog()" class="text-slate-400 hover:text-slate-600">
-                    <i class="fa-solid fa-xmark text-lg"></i>
-                </button>
-            </div>
-
-            <div class="space-y-3 text-xs">
-                <div>
-                    <label class="block text-slate-600 font-bold mb-1">Tailnet Host Endpoint:</label>
-                    <input type="text" id="customHostInput" value="https://agrisense.tail0d103f.ts.net" class="input-field w-full">
-                    <p class="text-[11px] text-slate-400 mt-1">Permanent HTTPS Tailscale Funnel endpoint.</p>
-                </div>
-            </div>
-
-            <div class="flex justify-end space-x-2 pt-2 text-xs">
-                <button onclick="closeServerDialog()" class="px-4 py-2.5 rounded-xl text-slate-600 font-bold hover:bg-slate-100">Cancel</button>
-                <button onclick="saveCustomServerHost()" class="px-5 py-2.5 rounded-xl btn-emerald font-bold">Save Settings</button>
-            </div>
+            </main>
         </div>
+
     </div>
 
-    <!-- ADD FIELD MODAL -->
-    <div id="addFieldModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <!-- MODAL: ADD FARM -->
+    <div id="addFarmModal" class="hidden fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl border border-slate-100">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 class="text-base font-bold text-slate-900">Add New Field Polygon</h3>
-                <button onclick="closeAddFieldModal()" class="text-slate-400 hover:text-slate-600">
+                <h3 class="text-base font-bold text-slate-900">Add New Farm Plot</h3>
+                <button onclick="UI.closeAddFarmModal()" class="text-slate-400 hover:text-slate-600">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
 
             <div class="space-y-3 text-xs">
                 <div>
-                    <label class="block text-slate-600 font-bold mb-1">Field Name</label>
-                    <input type="text" id="addFieldTitle" placeholder="East Sector Field" class="input-field w-full">
+                    <label class="block text-slate-600 font-bold mb-1">Farm Name</label>
+                    <input type="text" id="newFarmName" placeholder="East Sector Field" class="input-agri w-full">
                 </div>
                 <div>
-                    <label class="block text-slate-600 font-bold mb-1">Acreage Size (Acres)</label>
-                    <input type="number" id="addFieldAcres" value="18.5" class="input-field w-full">
+                    <label class="block text-slate-600 font-bold mb-1">Size in Acres</label>
+                    <input type="number" id="newFarmAcres" value="18.5" class="input-agri w-full">
                 </div>
                 <div>
                     <label class="block text-slate-600 font-bold mb-1">Crop Type</label>
-                    <input type="text" id="addFieldCrop" value="Soybean / Paddy" class="input-field w-full">
+                    <input type="text" id="newFarmCrop" value="Soybean" class="input-agri w-full">
                 </div>
             </div>
 
             <div class="flex justify-end space-x-2 pt-2 text-xs">
-                <button onclick="closeAddFieldModal()" class="px-4 py-2.5 rounded-xl text-slate-600 font-bold hover:bg-slate-100">Cancel</button>
-                <button onclick="submitNewField()" class="px-5 py-2.5 rounded-xl btn-emerald font-bold">Add Field Plot</button>
+                <button onclick="UI.closeAddFarmModal()" class="px-4 py-2.5 rounded-xl text-slate-600 font-bold hover:bg-slate-100">Cancel</button>
+                <button onclick="UI.submitAddFarm()" class="px-5 py-2.5 rounded-xl btn-agri-primary font-bold">Register Farm</button>
             </div>
         </div>
     </div>
 
-    <!-- JAVASCRIPT LOGIC ENGINE -->
-    <script>
-        let spectralChart = null;
-        let ws = null;
+    <!-- MODAL: FIELD DETAIL -->
+    <div id="fieldDetailModal" class="hidden fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl border border-slate-100">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 id="modalFieldName" class="text-base font-bold text-slate-900">Field Plot Details</h3>
+                <button onclick="UI.closeFieldDetailModal()" class="text-slate-400 hover:text-slate-600">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
 
-        function showToast(msg, isError = false) {
-            const container = document.getElementById('toastContainer');
-            const iconBg = document.getElementById('toastIconBg');
-            const icon = document.getElementById('toastIcon');
-            const msgEl = document.getElementById('toastMessage');
+            <div class="space-y-3 text-xs">
+                <div class="flex justify-between py-2 border-b border-slate-100">
+                    <span class="text-slate-500">Acreage Area</span>
+                    <strong id="modalFieldAcres" class="text-slate-900">15.0 Acres</strong>
+                </div>
+                <div class="flex justify-between py-2 border-b border-slate-100">
+                    <span class="text-slate-500">Crop Cultivated</span>
+                    <strong id="modalFieldCrop" class="text-slate-900">Wheat & Paddy</strong>
+                </div>
+                <div class="flex justify-between py-2 border-b border-slate-100">
+                    <span class="text-slate-500">Crop Health Index</span>
+                    <strong id="modalFieldHealth" class="text-agri-primary font-bold">85.0 / 100</strong>
+                </div>
+                <div class="flex justify-between py-2 border-b border-slate-100">
+                    <span class="text-slate-500">Soil Hydration VWC</span>
+                    <strong id="modalFieldHydration" class="text-cyan-600">42.5%</strong>
+                </div>
+                <div class="flex justify-between py-2">
+                    <span class="text-slate-500">Pathogen Risk Level</span>
+                    <strong id="modalFieldRisk" class="text-emerald-700 font-bold">9.9%</strong>
+                </div>
+            </div>
 
-            msgEl.innerText = msg;
-            if (isError) {
-                iconBg.className = 'p-2.5 rounded-xl bg-red-500/20 text-red-400';
-                icon.className = 'fa-solid fa-circle-exclamation text-lg';
-            } else {
-                iconBg.className = 'p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400';
-                icon.className = 'fa-solid fa-circle-check text-lg';
-            }
-            container.classList.remove('hidden');
-            setTimeout(() => container.classList.add('hidden'), 4000);
-        }
+            <div class="flex justify-end pt-2">
+                <button onclick="UI.closeFieldDetailModal()" class="px-5 py-2.5 rounded-xl btn-agri-primary text-xs font-bold">Close</button>
+            </div>
+        </div>
+    </div>
 
-        function switchAuthTab(tab) {
-            const loginCard = document.getElementById('loginCard');
-            const regCard = document.getElementById('registerCard');
-            const btnLogin = document.getElementById('authTabLogin');
-            const btnReg = document.getElementById('authTabReg');
-
-            if (tab === 'login') {
-                loginCard.classList.remove('hidden');
-                regCard.classList.add('hidden');
-                btnLogin.className = 'flex-1 py-2.5 rounded-lg text-xs font-bold btn-emerald transition';
-                btnReg.className = 'flex-1 py-2.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition';
-            } else {
-                loginCard.classList.add('hidden');
-                regCard.classList.remove('hidden');
-                btnReg.className = 'flex-1 py-2.5 rounded-lg text-xs font-bold btn-emerald transition';
-                btnLogin.className = 'flex-1 py-2.5 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition';
-            }
-        }
-
-        function togglePassVisibility() {
-            const input = document.getElementById('loginPassInput');
-            const icon = document.getElementById('eyeIcon');
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.className = 'fa-solid fa-eye text-sm';
-            } else {
-                input.type = 'password';
-                icon.className = 'fa-solid fa-eye-slash text-sm';
-            }
-        }
-
-        function submitLogin() {
-            document.getElementById('authScreen').classList.add('hidden');
-            document.getElementById('mainDashboardScreen').classList.remove('hidden');
-            initSpectralChart();
-            connectWebSocket();
-            fetchLatest();
-            showToast('✅ Logged in successfully as Akash Satapathy!', false);
-        }
-
-        function logout() {
-            document.getElementById('mainDashboardScreen').classList.add('hidden');
-            document.getElementById('authScreen').classList.remove('hidden');
-            showToast('Logged out of platform.', false);
-        }
-
-        function switchTab(tab) {
-            showToast(`Viewing ${tab.toUpperCase()} module.`, false);
-        }
-
-        function initSpectralChart() {
-            const ctx = document.getElementById('spectralChart').getContext('2d');
-            spectralChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['415nm', '445nm', '480nm', '515nm', '555nm', '590nm', '630nm', '680nm', 'Clear', 'NIR 885nm'],
-                    datasets: [{
-                        label: 'Reflectance Intensity',
-                        data: [450, 680, 920, 1450, 2800, 1600, 980, 520, 12400, 6893],
-                        backgroundColor: '#059669',
-                        borderRadius: 8,
-                        hoverBackgroundColor: '#10B981'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: '#0F172A',
-                            padding: 12,
-                            cornerRadius: 12,
-                            titleFont: { family: 'Plus Jakarta Sans', size: 12, weight: 'bold' }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { display: false },
-                            ticks: { font: { family: 'Plus Jakarta Sans', size: 11, weight: 'bold' }, color: '#64748B' }
-                        },
-                        y: {
-                            grid: { color: '#F1F5F9' },
-                            ticks: { font: { family: 'Plus Jakarta Sans', size: 11 }, color: '#94A3B8' }
-                        }
-                    }
-                }
-            });
-        }
-
-        function connectWebSocket() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws/v1/telemetry`;
-            ws = new WebSocket(wsUrl);
-
-            ws.onopen = () => {
-                const badge = document.getElementById('wsBadge');
-                if (badge) badge.classList.remove('hidden');
-            };
-
-            ws.onmessage = (e) => updateUi(JSON.parse(e.data));
-            ws.onclose = () => {
-                setTimeout(connectWebSocket, 3000);
-            };
-        }
-
-        function updateUi(data) {
-            if (!data || !data.telemetry) return;
-            const t = data.telemetry;
-            const ai = data.ai_diagnosis || {};
-
-            // Update Chart
-            if (spectralChart) {
-                spectralChart.data.datasets[0].data = [
-                    t.f1_415nm || 0, t.f2_445nm || 0, t.f3_480nm || 0, t.f4_515nm || 0,
-                    t.f5_555nm || 0, t.f6_590nm || 0, t.f7_630nm || 0, t.f8_680nm || 0,
-                    t.clear_channel || 0, t.nir_885nm || 0
-                ];
-                spectralChart.update();
-            }
-
-            // Spectrometry Summary
-            if (t.clear_channel !== undefined) document.getElementById('clearVal').innerText = t.clear_channel.toLocaleString();
-            if (ai.s_nir_ratio !== undefined) document.getElementById('snirVal').innerText = ai.s_nir_ratio.toFixed(2);
-
-            // Soil Moisture
-            const soilEl = document.getElementById('homeSoilVal');
-            const soilBadge = document.getElementById('soilBadge');
-            if (t.soil_moisture_vwc !== null && t.soil_moisture_vwc !== undefined && t.soil_status !== 'SENSOR_DISCONNECTED') {
-                soilEl.innerText = t.soil_moisture_vwc.toFixed(1) + '%';
-                soilBadge.className = 'text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
-                soilBadge.innerText = 'OPTIMAL';
-            } else {
-                soilEl.innerHTML = '<span class="text-amber-600 text-lg font-bold">UNPLUGGED</span>';
-                soilBadge.className = 'text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800';
-                soilBadge.innerText = 'FAULT';
-            }
-
-            // Temp
-            const tempEl = document.getElementById('homeTempVal');
-            const tempBadge = document.getElementById('tempBadge');
-            if (t.temperature_c !== null && t.temperature_c !== undefined && t.dht_status !== 'SENSOR_DISCONNECTED') {
-                tempEl.innerText = t.temperature_c.toFixed(1) + '°C';
-                tempBadge.className = 'text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
-                tempBadge.innerText = 'NORMAL';
-            } else {
-                tempEl.innerHTML = '<span class="text-amber-600 text-lg font-bold">UNPLUGGED</span>';
-                tempBadge.className = 'text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800';
-                tempBadge.innerText = 'FAULT';
-            }
-
-            // Humidity
-            const humEl = document.getElementById('homeHumVal');
-            if (t.humidity_pct !== null && t.humidity_pct !== undefined && t.dht_status !== 'SENSOR_DISCONNECTED') {
-                humEl.innerText = t.humidity_pct.toFixed(1) + '%';
-            } else {
-                humEl.innerHTML = '<span class="text-amber-600 text-lg font-bold">UNPLUGGED</span>';
-            }
-
-            // Air Quality
-            const smokeEl = document.getElementById('homeSmokeVal');
-            if (t.smoke_ppm !== null && t.smoke_ppm !== undefined && t.mq135_status !== 'SENSOR_DISCONNECTED') {
-                smokeEl.innerText = Math.round(t.smoke_ppm) + ' PPM';
-            } else {
-                smokeEl.innerHTML = '<span class="text-amber-600 text-lg font-bold">UNPLUGGED</span>';
-            }
-
-            // AI Risk & CHI
-            document.getElementById('homeRiskPct').innerText = (ai.pathogen_risk_pct !== undefined ? ai.pathogen_risk_pct.toFixed(1) : '3.2') + '%';
-            document.getElementById('homeChiScore').innerText = (ai.crop_health_index !== undefined ? ai.crop_health_index.toFixed(1) : '85.0');
-            document.getElementById('homeAgronomicText').innerText = ai.recommended_action || 'Optimal Crop Health';
-
-            const riskBadge = document.getElementById('homeRiskBadge');
-            if ((ai.pathogen_risk_pct || 0) > 30) {
-                riskBadge.className = 'text-xs font-extrabold px-3 py-1 rounded-full bg-red-100 text-red-800';
-                riskBadge.innerText = 'HIGH PATHOGEN RISK';
-            } else {
-                riskBadge.className = 'text-xs font-extrabold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800';
-                riskBadge.innerText = 'OPTIMAL HEALTH';
-            }
-
-            // Hardware fault banner
-            const faultBanner = document.getElementById('sensorFaultBanner');
-            if (ai.sensor_fault_alert || ai.hazard_alert) {
-                document.getElementById('sensorFaultText').innerText = ai.sensor_fault_alert || ai.hazard_alert;
-                faultBanner.classList.remove('hidden');
-            } else {
-                faultBanner.classList.add('hidden');
-            }
-
-            // Log update
-            if (t.device_id) document.getElementById('logDevice').innerText = `Device: ${t.device_id}`;
-            document.getElementById('logStatus').innerText = `DHT22: ${t.temperature_c !== null ? t.temperature_c.toFixed(1) + '°C' : 'DOWN'}, MQ135: ${t.smoke_ppm !== null ? Math.round(t.smoke_ppm) + ' PPM' : 'DOWN'}`;
-        }
-
-        async function fetchLatest() {
-            try {
-                const res = await fetch('/api/v1/telemetry/latest');
-                if (res.ok) updateUi(await res.json());
-            } catch (_) {}
-        }
-
-        async function triggerPreset(p) {
-            try {
-                const res = await fetch(`/api/v1/simulate?preset=${p}`, { method: 'POST' });
-                if (res.ok) {
-                    updateUi(await res.json());
-                    showToast(`Preset '${p}' applied to AI engine.`, false);
-                }
-            } catch (_) {}
-        }
-
-        async function diagnoseLeafImage(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            document.getElementById('leafPreviewImg').src = URL.createObjectURL(file);
-            document.getElementById('scanPreview').classList.remove('hidden');
-
-            const fd = new FormData();
-            fd.append('image', file);
-
-            try {
-                showToast('Analyzing crop leaf image with PyTorch...', false);
-                const res = await fetch('/api/v1/ai/diagnose-crop-image', { method: 'POST', body: fd });
-                const data = await res.json();
-                document.getElementById('scanResultTitle').innerText = data.disease_name || 'Crop Leaf Analysis Complete';
-                document.getElementById('scanResultDesc').innerText = data.treatment_recommendation || data.message || 'No fungal rust detected.';
-                document.getElementById('scanResultBox').classList.remove('hidden');
-                showToast('AI Diagnosis finished successfully!', false);
-            } catch (_) {
-                showToast('AI Image Diagnosis failed.', true);
-            }
-        }
-
-        function openServerDialog() { document.getElementById('serverModal').classList.remove('hidden'); }
-        function closeServerDialog() { document.getElementById('serverModal').classList.add('hidden'); }
-        function saveCustomServerHost() {
-            closeServerDialog();
-            showToast('Server host updated.', false);
-        }
-
-        function openAddFieldModal() { document.getElementById('addFieldModal').classList.remove('hidden'); }
-        function closeAddFieldModal() { document.getElementById('addFieldModal').classList.add('hidden'); }
-        async function submitNewField() {
-            const name = document.getElementById('addFieldTitle').value;
-            const acres = parseFloat(document.getElementById('addFieldAcres').value);
-            const crop = document.getElementById('addFieldCrop').value;
-
-            try {
-                const res = await fetch('/api/v1/farms/add', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ farmer_id: 1, farm_name: name, farm_acres: acres, crop_type: crop })
-                });
-                if (res.ok) {
-                    closeAddFieldModal();
-                    showToast(`Field '${name}' registered successfully!`, false);
-                }
-            } catch (_) {
-                closeAddFieldModal();
-                showToast(`Field plot added locally.`, false);
-            }
-        }
-    </script>
+    <!-- SCRIPT MODULE INCLUDES -->
+    <script src="/static/js/state.js"></script>
+    <script src="/static/js/droneService.js"></script>
+    <script src="/static/js/mapService.js"></script>
+    <script src="/static/js/chartService.js"></script>
+    <script src="/static/js/ui.js"></script>
 </body>
 </html>

@@ -68,6 +68,8 @@ from fastapi.responses import FileResponse
 
 frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
 
+app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
+
 @app.get("/")
 async def serve_web_dashboard():
     index_path = os.path.join(frontend_dir, "index.html")
