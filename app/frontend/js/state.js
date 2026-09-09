@@ -5,13 +5,13 @@ const AgriState = {
     // Current Authenticated User State
     currentUser: {
         isAuthenticated: true,
-        name: "Akash Satapathy",
-        email: "akashpsatapathy@gmail.com",
-        phone: "+91 98765 43210",
+        name: "Alex Vance",
+        email: "farmer@agrisense.io",
+        phone: "+1 (555) 019-2834",
         farmName: "Green Valley Field",
         farmSize: 15.0,
         location: "Lat: 20.2961, Lon: 85.8245",
-        avatar: "AS"
+        avatar: "AV"
     },
 
     // Settings Configuration

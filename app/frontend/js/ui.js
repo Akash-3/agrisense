@@ -110,8 +110,9 @@ const UI = {
             }
         } catch (err) {
             // Fallback for offline demo mode
-            window.AgriState.currentUser.name = "Akash Satapathy";
+            window.AgriState.currentUser.name = "Alex Vance";
             window.AgriState.currentUser.email = idInput;
+            window.AgriState.currentUser.avatar = "AV";
             this.renderUser();
             this.switchView('dashboard');
             this.showToast('✅ Logged in successfully!', false);

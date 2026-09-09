@@ -137,7 +137,7 @@
                             <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Registered Mobile or Email</label>
                             <div class="relative">
                                 <i class="fa-solid fa-envelope text-slate-400 absolute left-4 top-3.5 text-sm"></i>
-                                <input type="text" id="loginIdInput" value="akashpsatapathy@gmail.com" placeholder="Enter phone or email" class="input-agri w-full pl-10">
+                                <input type="text" id="loginIdInput" placeholder="Enter registered phone or email" class="input-agri w-full pl-10">
                             </div>
                         </div>
 
@@ -145,7 +145,7 @@
                             <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Password</label>
                             <div class="relative">
                                 <i class="fa-solid fa-lock text-slate-400 absolute left-4 top-3.5 text-sm"></i>
-                                <input type="password" id="loginPassInput" value="Farmer@123" placeholder="Enter password" class="input-agri w-full pl-10 pr-10">
+                                <input type="password" id="loginPassInput" placeholder="Enter your password" class="input-agri w-full pl-10 pr-10">
                                 <button onclick="UI.togglePassVisibility()" class="absolute right-4 top-3.5 text-slate-400 hover:text-slate-600">
                                     <i id="eyeIcon" class="fa-solid fa-eye-slash text-sm"></i>
                                 </button>
@@ -186,22 +186,22 @@
                     <div id="registerCard" class="space-y-3 hidden">
                         <div>
                             <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Full Name</label>
-                            <input type="text" id="regName" placeholder="Akash Satapathy" class="input-agri w-full">
+                            <input type="text" id="regName" placeholder="e.g. Alex Vance" class="input-agri w-full">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Email or Mobile</label>
-                            <input type="text" id="regEmail" placeholder="farmer@agrisense.io" class="input-agri w-full">
+                            <input type="text" id="regEmail" placeholder="e.g. farmer@agrisense.io" class="input-agri w-full">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Farm Name & Size</label>
                             <div class="grid grid-cols-2 gap-2">
-                                <input type="text" id="regFarm" value="Green Valley Field" class="input-agri w-full">
-                                <input type="number" id="regAcres" value="15.0" placeholder="Acres" class="input-agri w-full">
+                                <input type="text" id="regFarm" placeholder="Farm Name" class="input-agri w-full">
+                                <input type="number" id="regAcres" placeholder="Acres (e.g. 15.0)" class="input-agri w-full">
                             </div>
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Password</label>
-                            <input type="password" id="regPass" placeholder="Farmer@123" class="input-agri w-full">
+                            <input type="password" id="regPass" placeholder="Create a strong password" class="input-agri w-full">
                         </div>
                         <button onclick="UI.submitRegister()" class="btn-agri-primary w-full py-3.5 rounded-xl font-bold text-sm transition mt-2">Create Farmer Account</button>
                     </div>
@@ -292,9 +292,9 @@
 
                 <div class="pt-2 border-t border-slate-800 flex items-center justify-between">
                     <div class="flex items-center space-x-2.5">
-                        <div class="user-avatar w-8 h-8 rounded-full bg-agri-primary text-white font-bold text-xs flex items-center justify-center">AS</div>
+                        <div class="user-avatar w-8 h-8 rounded-full bg-agri-primary text-white font-bold text-xs flex items-center justify-center">AV</div>
                         <div>
-                            <div class="user-name text-xs font-bold text-white leading-tight">Akash Satapathy</div>
+                            <div class="user-name text-xs font-bold text-white leading-tight">Alex Vance</div>
                             <div class="user-farm text-[10px] text-slate-400">Green Valley Field</div>
                         </div>
                     </div>
@@ -377,7 +377,7 @@
                             <div class="inline-flex items-center space-x-2 badge-agri px-3 py-1 text-[11px] font-extrabold uppercase bg-emerald-500/20 border-emerald-400/30 text-emerald-300">
                                 <span>SMARTER INSIGHTS • HEALTHIER CROPS • BRIGHTER TOMORROW</span>
                             </div>
-                            <h2 class="text-2xl sm:text-3xl font-black tracking-tight">Good Morning, <span class="user-name">Akash Satapathy</span></h2>
+                            <h2 class="text-2xl sm:text-3xl font-black tracking-tight">Good Morning, <span class="user-name">Alex Vance</span></h2>
                             <p class="text-xs sm:text-sm text-slate-300 font-medium leading-relaxed">
                                 Sub-surface soil hydration levels are optimal. Autonomous spectroradiometer scan scheduled for 14:00 today.
                             </p>
@@ -1121,11 +1121,11 @@
                         <!-- AVATAR & HEADER -->
                         <div class="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-5 border-b border-slate-100 pb-6">
                             <div class="user-avatar w-20 h-20 rounded-2xl bg-gradient-to-tr from-agri-primary to-agri-secondary text-white font-black text-3xl flex items-center justify-center shadow-lg shadow-emerald-600/30">
-                                AS
+                                AV
                             </div>
                             <div class="text-center sm:text-left space-y-1">
-                                <h3 class="user-name text-xl font-black text-slate-900">Akash Satapathy</h3>
-                                <p class="user-email text-xs text-slate-500 font-medium">akashpsatapathy@gmail.com</p>
+                                <h3 class="user-name text-xl font-black text-slate-900">Alex Vance</h3>
+                                <p class="user-email text-xs text-slate-500 font-medium">farmer@agrisense.io</p>
                                 <div class="inline-flex items-center space-x-1.5 badge-agri px-3 py-0.5 text-[10px]">
                                     <i class="fa-solid fa-shield-check text-emerald-600"></i>
                                     <span>VERIFIED FARMER ACCOUNT</span>
@@ -1139,15 +1139,15 @@
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                                 <div>
                                     <label class="block font-bold text-slate-700 mb-1">Full Name</label>
-                                    <input type="text" id="profName" value="Akash Satapathy" class="input-agri w-full">
+                                    <input type="text" id="profName" value="Alex Vance" class="input-agri w-full">
                                 </div>
                                 <div>
                                     <label class="block font-bold text-slate-700 mb-1">Registered Email Address</label>
-                                    <input type="email" id="profEmail" value="akashpsatapathy@gmail.com" class="input-agri w-full">
+                                    <input type="email" id="profEmail" value="farmer@agrisense.io" class="input-agri w-full">
                                 </div>
                                 <div>
                                     <label class="block font-bold text-slate-700 mb-1">Mobile Phone Number</label>
-                                    <input type="text" id="profPhone" value="+91 98765 43210" class="input-agri w-full">
+                                    <input type="text" id="profPhone" value="+1 (555) 019-2834" class="input-agri w-full">
                                 </div>
                                 <div>
                                     <label class="block font-bold text-slate-700 mb-1">Farmer Category</label>
