@@ -19,11 +19,10 @@ async def handle_send_otp(req: OTPRequest):
             status_code=400,
             detail=f"Account Already Exists: '{req.phone_or_email}' is already registered! Please switch to the Login tab to sign in."
         )
-    otp = generate_otp(req.phone_or_email, full_name=req.full_name)
+    generate_otp(req.phone_or_email, full_name=req.full_name)
     return {
         "status": "success",
-        "message": f"Verification OTP code generated and sent to {req.phone_or_email}!",
-        "demo_otp": otp
+        "message": f"Verification OTP code generated and sent to {req.phone_or_email}!"
     }
 
 @router.post("/verify-otp")
@@ -45,6 +44,33 @@ async def handle_login(req: LoginRequest):
     if res.get("status") == "error":
         raise HTTPException(status_code=401, detail=res.get("message"))
     return res
+
+@router.post("/demo")
+async def handle_demo_login():
+    demo_email = "demo.farmer@agrisense.io"
+    demo_name = "Alex Vance"
+    demo_farm = "Green Valley Field Plot"
+    demo_acres = 15.0
+    demo_crop = "Wheat & Paddy"
+    demo_pass = "Demo@Pass2026!"
+
+    if not check_farmer_exists(demo_email):
+        register_farmer(demo_name, demo_email, demo_farm, demo_acres, demo_pass, "Farmer", 32, 1, demo_crop)
+
+    res = login_farmer(demo_email, demo_pass)
+    return {
+        "status": "success",
+        "demo_mode": True,
+        "message": "Authenticated into AgriSense Demo Account!",
+        "farmer": res.get("farmer") or {
+            "id": 1,
+            "full_name": demo_name,
+            "phone_or_email": demo_email,
+            "farm_name": demo_farm,
+            "farm_acres": demo_acres,
+            "crop_type": demo_crop
+        }
+    }
 
 @router.post("/sso/{provider}")
 async def handle_sso_login(provider: str, payload: Optional[SSORequest] = None):
@@ -81,15 +107,34 @@ async def handle_forgot_password_send_otp(req: OTPRequest):
             status_code=404,
             detail=f"No account registered with '{req.phone_or_email}'. Please check your email or register."
         )
-    otp = generate_otp(req.phone_or_email, full_name=req.full_name)
+    generate_otp(req.phone_or_email, full_name=req.full_name)
     return {
         "status": "success",
-        "message": f"Password reset OTP sent to {req.phone_or_email}!",
-        "demo_otp": otp
+        "message": f"Password reset OTP sent to {req.phone_or_email}!"
     }
 
 @router.post("/forgot-password/reset")
 async def handle_forgot_password_reset(req: ResetPasswordRequest):
+    res = reset_password_with_otp(req.phone_or_email, req.new_password, req.otp_code)
+    if res.get("status") == "error":
+        raise HTTPException(status_code=400, detail=res.get("message"))
+    return res
+
+@router.post("/password-change/send-otp")
+async def handle_password_change_send_otp(req: OTPRequest):
+    if not check_farmer_exists(req.phone_or_email):
+        raise HTTPException(
+            status_code=404,
+            detail=f"Account not found for '{req.phone_or_email}'."
+        )
+    generate_otp(req.phone_or_email, full_name=req.full_name)
+    return {
+        "status": "success",
+        "message": f"Password change OTP verification code sent to {req.phone_or_email}!"
+    }
+
+@router.post("/password-change/reset")
+async def handle_password_change_reset(req: ResetPasswordRequest):
     res = reset_password_with_otp(req.phone_or_email, req.new_password, req.otp_code)
     if res.get("status") == "error":
         raise HTTPException(status_code=400, detail=res.get("message"))

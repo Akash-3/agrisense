@@ -70,7 +70,7 @@ const UI = {
         }
     },
 
-    // ==================== REAL DATABASE AUTHENTICATION ====================
+    // ==================== AUTHENTICATION DELEGATION TO AUTHSERVICE ====================
     async submitLogin() {
         const idInput = document.getElementById('loginIdInput').value.trim();
         const passInput = document.getElementById('loginPassInput').value.trim();
@@ -80,42 +80,52 @@ const UI = {
             return;
         }
 
-        try {
-            this.showToast('Verifying credentials against database...', false);
-            const res = await fetch('/api/v1/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone_or_email: idInput, password: passInput })
-            });
+        this.showToast('Verifying credentials against database...', false);
+        const data = await window.AuthService.login(idInput, passInput);
 
-            const data = await res.json();
-            if (res.ok && data.status === 'success' && data.farmer) {
-                const farmer = data.farmer;
-                window.AgriState.currentUser = {
-                    id: farmer.id || 1,
-                    name: farmer.full_name || idInput,
-                    email: farmer.phone_or_email || idInput,
-                    phone: farmer.phone_or_email || "+91 98765 43210",
-                    farmName: farmer.farm_name || "Green Valley Field",
-                    farmSize: farmer.farm_acres || 15.0,
-                    location: "Lat: 20.2961, Lon: 85.8245",
-                    avatar: farmer.full_name ? farmer.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : "AS"
-                };
+        if (data.status === 'success' && data.farmer) {
+            const farmer = data.farmer;
+            window.AgriState.currentUser = {
+                id: farmer.id || 1,
+                isDemoMode: false,
+                name: farmer.full_name || idInput,
+                email: farmer.phone_or_email || idInput,
+                phone: farmer.phone_or_email || "+1 (555) 019-2834",
+                farmName: farmer.farm_name || "Green Valley Field Plot",
+                farmSize: farmer.farm_acres || 15.0,
+                location: "Lat: 20.2961, Lon: 85.8245",
+                avatar: farmer.full_name ? farmer.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : "AV"
+            };
 
-                this.renderUser();
-                this.switchView('dashboard');
-                this.showToast(`✅ Welcome back, ${window.AgriState.currentUser.name}! Authenticated via SQLite DB.`, false);
-            } else {
-                this.showToast(data.detail || data.message || 'Invalid credentials or locked account.', true);
-            }
-        } catch (err) {
-            // Fallback for offline demo mode
-            window.AgriState.currentUser.name = "Alex Vance";
-            window.AgriState.currentUser.email = idInput;
-            window.AgriState.currentUser.avatar = "AV";
             this.renderUser();
             this.switchView('dashboard');
-            this.showToast('✅ Logged in successfully!', false);
+            this.showToast(`✅ Welcome back, ${window.AgriState.currentUser.name}! Authenticated via SQLite DB.`, false);
+        } else {
+            this.showToast(data.detail || data.message || 'Invalid credentials or locked account.', true);
+        }
+    },
+
+    async submitDemoLogin() {
+        this.showToast('🚜 Initializing AgriSense Demo Session...', false);
+        const data = await window.AuthService.demoLogin();
+
+        if (data.status === 'success' && data.farmer) {
+            const farmer = data.farmer;
+            window.AgriState.currentUser = {
+                id: farmer.id || 1,
+                isDemoMode: true,
+                name: farmer.full_name || "Alex Vance",
+                email: farmer.phone_or_email || "demo.farmer@agrisense.io",
+                phone: "+1 (555) 019-2834",
+                farmName: farmer.farm_name || "Green Valley Field Plot",
+                farmSize: farmer.farm_acres || 15.0,
+                location: "Lat: 20.2961, Lon: 85.8245",
+                avatar: "AV"
+            };
+
+            this.renderUser();
+            this.switchView('dashboard');
+            this.showToast(`🚜 Welcome to AgriSense Demo Mode! Data is for evaluation.`, false);
         }
     },
 
@@ -131,56 +141,48 @@ const UI = {
             return;
         }
 
-        try {
-            this.showToast('Registering farmer in SQLite database...', false);
-            const res = await fetch('/api/v1/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    full_name: name,
-                    phone_or_email: email,
-                    farm_name: farm || "Main Farm Plot",
-                    farm_acres: acres,
-                    password: pass,
-                    crop_type: "Wheat & Paddy"
-                })
-            });
+        this.showToast('Registering farmer in SQLite database...', false);
+        const data = await window.AuthService.register({
+            full_name: name,
+            phone_or_email: email,
+            farm_name: farm || "Main Farm Plot",
+            farm_acres: acres,
+            password: pass,
+            crop_type: "Wheat & Paddy"
+        });
 
-            const data = await res.json();
-            if (res.ok && data.status === 'success') {
-                this.showToast('✅ Account registered successfully! Signing in...', false);
-                document.getElementById('loginIdInput').value = email;
-                document.getElementById('loginPassInput').value = pass;
-                this.submitLogin();
-            } else {
-                this.showToast(data.detail || data.message || 'Registration failed.', true);
-            }
-        } catch (_) {
-            this.switchView('dashboard');
-            this.showToast('✅ Account registered successfully!', false);
+        if (data.status === 'success') {
+            this.showToast('✅ Account registered successfully! Signing in...', false);
+            document.getElementById('loginIdInput').value = email;
+            document.getElementById('loginPassInput').value = pass;
+            this.submitLogin();
+        } else {
+            this.showToast(data.detail || data.message || 'Registration failed.', true);
         }
     },
 
     async submitSSO(provider) {
-        try {
-            this.showToast(`Connecting to ${provider.toUpperCase()} SSO...`, false);
-            const res = await fetch(`/api/v1/auth/sso/${provider}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ full_name: `${provider.toUpperCase()} Farmer`, email: `${provider}.farmer@agrisense.io` })
-            });
-            const data = await res.json();
-            if (res.ok && data.status === 'success') {
-                const farmer = data.farmer || {};
-                window.AgriState.currentUser.name = farmer.full_name || `${provider.toUpperCase()} Farmer`;
-                window.AgriState.currentUser.email = farmer.phone_or_email || `${provider}.farmer@agrisense.io`;
-                this.renderUser();
-                this.switchView('dashboard');
-                this.showToast(`✅ Authenticated via ${provider.toUpperCase()} SSO!`, false);
-            } else {
-                this.switchView('dashboard');
-            }
-        } catch (_) {
+        this.showToast(`Connecting to ${provider.toUpperCase()} SSO...`, false);
+        const data = await window.AuthService.sso(provider);
+
+        if (data.status === 'success') {
+            const farmer = data.farmer || {};
+            window.AgriState.currentUser = {
+                id: farmer.id || 1,
+                isDemoMode: false,
+                name: farmer.full_name || `${provider.toUpperCase()} Farmer`,
+                email: farmer.phone_or_email || `${provider}.farmer@agrisense.io`,
+                phone: "+1 (555) 019-2834",
+                farmName: farmer.farm_name || "Green Valley Field Plot",
+                farmSize: farmer.farm_acres || 10.0,
+                location: "Lat: 20.2961, Lon: 85.8245",
+                avatar: farmer.full_name ? farmer.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : "AV"
+            };
+
+            this.renderUser();
+            this.switchView('dashboard');
+            this.showToast(`✅ Authenticated via ${provider.toUpperCase()} SSO!`, false);
+        } else {
             this.switchView('dashboard');
         }
     },
@@ -194,7 +196,6 @@ const UI = {
         const farmAcres = parseFloat(document.getElementById('profFarmAcres').value) || 15.0;
         const cropType = document.getElementById('profCropType').value.trim();
         const location = document.getElementById('profLocation').value.trim();
-        const newPass = document.getElementById('profNewPass').value.trim();
 
         if (!name || !email) {
             this.showToast('Full name and email are required.', true);
@@ -213,8 +214,7 @@ const UI = {
                     farm_name: farmName,
                     farm_acres: farmAcres,
                     crop_type: cropType,
-                    location: location,
-                    new_password: newPass || null
+                    location: location
                 })
             });
 
@@ -350,6 +350,16 @@ const UI = {
         if (document.getElementById('profFarmAcres')) document.getElementById('profFarmAcres').value = u.farmSize;
         if (document.getElementById('profCropType')) document.getElementById('profCropType').value = "Wheat & Paddy";
         if (document.getElementById('profLocation')) document.getElementById('profLocation').value = u.location;
+
+        const lastChangedEl = document.getElementById('profLastChangedText');
+        if (lastChangedEl) {
+            if (u.password_updated_at) {
+                const dt = new Date(u.password_updated_at * 1000);
+                lastChangedEl.innerText = `Last changed: ${dt.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
+            } else {
+                lastChangedEl.innerText = `Last changed: Never`;
+            }
+        }
     },
 
     renderAll() {
@@ -366,6 +376,17 @@ const UI = {
         document.querySelectorAll('.user-email').forEach(el => el.innerText = u.email);
         document.querySelectorAll('.user-avatar').forEach(el => el.innerText = u.avatar);
         document.querySelectorAll('.user-farm').forEach(el => el.innerText = `${u.farmName} (${u.farmSize} Acres)`);
+
+        const demoBadge = document.getElementById('headerDemoBadge');
+        if (demoBadge) {
+            if (u.isDemoMode) {
+                demoBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span><span>● DEMO MODE</span>`;
+                demoBadge.className = 'flex items-center space-x-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-300 text-amber-800 text-xs font-black tracking-wider';
+            } else {
+                demoBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span>● LIVE SESSION</span>`;
+                demoBadge.className = 'flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-black tracking-wider';
+            }
+        }
     },
 
     renderTelemetryValues(t) {
@@ -658,6 +679,232 @@ const UI = {
         document.querySelectorAll('.temp-unit-label').forEach(el => el.innerText = `°${window.AgriState.settings.tempUnit}`);
         this.renderTelemetryValues(window.AgriState.telemetry);
         this.showToast(`Temperature unit set to °${window.AgriState.settings.tempUnit}.`, false);
+    },
+
+    // ==================== EMAIL OTP & ACCOUNT SECURITY FLOWS ====================
+    otpState: {
+        mode: 'change_password', // 'change_password' | 'forgot_password'
+        email: '',
+        fullName: '',
+        step: 1,
+        verifiedOtp: null,
+        resendTimer: null,
+        resendSeconds: 45
+    },
+
+    openChangePasswordModal() {
+        const u = window.AgriState.currentUser;
+        this.otpState = {
+            mode: 'change_password',
+            email: u.email || 'demo.farmer@agrisense.io',
+            fullName: u.name || 'Farmer',
+            step: 1,
+            verifiedOtp: null,
+            resendTimer: null,
+            resendSeconds: 45
+        };
+
+        document.getElementById('otpModalTitle').innerText = 'Account Security Verification';
+        document.getElementById('otpModalSubtitle').innerText = 'Verify email to modify account password';
+        document.getElementById('otpDestinationLabel').innerText = 'Verification Code Destination';
+        document.getElementById('otpMaskedEmailBox').classList.remove('hidden');
+        document.getElementById('otpMaskedEmailBox').innerText = window.EmailOTPService.maskEmail(this.otpState.email);
+        document.getElementById('otpUnmaskedEmailInput').classList.add('hidden');
+
+        this.showOTPStep(1);
+        document.getElementById('otpAuthModal').classList.remove('hidden');
+    },
+
+    openForgotPasswordModal() {
+        const prefilledEmail = document.getElementById('loginIdInput')?.value.trim() || '';
+        this.otpState = {
+            mode: 'forgot_password',
+            email: prefilledEmail,
+            fullName: 'Farmer',
+            step: 1,
+            verifiedOtp: null,
+            resendTimer: null,
+            resendSeconds: 45
+        };
+
+        document.getElementById('otpModalTitle').innerText = 'Reset Forgotten Password';
+        document.getElementById('otpModalSubtitle').innerText = 'Enter your registered email address to receive an OTP';
+        document.getElementById('otpDestinationLabel').innerText = 'Registered Email Address';
+        document.getElementById('otpMaskedEmailBox').classList.add('hidden');
+        const emailInput = document.getElementById('otpUnmaskedEmailInput');
+        emailInput.classList.remove('hidden');
+        emailInput.value = prefilledEmail;
+
+        this.showOTPStep(1);
+        document.getElementById('otpAuthModal').classList.remove('hidden');
+    },
+
+    closeOTPAuthModal() {
+        document.getElementById('otpAuthModal').classList.add('hidden');
+        if (this.otpState.resendTimer) {
+            clearInterval(this.otpState.resendTimer);
+            this.otpState.resendTimer = null;
+        }
+    },
+
+    showOTPStep(stepNum) {
+        this.otpState.step = stepNum;
+        [1, 2, 3, 4].forEach(s => {
+            const el = document.getElementById(`otpStep${s}`);
+            if (el) el.classList.toggle('hidden', s !== stepNum);
+        });
+    },
+
+    async sendOTPCode() {
+        if (this.otpState.mode === 'forgot_password') {
+            const emailInput = document.getElementById('otpUnmaskedEmailInput').value.trim();
+            if (!emailInput) {
+                this.showToast('Please enter your registered email address.', true);
+                return;
+            }
+            this.otpState.email = emailInput;
+        }
+
+        this.showToast('Sending OTP verification code to email...', false);
+
+        let res;
+        if (this.otpState.mode === 'change_password') {
+            res = await window.EmailOTPService.sendPasswordChangeOTP(this.otpState.email, this.otpState.fullName);
+        } else {
+            res = await window.EmailOTPService.sendForgotPasswordOTP(this.otpState.email);
+        }
+
+        if (res.status === 'success') {
+            this.showToast('✅ OTP code sent! Please check your email inbox.', false);
+            this.showOTPStep(2);
+            this.startResendTimer();
+        } else {
+            this.showToast(res.message, true);
+        }
+    },
+
+    async resendOTPCode() {
+        if (this.otpState.resendSeconds > 0) return;
+        this.showToast('Resending OTP verification code...', false);
+        await this.sendOTPCode();
+    },
+
+    startResendTimer() {
+        if (this.otpState.resendTimer) clearInterval(this.otpState.resendTimer);
+        this.otpState.resendSeconds = 45;
+
+        const timerSecEl = document.getElementById('otpTimerSeconds');
+        const resendBtn = document.getElementById('btnResendOTP');
+        const countdownText = document.getElementById('otpCountdownText');
+
+        if (timerSecEl) timerSecEl.innerText = '45';
+        if (resendBtn) resendBtn.disabled = true;
+        if (countdownText) countdownText.classList.remove('hidden');
+
+        this.otpState.resendTimer = setInterval(() => {
+            this.otpState.resendSeconds--;
+            if (timerSecEl) timerSecEl.innerText = this.otpState.resendSeconds;
+
+            if (this.otpState.resendSeconds <= 0) {
+                clearInterval(this.otpState.resendTimer);
+                this.otpState.resendTimer = null;
+                if (resendBtn) resendBtn.disabled = false;
+                if (countdownText) countdownText.classList.add('hidden');
+            }
+        }, 1000);
+    },
+
+    async verifyOTPCode() {
+        const code = document.getElementById('otpCodeInput').value.trim();
+        if (!code || code.length < 6) {
+            this.showToast('Please enter the 6-digit OTP code.', true);
+            return;
+        }
+
+        this.showToast('Verifying OTP code...', false);
+        const res = await window.EmailOTPService.verifyOTP(this.otpState.email, code);
+
+        if (res.status === 'success') {
+            this.otpState.verifiedOtp = code;
+            this.showToast('✅ OTP verified successfully!', false);
+            this.showOTPStep(3);
+        } else {
+            this.showToast(res.message, true);
+        }
+    },
+
+    checkPasswordStrength() {
+        const pass = document.getElementById('otpNewPasswordInput').value;
+        const evalRes = window.EmailOTPService.evaluatePasswordStrength(pass);
+
+        const labelEl = document.getElementById('otpStrengthLabel');
+        const barEl = document.getElementById('otpStrengthBar');
+
+        if (labelEl) {
+            labelEl.innerText = evalRes.label;
+            labelEl.className = `font-bold ${evalRes.color}`;
+        }
+        if (barEl) {
+            barEl.style.width = `${evalRes.score}%`;
+            barEl.className = `h-full ${evalRes.barColor} transition-all duration-300`;
+        }
+    },
+
+    toggleOTPPassVisibility(inputId, iconId) {
+        const input = document.getElementById(inputId);
+        const icon = document.getElementById(iconId);
+        if (input && icon) {
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fa-solid fa-eye text-xs text-agri-primary';
+            } else {
+                input.type = 'password';
+                icon.className = 'fa-solid fa-eye-slash text-xs text-slate-400';
+            }
+        }
+    },
+
+    async submitNewPassword() {
+        const newPass = document.getElementById('otpNewPasswordInput').value;
+        const confPass = document.getElementById('otpConfirmPasswordInput').value;
+
+        if (!newPass || newPass.length < 6) {
+            this.showToast('Password must be at least 6 characters long.', true);
+            return;
+        }
+        if (newPass !== confPass) {
+            this.showToast('New passwords do not match.', true);
+            return;
+        }
+
+        this.showToast('Updating account password in database...', false);
+        const res = await window.EmailOTPService.resetPassword(this.otpState.email, this.otpState.verifiedOtp, newPass);
+
+        if (res.status === 'success') {
+            if (res.password_updated_at) {
+                window.AgriState.currentUser.password_updated_at = res.password_updated_at;
+            } else {
+                window.AgriState.currentUser.password_updated_at = Date.now() / 1000;
+            }
+
+            this.showToast('✅ Password updated successfully!', false);
+            this.showOTPStep(4);
+        } else {
+            this.showToast(res.message, true);
+        }
+    },
+
+    finishOTPPasswordFlow() {
+        this.closeOTPAuthModal();
+        if (this.otpState.mode === 'change_password') {
+            this.populateProfileForm();
+        } else {
+            // Return to login screen
+            this.switchView('auth');
+            document.getElementById('loginIdInput').value = this.otpState.email;
+            document.getElementById('loginPassInput').value = '';
+            document.getElementById('loginPassInput').focus();
+        }
     }
 };
 

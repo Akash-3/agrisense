@@ -5,10 +5,11 @@ const AgriState = {
     // Current Authenticated User State
     currentUser: {
         isAuthenticated: true,
+        isDemoMode: true,
         name: "Alex Vance",
-        email: "farmer@agrisense.io",
+        email: "demo.farmer@agrisense.io",
         phone: "+1 (555) 019-2834",
-        farmName: "Green Valley Field",
+        farmName: "Green Valley Field Plot",
         farmSize: 15.0,
         location: "Lat: 20.2961, Lon: 85.8245",
         avatar: "AV"

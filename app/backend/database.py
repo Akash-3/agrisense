@@ -64,6 +64,11 @@ def init_db():
             cursor.execute("ALTER TABLE farmers ADD COLUMN avatar_id INTEGER DEFAULT 1")
         except Exception:
             pass
+    if 'password_updated_at' not in columns:
+        try:
+            cursor.execute("ALTER TABLE farmers ADD COLUMN password_updated_at REAL DEFAULT NULL")
+        except Exception:
+            pass
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS farms (
@@ -336,7 +341,7 @@ def login_farmer(phone_or_email: str, password: str):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT id, full_name, password_hash, salt, gender, age, avatar_id FROM farmers WHERE LOWER(phone_or_email) = ?",
+        "SELECT id, full_name, password_hash, salt, gender, age, avatar_id, password_updated_at FROM farmers WHERE LOWER(phone_or_email) = ?",
         (clean_id,)
     )
     row = cursor.fetchone()
@@ -349,6 +354,7 @@ def login_farmer(phone_or_email: str, password: str):
         gender = row[4] if len(row) > 4 and row[4] else "Farmer"
         age = row[5] if len(row) > 5 and row[5] else 32
         avatar_id = row[6] if len(row) > 6 and row[6] else 1
+        password_updated_at = row[7] if len(row) > 7 else None
         
         computed_hash = hash_password(password, salt) if salt else hash_password(password)
         salt_bytes = salt.encode('utf-8') if salt else b''
@@ -371,6 +377,7 @@ def login_farmer(phone_or_email: str, password: str):
                     "gender": gender,
                     "age": age,
                     "avatar_id": avatar_id,
+                    "password_updated_at": password_updated_at,
                     "farms": farms
                 }
             }
@@ -403,13 +410,14 @@ def reset_password_with_otp(phone_or_email: str, new_password: str, otp_code: st
     # 4. Hash New Password with Salt & Server JWT Secret Key
     salt = generate_salt()
     pwd_hash = hash_password(new_password, salt)
+    now = time.time()
     
-    cursor.execute("UPDATE farmers SET password_hash = ?, salt = ? WHERE LOWER(phone_or_email) = ?", (pwd_hash, salt, clean_id))
+    cursor.execute("UPDATE farmers SET password_hash = ?, salt = ?, password_updated_at = ? WHERE LOWER(phone_or_email) = ?", (pwd_hash, salt, now, clean_id))
     conn.commit()
     conn.close()
     
     clear_failed_attempts(clean_id)
-    return {"status": "success", "message": "Password reset successfully! You can now log in with your new password."}
+    return {"status": "success", "message": "Password reset successfully! You can now log in with your new password.", "password_updated_at": now}
 
 def create_session_token(farmer_id: int) -> str:
     token = secrets.token_hex(32)
@@ -442,6 +450,7 @@ def update_farmer_profile(farmer_id: int, full_name: str, phone_or_email: str = 
     
     fields = ["full_name = ?", "gender = ?", "age = ?", "avatar_id = ?"]
     params = [full_name, gender, age, avatar_id]
+    updated_at_val = None
 
     if phone_or_email:
         fields.append("phone_or_email = ?")
@@ -454,9 +463,11 @@ def update_farmer_profile(farmer_id: int, full_name: str, phone_or_email: str = 
     if new_password and len(new_password) >= 6:
         salt = generate_salt()
         pwd_hash = hash_password(new_password, salt)
+        updated_at_val = time.time()
         fields.append("password_hash = ?")
         fields.append("salt = ?")
-        params.extend([pwd_hash, salt])
+        fields.append("password_updated_at = ?")
+        params.extend([pwd_hash, salt, updated_at_val])
 
     params.append(farmer_id)
     query = f"UPDATE farmers SET {', '.join(fields)} WHERE id = ?"
@@ -479,9 +490,13 @@ def update_farmer_profile(farmer_id: int, full_name: str, phone_or_email: str = 
             "crop_type": crop_type,
             "gender": gender,
             "age": age,
-            "avatar_id": avatar_id
+            "avatar_id": avatar_id,
+            "password_updated_at": updated_at_val
         }
     }
+
+# Run table initialization on module load
+init_db()
 
 # Run table initialization on module load
 init_db()
