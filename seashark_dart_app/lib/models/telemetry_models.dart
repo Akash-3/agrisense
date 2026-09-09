@@ -15,11 +15,16 @@ class TelemetryPayload {
   final int clearChannel;
   final int nir_885nm;
 
-  // Environmental & Edaphic Hydration
-  final double soilMoistureVwc;
-  final double temperatureC;
-  final double humidityPct;
-  final double smokePpm;
+  // Environmental & Edaphic Hydration (Nullable when sensors are disconnected)
+  final double? soilMoistureVwc;
+  final double? temperatureC;
+  final double? humidityPct;
+  final double? smokePpm;
+
+  // Real Hardware Sensor Health Status Flags
+  final String soilStatus;
+  final String dhtStatus;
+  final String mq135Status;
 
   TelemetryPayload({
     required this.deviceId,
@@ -35,10 +40,13 @@ class TelemetryPayload {
     required this.f8_680nm,
     required this.clearChannel,
     required this.nir_885nm,
-    required this.soilMoistureVwc,
-    required this.temperatureC,
-    required this.humidityPct,
-    required this.smokePpm,
+    this.soilMoistureVwc,
+    this.temperatureC,
+    this.humidityPct,
+    this.smokePpm,
+    this.soilStatus = 'ONLINE',
+    this.dhtStatus = 'ONLINE',
+    this.mq135Status = 'ONLINE',
   });
 
   factory TelemetryPayload.fromJson(Map<String, dynamic> json) {
@@ -56,10 +64,13 @@ class TelemetryPayload {
       f8_680nm: json['f8_680nm'] ?? 520,
       clearChannel: json['clear_channel'] ?? 12400,
       nir_885nm: json['nir_885nm'] ?? 6400,
-      soilMoistureVwc: (json['soil_moisture_vwc'] as num?)?.toDouble() ?? 68.5,
-      temperatureC: (json['temperature_c'] as num?)?.toDouble() ?? 26.2,
-      humidityPct: (json['humidity_pct'] as num?)?.toDouble() ?? 62.0,
-      smokePpm: (json['smoke_ppm'] as num?)?.toDouble() ?? 78.0,
+      soilMoistureVwc: (json['soil_moisture_vwc'] as num?)?.toDouble(),
+      temperatureC: (json['temperature_c'] as num?)?.toDouble(),
+      humidityPct: (json['humidity_pct'] as num?)?.toDouble(),
+      smokePpm: (json['smoke_ppm'] as num?)?.toDouble(),
+      soilStatus: json['soil_status'] ?? 'ONLINE',
+      dhtStatus: json['dht_status'] ?? 'ONLINE',
+      mq135Status: json['mq135_status'] ?? 'ONLINE',
     );
   }
 
@@ -82,6 +93,9 @@ class TelemetryPayload {
       'temperature_c': temperatureC,
       'humidity_pct': humidityPct,
       'smoke_ppm': smokePpm,
+      'soil_status': soilStatus,
+      'dht_status': dhtStatus,
+      'mq135_status': mq135Status,
     };
   }
 }
@@ -93,6 +107,7 @@ class AIDiagnosticResult {
   final double preSymptomaticLeadDays;
   final String recommendedAction;
   final String? hazardAlert;
+  final String? sensorFaultAlert;
 
   AIDiagnosticResult({
     required this.status,
@@ -101,6 +116,7 @@ class AIDiagnosticResult {
     required this.preSymptomaticLeadDays,
     required this.recommendedAction,
     this.hazardAlert,
+    this.sensorFaultAlert,
   });
 
   factory AIDiagnosticResult.fromJson(Map<String, dynamic> json) {
@@ -111,6 +127,7 @@ class AIDiagnosticResult {
       preSymptomaticLeadDays: (json['pre_symptomatic_lead_days'] as num?)?.toDouble() ?? 0.0,
       recommendedAction: json['recommended_action'] ?? '',
       hazardAlert: json['hazard_alert'],
+      sensorFaultAlert: json['sensor_fault_alert'],
     );
   }
 }

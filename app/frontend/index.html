@@ -400,13 +400,35 @@
             document.getElementById('cnir').innerText = t.nir_885nm;
             document.getElementById('cclear').innerText = t.clear_channel;
 
-            document.getElementById('soilMoistureVal').innerText = t.soil_moisture_vwc.toFixed(1) + '%';
-            document.getElementById('tempVal').innerText = t.temperature_c.toFixed(1);
-            document.getElementById('humidityVal').innerText = t.humidity_pct.toFixed(1) + '%';
-            document.getElementById('smokeVal').innerText = Math.round(t.smoke_ppm) + ' PPM';
+            if (t.soil_moisture_vwc !== null && t.soil_moisture_vwc !== undefined && t.soil_status !== 'SENSOR_DISCONNECTED') {
+                document.getElementById('soilMoistureVal').innerHTML = t.soil_moisture_vwc.toFixed(1) + '%';
+            } else {
+                document.getElementById('soilMoistureVal').innerHTML = '<span class="text-amber-400 text-sm font-bold"><i class="fa-solid fa-triangle-exclamation"></i> SENSOR DOWN</span>';
+            }
+
+            if (t.temperature_c !== null && t.temperature_c !== undefined && t.dht_status !== 'SENSOR_DISCONNECTED') {
+                document.getElementById('tempVal').innerText = t.temperature_c.toFixed(1);
+            } else {
+                document.getElementById('tempVal').innerHTML = '<span class="text-amber-400 text-xs font-bold"><i class="fa-solid fa-plug-circle-xmark"></i> UNPLUGGED</span>';
+            }
+
+            if (t.humidity_pct !== null && t.humidity_pct !== undefined && t.dht_status !== 'SENSOR_DISCONNECTED') {
+                document.getElementById('humidityVal').innerHTML = t.humidity_pct.toFixed(1) + '%';
+            } else {
+                document.getElementById('humidityVal').innerHTML = '<span class="text-amber-400 text-xs font-bold"><i class="fa-solid fa-plug-circle-xmark"></i> UNPLUGGED</span>';
+            }
+
+            if (t.smoke_ppm !== null && t.smoke_ppm !== undefined && t.mq135_status !== 'SENSOR_DISCONNECTED') {
+                document.getElementById('smokeVal').innerText = Math.round(t.smoke_ppm) + ' PPM';
+            } else {
+                document.getElementById('smokeVal').innerHTML = '<span class="text-amber-400 text-xs font-bold"><i class="fa-solid fa-plug-circle-xmark"></i> UNPLUGGED</span>';
+            }
 
             const smokeStatusEl = document.getElementById('smokeStatus');
-            if (t.smoke_ppm > 400) {
+            if (t.mq135_status === 'SENSOR_DISCONNECTED' || t.smoke_ppm === null) {
+                smokeStatusEl.className = 'text-[11px] text-amber-400 font-bold mt-1';
+                smokeStatusEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> MQ-135 Air Quality Sensor Disconnected';
+            } else if (t.smoke_ppm > 400) {
                 smokeStatusEl.className = 'text-[11px] text-red-400 font-bold mt-1';
                 smokeStatusEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> CRITICAL: Smoke Exceeds 400 PPM!';
             } else {
