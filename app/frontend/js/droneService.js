@@ -17,7 +17,7 @@ const DroneService = {
             currentField: "Green Valley Field",
             missionProgress: 0, // %
             flightTimeSec: 0,
-            payload: "AS7341 10-Ch Spectrometer",
+            payload: "Multispectral Crop Health Sensor",
             lat: 20.2961,
             lng: 85.8245
         },
@@ -63,7 +63,7 @@ const DroneService = {
         altitude: 25, // meters
         speed: 8, // m/s
         overlap: 75, // %
-        scanType: "AS7341 10-Channel Spectrometry",
+        scanType: "Multispectral Crop Health Sensor",
         estimatedDistKm: 2.4,
         estimatedTimeMin: 14,
         estimatedBatteryPct: 32,

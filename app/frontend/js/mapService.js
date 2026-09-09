@@ -87,6 +87,7 @@ const MapService = {
     },
 
     selectedPolygon: null,
+    fieldDataList: [],
 
     clearSelectedPolygon() {
         if (this.selectedPolygon) {
@@ -108,6 +109,26 @@ const MapService = {
                 fillOpacity: 0.55
             });
             polygon.bringToFront();
+        }
+    },
+
+    getFieldById(id) {
+        return this.fieldDataList.find(f => f.id === parseInt(id)) || null;
+    },
+
+    selectFieldById(id) {
+        const field = this.getFieldById(id);
+        if (!field) return;
+
+        const targetPolygon = this.fieldPolygons.find(p => p.fieldData && p.fieldData.id === field.id);
+        if (targetPolygon) {
+            this.setSelectedPolygon(targetPolygon);
+            if (this.map) {
+                this.map.fitBounds(targetPolygon.getBounds(), { padding: [60, 60], maxZoom: 16, animate: true });
+            }
+            if (window.UI) {
+                window.UI.showFieldDetailPanel(field, targetPolygon);
+            }
         }
     },
 
@@ -170,6 +191,8 @@ const MapService = {
             }
         ];
 
+        this.fieldDataList = fieldData;
+
         fieldData.forEach(field => {
             let fillColor = field.color;
 
@@ -188,6 +211,7 @@ const MapService = {
 
             const polygon = L.polygon(field.coords, defaultStyle).addTo(this.map);
             polygon.defaultStyle = defaultStyle;
+            polygon.fieldData = field;
 
             polygon.bindTooltip(`<b>${field.name}</b><br>${field.acres} Acres • ${field.crop}`, {
                 permanent: false,
@@ -200,6 +224,13 @@ const MapService = {
                 if (this.map) {
                     this.map.fitBounds(polygon.getBounds(), { padding: [60, 60], maxZoom: 16, animate: true });
                 }
+
+                // Synchronize Mission Planner target field select if present
+                const targetSelect = document.getElementById('plannerTargetField');
+                if (targetSelect) {
+                    targetSelect.value = field.id.toString();
+                }
+
                 if (window.UI) {
                     window.UI.showFieldDetailPanel(field, polygon);
                 }

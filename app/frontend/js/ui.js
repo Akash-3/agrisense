@@ -277,6 +277,7 @@ const UI = {
 
     switchView(viewName) {
         this.currentView = viewName;
+        this.closeFieldDetailPanel();
 
         const pages = [
             'pageDashboard', 'pageMap', 'pageDroneStation', 'pageMissionPlanner',
@@ -598,6 +599,13 @@ const UI = {
         document.getElementById('panelFieldName').innerText = field.name || "Field Plot";
         document.getElementById('panelFieldAcres').innerText = field.acres ? `${field.acres} Acres` : "Not available";
         document.getElementById('panelFieldCrop').innerText = field.crop || "Not available";
+
+        const acresMeta = document.getElementById('panelFieldAcresMeta');
+        if (acresMeta) acresMeta.innerText = field.acres ? `${field.acres} Acres` : "Not available";
+
+        const cropMeta = document.getElementById('panelFieldCropMeta');
+        if (cropMeta) cropMeta.innerText = field.crop || "Not available";
+
         document.getElementById('panelFieldHealth').innerText = field.health !== undefined ? `${field.health.toFixed(1)} / 100` : "Not available";
         document.getElementById('panelFieldHydration').innerText = field.hydration !== undefined ? `${field.hydration.toFixed(1)}%` : "Not available";
         document.getElementById('panelFieldRisk').innerText = field.risk !== undefined ? `${field.risk.toFixed(1)}%` : "Not available";
@@ -678,6 +686,13 @@ const UI = {
         this.closeFieldDetailPanel();
         this.closeAddFarmModal();
         this.closeOTPAuthModal();
+    },
+
+    onPlannerFieldSelect(fieldId) {
+        const id = parseInt(fieldId) || 1;
+        if (window.MapService) {
+            window.MapService.selectFieldById(id);
+        }
     },
 
     openAddFarmModal() {
