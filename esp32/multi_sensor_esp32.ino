@@ -29,9 +29,10 @@
 const char* WIFI_SSID     = "YOUR_WIFI_SSID";       // Replace with your Wi-Fi name
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";   // Replace with your Wi-Fi password
 
-// Server Endpoint (Tailscale Tailnet Domain - https://agrisense.tail0d103f.ts.net)
-const char* SERVER_URL = "https://agrisense.tail0d103f.ts.net/api/v1/telemetry/ingest";
-const char* DEVICE_ID  = "ESP32_MULTI_NODE_01";
+// Server Endpoints (Primary: Local Wi-Fi Router IP, Fallback: Tailscale Tailnet Domain)
+const char* SERVER_URL_LOCAL   = "http://172.19.17.125:8000/api/v1/telemetry/ingest";
+const char* SERVER_URL_TAILNET = "https://agrisense.tail0d103f.ts.net/api/v1/telemetry/ingest";
+const char* DEVICE_ID          = "ESP32_MULTI_NODE_01";
 
 // ==================== PIN DEFINITIONS ====================
 #define SOIL_PIN 34 // GPIO 34 (D34 - ADC1_CH6)
@@ -147,13 +148,6 @@ void sendTelemetry(bool soilOk, float soilMoisture,
     return;
   }
 
-  WiFiClientSecure client;
-  client.setInsecure(); // Skip SSL root CA verification for Tailnet HTTPS endpoint
-
-  HTTPClient http;
-  http.begin(client, SERVER_URL);
-  http.addHeader("Content-Type", "application/json");
-
   // Format JSON payload with explicit nulls and status indicators
   String soilStr   = soilOk ? String(soilMoisture, 1) : "null";
   String tempStr   = dhtOk  ? String(tempC, 1)        : "null";
@@ -175,20 +169,37 @@ void sendTelemetry(bool soilOk, float soilMoisture,
   jsonPayload += "\"mq135_status\":\"" + mqStatus + "\"";
   jsonPayload += "}";
 
-  Serial.print("[HTTP] Dispatching Telemetry to Tailnet Domain: ");
+  Serial.print("[HTTP] Dispatching Telemetry: ");
   Serial.println(jsonPayload);
 
-  int httpCode = http.POST(jsonPayload);
+  // 1. Primary: Local Wi-Fi Router IP (Fastest & direct on local network)
+  HTTPClient httpLocal;
+  httpLocal.begin(SERVER_URL_LOCAL);
+  httpLocal.addHeader("Content-Type", "application/json");
+  int httpCode = httpLocal.POST(jsonPayload);
 
   if (httpCode > 0) {
-    String response = http.getString();
-    Serial.printf("[HTTP] ✅ Server Response Code: %d\n", httpCode);
+    Serial.printf("[HTTP LOCAL] ✅ Server Response Code: %d\n", httpCode);
+    httpLocal.end();
+    return;
+  }
+  httpLocal.end();
+
+  // 2. Fallback: Tailnet Domain HTTPS Endpoint
+  WiFiClientSecure client;
+  client.setInsecure();
+  HTTPClient httpTailnet;
+  httpTailnet.begin(client, SERVER_URL_TAILNET);
+  httpTailnet.addHeader("Content-Type", "application/json");
+  httpCode = httpTailnet.POST(jsonPayload);
+
+  if (httpCode > 0) {
+    Serial.printf("[HTTP TAILNET] ✅ Server Response Code: %d\n", httpCode);
   } else {
     Serial.printf("[HTTP] ❌ POST Error: %s (Code: %d)\n",
-                  http.errorToString(httpCode).c_str(), httpCode);
+                  httpTailnet.errorToString(httpCode).c_str(), httpCode);
   }
-
-  http.end();
+  httpTailnet.end();
 }
 
 // ------------------- MAIN LOOP -------------------
