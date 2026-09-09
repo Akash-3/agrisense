@@ -22,14 +22,15 @@
 
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 #include <DHT.h>
 
 // ==================== CONFIGURATION ====================
 const char* WIFI_SSID     = "YOUR_WIFI_SSID";       // Replace with your Wi-Fi name
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";   // Replace with your Wi-Fi password
 
-// Server Endpoint (Tailscale Tailnet IP: 100.126.23.88 or Local Wi-Fi IP: 172.19.17.125)
-const char* SERVER_URL = "http://100.126.23.88:8000/api/v1/telemetry/ingest";
+// Server Endpoint (Tailscale Tailnet Domain - https://agrisense.tail0d103f.ts.net)
+const char* SERVER_URL = "https://agrisense.tail0d103f.ts.net/api/v1/telemetry/ingest";
 const char* DEVICE_ID  = "ESP32_MULTI_NODE_01";
 
 // ==================== PIN DEFINITIONS ====================
@@ -146,8 +147,11 @@ void sendTelemetry(bool soilOk, float soilMoisture,
     return;
   }
 
+  WiFiClientSecure client;
+  client.setInsecure(); // Skip SSL root CA verification for Tailnet HTTPS endpoint
+
   HTTPClient http;
-  http.begin(SERVER_URL);
+  http.begin(client, SERVER_URL);
   http.addHeader("Content-Type", "application/json");
 
   // Format JSON payload with explicit nulls and status indicators
@@ -171,7 +175,7 @@ void sendTelemetry(bool soilOk, float soilMoisture,
   jsonPayload += "\"mq135_status\":\"" + mqStatus + "\"";
   jsonPayload += "}";
 
-  Serial.print("[HTTP] Dispatching Telemetry: ");
+  Serial.print("[HTTP] Dispatching Telemetry to Tailnet Domain: ");
   Serial.println(jsonPayload);
 
   int httpCode = http.POST(jsonPayload);
