@@ -88,8 +88,14 @@ class AddFarmRequest(BaseModel):
         return sanitize_input(v)
 
 class UpdateProfileRequest(BaseModel):
-    farmer_id: int
+    farmer_id: int = 1
     full_name: str
+    phone_or_email: Optional[str] = None
+    farm_name: Optional[str] = None
+    farm_acres: Optional[float] = None
+    crop_type: Optional[str] = None
+    location: Optional[str] = None
+    new_password: Optional[str] = None
     gender: str = "Farmer"
     age: int = 32
     avatar_id: int = 1

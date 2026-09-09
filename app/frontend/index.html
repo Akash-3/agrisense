@@ -134,7 +134,7 @@
                     <!-- LOGIN FORM -->
                     <div id="loginCard" class="space-y-4">
                         <div>
-                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Mobile Number or Email</label>
+                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Registered Mobile or Email</label>
                             <div class="relative">
                                 <i class="fa-solid fa-envelope text-slate-400 absolute left-4 top-3.5 text-sm"></i>
                                 <input type="text" id="loginIdInput" value="akashpsatapathy@gmail.com" placeholder="Enter phone or email" class="input-agri w-full pl-10">
@@ -157,10 +157,10 @@
                                 <input type="checkbox" checked class="rounded border-slate-300 text-agri-primary focus:ring-agri-primary">
                                 <span class="font-medium">Remember Me</span>
                             </label>
-                            <a href="#" onclick="UI.showToast('Password reset link sent.', false)" class="font-bold text-agri-primary hover:underline">Forgot Password?</a>
+                            <a href="#" onclick="UI.showToast('Password reset link sent to your registered email.', false)" class="font-bold text-agri-primary hover:underline">Forgot Password?</a>
                         </div>
 
-                        <button onclick="UI.switchView('dashboard')" class="btn-agri-primary w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center space-x-2">
+                        <button onclick="UI.submitLogin()" class="btn-agri-primary w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center space-x-2">
                             <span>Sign In to Account</span>
                             <i class="fa-solid fa-arrow-right text-xs"></i>
                         </button>
@@ -171,11 +171,11 @@
                         </div>
 
                         <div class="grid grid-cols-2 gap-3">
-                            <button onclick="UI.switchView('dashboard')" class="py-2.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center space-x-2 transition">
+                            <button onclick="UI.submitSSO('google')" class="py-2.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center space-x-2 transition">
                                 <i class="fa-brands fa-google text-red-500"></i>
                                 <span>Continue with Google</span>
                             </button>
-                            <button onclick="UI.switchView('dashboard')" class="py-2.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center space-x-2 transition">
+                            <button onclick="UI.submitSSO('microsoft')" class="py-2.5 px-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center justify-center space-x-2 transition">
                                 <i class="fa-brands fa-microsoft text-blue-500"></i>
                                 <span>Continue with Microsoft</span>
                             </button>
@@ -186,24 +186,24 @@
                     <div id="registerCard" class="space-y-3 hidden">
                         <div>
                             <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Full Name</label>
-                            <input type="text" placeholder="Akash Satapathy" class="input-agri w-full">
+                            <input type="text" id="regName" placeholder="Akash Satapathy" class="input-agri w-full">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Email</label>
-                            <input type="email" placeholder="farmer@agrisense.io" class="input-agri w-full">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Mobile Number</label>
-                            <input type="text" placeholder="+91 98765 43210" class="input-agri w-full">
+                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Email or Mobile</label>
+                            <input type="text" id="regEmail" placeholder="farmer@agrisense.io" class="input-agri w-full">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Farm Name & Size</label>
                             <div class="grid grid-cols-2 gap-2">
-                                <input type="text" value="Green Valley Field" class="input-agri w-full">
-                                <input type="number" value="15.0" placeholder="Acres" class="input-agri w-full">
+                                <input type="text" id="regFarm" value="Green Valley Field" class="input-agri w-full">
+                                <input type="number" id="regAcres" value="15.0" placeholder="Acres" class="input-agri w-full">
                             </div>
                         </div>
-                        <button onclick="UI.switchView('dashboard')" class="btn-agri-primary w-full py-3.5 rounded-xl font-bold text-sm transition mt-2">Create Account</button>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Password</label>
+                            <input type="password" id="regPass" placeholder="Farmer@123" class="input-agri w-full">
+                        </div>
+                        <button onclick="UI.submitRegister()" class="btn-agri-primary w-full py-3.5 rounded-xl font-bold text-sm transition mt-2">Create Farmer Account</button>
                     </div>
 
                 </div>
@@ -811,29 +811,247 @@
                     </div>
                 </div>
 
-                <!-- ---------------- VIEW 7: TELEMETRY ---------------- -->
+                <!-- ---------------- VIEW 7: TELEMETRY (SAAS DATA DASHBOARD REDESIGN) ---------------- -->
                 <div id="pageTelemetry" class="space-y-6 hidden">
                     <div class="flex items-center justify-between">
                         <div>
                             <h2 class="text-xl font-black text-slate-900">All Micro-Sensor Telemetry</h2>
-                            <p class="text-xs text-slate-500">Live Hardware Data Stream Ingest</p>
+                            <p class="text-xs text-slate-500">Live Hardware Telemetry Ingest & Multi-Node Sensor Matrix</p>
                         </div>
-                        <button onclick="UI.showToast('Telemetry log exported to CSV.', false)" class="px-3.5 py-2 rounded-xl btn-agri-secondary text-xs font-bold">
-                            <i class="fa-solid fa-download mr-1"></i> Export CSV
+                        <button onclick="UI.exportTelemetryCSV()" class="px-4 py-2 rounded-xl btn-agri-primary text-xs font-bold flex items-center space-x-2">
+                            <i class="fa-solid fa-file-csv text-sm"></i>
+                            <span>Export Telemetry CSV</span>
                         </button>
                     </div>
 
-                    <div class="card-agri p-6 space-y-4">
-                        <div class="bg-slate-900 text-emerald-400 p-4 rounded-xl font-mono text-xs space-y-2 overflow-x-auto">
-                            <div>[TELEMETRY STREAM] Client connected via WebSocket.</div>
-                            <div>Device ID: ESP32_AgriSense_01</div>
-                            <div>Soil Moisture (Capacitive v1.2): 42.5%</div>
-                            <div>Ambient Temperature (DHT22): 26.1°C</div>
-                            <div>Relative Humidity (DHT22): 68.4%</div>
-                            <div>Air Quality (MQ-135): 80 PPM</div>
-                            <div>AS7341 Spectrometry NIR 885nm: 6893 counts</div>
+                    <!-- TOP HARDWARE SUMMARY BADGES -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="card-agri p-4 space-y-1">
+                            <div class="text-xs font-bold text-slate-400 uppercase">Hardware Status</div>
+                            <div class="text-xl font-black text-emerald-600 flex items-center space-x-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span>100% ONLINE</span>
+                            </div>
+                            <div class="text-[11px] text-slate-500 font-medium">3 Micro-Nodes Operational</div>
+                        </div>
+
+                        <div class="card-agri p-4 space-y-1">
+                            <div class="text-xs font-bold text-slate-400 uppercase">Ingest Protocol</div>
+                            <div class="text-xl font-black text-slate-900">WebSocket / 5s</div>
+                            <div class="text-[11px] text-slate-500 font-medium">Real-Time Ingest Active</div>
+                        </div>
+
+                        <div class="card-agri p-4 space-y-1">
+                            <div class="text-xs font-bold text-slate-400 uppercase">Signal Strength</div>
+                            <div class="text-xl font-black text-agri-primary">-64 dBm</div>
+                            <div class="text-[11px] text-slate-500 font-medium">Strong Tailnet Link</div>
+                        </div>
+
+                        <div class="card-agri p-4 space-y-1">
+                            <div class="text-xs font-bold text-slate-400 uppercase">Sensor Array</div>
+                            <div class="text-xl font-black text-teal-600">4 Probes</div>
+                            <div class="text-[11px] text-slate-500 font-medium">Capacitive, DHT22, MQ135, AS7341</div>
                         </div>
                     </div>
+
+                    <!-- SENSOR READINGS DATA TABLE -->
+                    <div class="card-agri overflow-hidden">
+                        <div class="p-4 sm:p-6 border-b border-slate-100 flex items-center justify-between">
+                            <div>
+                                <h3 class="text-base font-bold text-slate-900">Active Sensor Channels</h3>
+                                <p class="text-xs text-slate-500">Live Telemetry Readouts & Calibration Benchmarks</p>
+                            </div>
+                            <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
+                                Live Ingest
+                            </span>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
+                                    <tr>
+                                        <th class="p-4">Sensor Channel</th>
+                                        <th class="p-4">Hardware Node</th>
+                                        <th class="p-4">Live Reading</th>
+                                        <th class="p-4">Target Range</th>
+                                        <th class="p-4">Calibration Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-slate-800 font-medium">
+                                    <tr class="hover:bg-slate-50/80 transition">
+                                        <td class="p-4 flex items-center space-x-3">
+                                            <div class="w-8 h-8 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center font-bold">
+                                                <i class="fa-solid fa-droplet text-sm"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-slate-900">Soil Hydration (VWC %)</div>
+                                                <div class="text-[11px] text-slate-400">Sub-surface capacitive probe v1.2</div>
+                                            </div>
+                                        </td>
+                                        <td class="p-4">Node-01 (Soil Plot A)</td>
+                                        <td id="tSoilVal" class="p-4 font-black text-slate-900 text-sm">42.5% VWC</td>
+                                        <td class="p-4 text-slate-500">30% – 50% VWC</td>
+                                        <td class="p-4"><span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">CALIBRATED</span></td>
+                                    </tr>
+
+                                    <tr class="hover:bg-slate-50/80 transition">
+                                        <td class="p-4 flex items-center space-x-3">
+                                            <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+                                                <i class="fa-solid fa-temperature-half text-sm"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-slate-900">Field Temperature</div>
+                                                <div class="text-[11px] text-slate-400">DHT22 Canopy Thermal Sensor</div>
+                                            </div>
+                                        </td>
+                                        <td class="p-4">Node-02 (Canopy Center)</td>
+                                        <td id="tTempVal" class="p-4 font-black text-slate-900 text-sm">26.1°C</td>
+                                        <td class="p-4 text-slate-500">18°C – 32°C</td>
+                                        <td class="p-4"><span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">OPTIMAL</span></td>
+                                    </tr>
+
+                                    <tr class="hover:bg-slate-50/80 transition">
+                                        <td class="p-4 flex items-center space-x-3">
+                                            <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                                                <i class="fa-solid fa-cloud-rain text-sm"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-slate-900">Canopy Humidity</div>
+                                                <div class="text-[11px] text-slate-400">DHT22 Relative Vapor Sensor</div>
+                                            </div>
+                                        </td>
+                                        <td class="p-4">Node-02 (Canopy Center)</td>
+                                        <td id="tHumVal" class="p-4 font-black text-slate-900 text-sm">68.4%</td>
+                                        <td class="p-4 text-slate-500">50% – 80%</td>
+                                        <td class="p-4"><span class="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold text-[10px]">BALANCED</span></td>
+                                    </tr>
+
+                                    <tr class="hover:bg-slate-50/80 transition">
+                                        <td class="p-4 flex items-center space-x-3">
+                                            <div class="w-8 h-8 rounded-xl bg-red-50 text-red-500 flex items-center justify-center font-bold">
+                                                <i class="fa-solid fa-smog text-sm"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-slate-900">Air Quality & Smoke (PPM)</div>
+                                                <div class="text-[11px] text-slate-400">MQ-135 Gas Sensor Array</div>
+                                            </div>
+                                        </td>
+                                        <td class="p-4">Node-03 (Border Perimeter)</td>
+                                        <td id="tSmokeVal" class="p-4 font-black text-slate-900 text-sm">80 PPM</td>
+                                        <td class="p-4 text-slate-500">&lt; 400 PPM</td>
+                                        <td class="p-4"><span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">CLEAN AIR</span></td>
+                                    </tr>
+
+                                    <tr class="hover:bg-slate-50/80 transition">
+                                        <td class="p-4 flex items-center space-x-3">
+                                            <div class="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
+                                                <i class="fa-solid fa-shield-virus text-sm"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-slate-900">Pathogen Risk Index</div>
+                                                <div class="text-[11px] text-slate-400">MM-SSNet Deep Neural Inference</div>
+                                            </div>
+                                        </td>
+                                        <td class="p-4">AI Engine Model v3.0</td>
+                                        <td id="tRiskVal" class="p-4 font-black text-agri-primary text-sm">9.9%</td>
+                                        <td class="p-4 text-slate-500">&lt; 25.0% Risk</td>
+                                        <td class="p-4"><span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">5.4 DAYS EARLY</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- AS7341 10-CHANNEL SPECTRAL CHANNELS MATRIX -->
+                    <div class="card-agri p-6 space-y-4">
+                        <div class="border-b border-slate-100 pb-3">
+                            <h3 class="text-base font-bold text-slate-900">AS7341 10-Channel Wavelength Readings</h3>
+                            <p class="text-xs text-slate-500">Adafruit AS7341 Multi-Spectral Reflectance Counts</p>
+                        </div>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+                            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                <div class="text-[10px] font-bold text-slate-400">F1 • 415nm (Violet)</div>
+                                <div class="text-base font-black text-slate-900 mt-1">450</div>
+                                <div class="w-full bg-slate-200 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                                    <div class="bg-indigo-600 h-full" style="width: 25%"></div>
+                                </div>
+                            </div>
+
+                            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                <div class="text-[10px] font-bold text-slate-400">F2 • 445nm (Indigo)</div>
+                                <div class="text-base font-black text-slate-900 mt-1">680</div>
+                                <div class="w-full bg-slate-200 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                                    <div class="bg-indigo-500 h-full" style="width: 35%"></div>
+                                </div>
+                            </div>
+
+                            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                <div class="text-[10px] font-bold text-slate-400">F3 • 480nm (Blue)</div>
+                                <div class="text-base font-black text-slate-900 mt-1">920</div>
+                                <div class="w-full bg-slate-200 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                                    <div class="bg-blue-500 h-full" style="width: 45%"></div>
+                                </div>
+                            </div>
+
+                            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                <div class="text-[10px] font-bold text-slate-400">F4 • 515nm (Cyan)</div>
+                                <div class="text-base font-black text-slate-900 mt-1">1,450</div>
+                                <div class="w-full bg-slate-200 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                                    <div class="bg-cyan-500 h-full" style="width: 55%"></div>
+                                </div>
+                            </div>
+
+                            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                <div class="text-[10px] font-bold text-slate-400">F5 • 555nm (Green)</div>
+                                <div class="text-base font-black text-slate-900 mt-1">2,800</div>
+                                <div class="w-full bg-slate-200 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                                    <div class="bg-emerald-500 h-full" style="width: 75%"></div>
+                                </div>
+                            </div>
+
+                            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                <div class="text-[10px] font-bold text-slate-400">F6 • 590nm (Yellow)</div>
+                                <div class="text-base font-black text-slate-900 mt-1">1,600</div>
+                                <div class="w-full bg-slate-200 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                                    <div class="bg-amber-400 h-full" style="width: 60%"></div>
+                                </div>
+                            </div>
+
+                            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                <div class="text-[10px] font-bold text-slate-400">F7 • 630nm (Orange)</div>
+                                <div class="text-base font-black text-slate-900 mt-1">980</div>
+                                <div class="w-full bg-slate-200 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                                    <div class="bg-orange-500 h-full" style="width: 48%"></div>
+                                </div>
+                            </div>
+
+                            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                <div class="text-[10px] font-bold text-slate-400">F8 • 680nm (Red)</div>
+                                <div class="text-base font-black text-slate-900 mt-1">520</div>
+                                <div class="w-full bg-slate-200 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                                    <div class="bg-red-500 h-full" style="width: 30%"></div>
+                                </div>
+                            </div>
+
+                            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                <div class="text-[10px] font-bold text-slate-400">Clear Channel</div>
+                                <div id="tClearVal" class="text-base font-black text-slate-900 mt-1">12,400 Lux</div>
+                                <div class="w-full bg-slate-200 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                                    <div class="bg-slate-700 h-full" style="width: 85%"></div>
+                                </div>
+                            </div>
+
+                            <div class="p-3 bg-emerald-50/80 rounded-xl border border-emerald-200">
+                                <div class="text-[10px] font-bold text-emerald-700">NIR • 885nm (NIR)</div>
+                                <div id="tNirVal" class="text-base font-black text-emerald-900 mt-1">6,893</div>
+                                <div class="w-full bg-emerald-200 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                                    <div class="bg-emerald-600 h-full" style="width: 90%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
                 <!-- ---------------- VIEW 8: ALERTS ---------------- -->
@@ -891,36 +1109,103 @@
                     </div>
                 </div>
 
-                <!-- ---------------- VIEW 10: PROFILE ---------------- -->
+                <!-- ---------------- VIEW 10: USER PROFILE & ACCOUNT (EXPANDED EDITING) ---------------- -->
                 <div id="pageProfile" class="space-y-6 hidden">
                     <div>
                         <h2 class="text-xl font-black text-slate-900">User Profile & Account</h2>
-                        <p class="text-xs text-slate-500">Manage Registered Farmer Credentials & Farm Details</p>
+                        <p class="text-xs text-slate-500">Manage Registered Farmer Credentials, Farm Details & Password Security</p>
                     </div>
 
-                    <div class="card-agri p-6 space-y-4 max-w-2xl">
-                        <div class="flex items-center space-x-4 border-b border-slate-100 pb-4">
-                            <div class="user-avatar w-16 h-16 rounded-2xl bg-agri-primary text-white font-black text-2xl flex items-center justify-center shadow-lg">AS</div>
-                            <div>
-                                <h3 class="user-name text-lg font-bold text-slate-900">Akash Satapathy</h3>
-                                <p class="user-email text-xs text-slate-500">akashpsatapathy@gmail.com</p>
+                    <div class="card-agri p-6 sm:p-8 space-y-6 max-w-4xl">
+                        
+                        <!-- AVATAR & HEADER -->
+                        <div class="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-5 border-b border-slate-100 pb-6">
+                            <div class="user-avatar w-20 h-20 rounded-2xl bg-gradient-to-tr from-agri-primary to-agri-secondary text-white font-black text-3xl flex items-center justify-center shadow-lg shadow-emerald-600/30">
+                                AS
+                            </div>
+                            <div class="text-center sm:text-left space-y-1">
+                                <h3 class="user-name text-xl font-black text-slate-900">Akash Satapathy</h3>
+                                <p class="user-email text-xs text-slate-500 font-medium">akashpsatapathy@gmail.com</p>
+                                <div class="inline-flex items-center space-x-1.5 badge-agri px-3 py-0.5 text-[10px]">
+                                    <i class="fa-solid fa-shield-check text-emerald-600"></i>
+                                    <span>VERIFIED FARMER ACCOUNT</span>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                            <div>
-                                <label class="block text-slate-500 font-bold mb-1">Full Name</label>
-                                <input type="text" value="Akash Satapathy" class="input-agri w-full">
-                            </div>
-                            <div>
-                                <label class="block text-slate-500 font-bold mb-1">Mobile Phone</label>
-                                <input type="text" value="+91 98765 43210" class="input-agri w-full">
+                        <!-- SECTION 1: PERSONAL DETAILS -->
+                        <div class="space-y-4">
+                            <h4 class="text-xs font-black text-slate-400 uppercase tracking-wider">1. Personal Credentials</h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">Full Name</label>
+                                    <input type="text" id="profName" value="Akash Satapathy" class="input-agri w-full">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">Registered Email Address</label>
+                                    <input type="email" id="profEmail" value="akashpsatapathy@gmail.com" class="input-agri w-full">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">Mobile Phone Number</label>
+                                    <input type="text" id="profPhone" value="+91 98765 43210" class="input-agri w-full">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">Farmer Category</label>
+                                    <select id="profGender" class="input-agri w-full font-bold">
+                                        <option value="Farmer">Lead Agronomist / Farmer</option>
+                                        <option value="Enterprise">Enterprise Farm Operator</option>
+                                        <option value="Researcher">Agricultural Researcher</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
-                        <button onclick="UI.showToast('Profile updated.', false)" class="btn-agri-primary px-6 py-2.5 rounded-xl font-bold text-xs">
-                            Save Changes
-                        </button>
+                        <!-- SECTION 2: FARM & LAND DETAILS -->
+                        <div class="space-y-4 pt-2 border-t border-slate-100">
+                            <h4 class="text-xs font-black text-slate-400 uppercase tracking-wider">2. Primary Farm & Land Metadata</h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">Primary Farm Name</label>
+                                    <input type="text" id="profFarmName" value="Green Valley Field Plot" class="input-agri w-full">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">Land Size (Acres)</label>
+                                    <input type="number" id="profFarmAcres" value="15.0" step="0.5" class="input-agri w-full">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">Primary Crop Category</label>
+                                    <input type="text" id="profCropType" value="Wheat & Paddy" class="input-agri w-full">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">Region / Location Coordinates</label>
+                                    <input type="text" id="profLocation" value="Sector A-14, Odisha (Lat: 20.2961, Lon: 85.8245)" class="input-agri w-full">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SECTION 3: SECURITY & PASSWORD CHANGE -->
+                        <div class="space-y-4 pt-2 border-t border-slate-100">
+                            <h4 class="text-xs font-black text-slate-400 uppercase tracking-wider">3. Password Security (Optional)</h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">New Password</label>
+                                    <input type="password" id="profNewPass" placeholder="Leave blank to keep current" class="input-agri w-full">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-slate-700 mb-1">Confirm New Password</label>
+                                    <input type="password" id="profConfirmPass" placeholder="Confirm new password" class="input-agri w-full">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SAVE ACTIONS -->
+                        <div class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3">
+                            <button onclick="UI.switchView('dashboard')" class="px-5 py-2.5 rounded-xl text-slate-600 font-bold text-xs hover:bg-slate-100">Cancel</button>
+                            <button onclick="UI.submitProfileUpdate()" class="btn-agri-primary px-6 py-2.5 rounded-xl font-bold text-xs shadow-lg">
+                                Save Profile & Farm Changes
+                            </button>
+                        </div>
+
                     </div>
                 </div>
 

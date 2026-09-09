@@ -97,4 +97,16 @@ async def handle_forgot_password_reset(req: ResetPasswordRequest):
 
 @router.post("/profile/update")
 async def handle_update_profile(req: UpdateProfileRequest):
-    return update_farmer_profile(req.farmer_id, req.full_name, req.gender, req.age, req.avatar_id)
+    return update_farmer_profile(
+        farmer_id=req.farmer_id,
+        full_name=req.full_name,
+        phone_or_email=req.phone_or_email,
+        farm_name=req.farm_name,
+        farm_acres=req.farm_acres,
+        crop_type=req.crop_type,
+        new_password=req.new_password,
+        gender=req.gender,
+        age=req.age,
+        avatar_id=req.avatar_id,
+        location=req.location
+    )

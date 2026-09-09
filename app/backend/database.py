@@ -436,21 +436,47 @@ def add_farm(farmer_id: int, farm_name: str, farm_acres: float, crop_type: str):
     conn.close()
     return {"status": "success", "farm_id": farm_id}
 
-def update_farmer_profile(farmer_id: int, full_name: str, gender: str, age: int, avatar_id: int):
+def update_farmer_profile(farmer_id: int, full_name: str, phone_or_email: str = None, farm_name: str = None, farm_acres: float = None, crop_type: str = None, new_password: str = None, gender: str = "Farmer", age: int = 32, avatar_id: int = 1, location: str = None):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute(
-        "UPDATE farmers SET full_name = ?, gender = ?, age = ?, avatar_id = ? WHERE id = ?",
-        (full_name, gender, age, avatar_id, farmer_id)
-    )
+    
+    fields = ["full_name = ?", "gender = ?", "age = ?", "avatar_id = ?"]
+    params = [full_name, gender, age, avatar_id]
+
+    if phone_or_email:
+        fields.append("phone_or_email = ?")
+        params.append(phone_or_email.strip().lower())
+
+    if farm_name:
+        fields.append("farm_name = ?")
+        params.append(farm_name)
+
+    if new_password and len(new_password) >= 6:
+        salt = generate_salt()
+        pwd_hash = hash_password(new_password, salt)
+        fields.append("password_hash = ?")
+        fields.append("salt = ?")
+        params.extend([pwd_hash, salt])
+
+    params.append(farmer_id)
+    query = f"UPDATE farmers SET {', '.join(fields)} WHERE id = ?"
+    cursor.execute(query, tuple(params))
+
+    if farm_name or farm_acres or crop_type:
+        cursor.execute("UPDATE farms SET farm_name = COALESCE(?, farm_name), farm_acres = COALESCE(?, farm_acres), crop_type = COALESCE(?, crop_type) WHERE farmer_id = ?", (farm_name, farm_acres, crop_type, farmer_id))
+
     conn.commit()
     conn.close()
     return {
         "status": "success",
-        "message": "Profile updated successfully!",
+        "message": "Profile & Farm details updated in database successfully!",
         "farmer": {
             "id": farmer_id,
             "full_name": full_name,
+            "phone_or_email": phone_or_email,
+            "farm_name": farm_name,
+            "farm_acres": farm_acres,
+            "crop_type": crop_type,
             "gender": gender,
             "age": age,
             "avatar_id": avatar_id
