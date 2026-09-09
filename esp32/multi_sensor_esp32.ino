@@ -2,14 +2,22 @@
  * AgriSense ESP32 Multi-Sensor IoT Station Firmware
  * Microcontroller: ESP32-WROOM-32 30-Pin USB-C DevKit
  * 
- * Connected Sensors:
- *   1. Soil Moisture Sensor (Analog -> D34 / GPIO 34)
- *   2. MQ-135 Air Quality / Smoke Sensor (Analog -> D35 / GPIO 35)
- *   3. DHT22 Temperature & Humidity Sensor (Digital Data -> D4 / GPIO 4)
+ * Hardware Connections:
+ *   - Soil Moisture Sensor VCC  -> ESP32 3V3
+ *   - Soil Moisture Sensor GND  -> ESP32 GND
+ *   - Soil Moisture Sensor AOUT -> ESP32 D34 (GPIO 34)
  * 
- * Calibration Note:
- *   - Dry Air ADC = 4095 (0.0% Moisture)
- *   - Submerged Water ADC = 1200 (100.0% Moisture)
+ *   - MQ-135 Air Sensor VCC     -> ESP32 VIN (5V)
+ *   - MQ-135 Air Sensor GND     -> ESP32 GND
+ *   - MQ-135 Air Sensor AOUT    -> ESP32 D35 (GPIO 35)
+ * 
+ *   - DHT22 Temp Sensor VCC     -> ESP32 3V3
+ *   - DHT22 Temp Sensor GND     -> ESP32 GND
+ *   - DHT22 Temp Sensor DATA    -> ESP32 D4  (GPIO 4)
+ * 
+ * Status Reporting:
+ *   - Real Hardware Disconnection Detection (NO Fake Fallbacks)
+ *   - Sends null and status="SENSOR_DISCONNECTED" to dashboard when unplugged!
  */
 
 #include <WiFi.h>
@@ -20,11 +28,8 @@
 const char* WIFI_SSID     = "YOUR_WIFI_SSID";       // Replace with your Wi-Fi name
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";   // Replace with your Wi-Fi password
 
-// Server Endpoint (Using your Laptop's actual Wi-Fi IP address or Cloudflare Tunnel)
-// Local Wi-Fi IP: "http://172.19.17.125:8000/api/v1/telemetry/ingest"
-// Cloudflare Tunnel: "https://pressing-introducing-knit-matters.trycloudflare.com/api/v1/telemetry/ingest"
+// Server Endpoint (Replace with your Laptop IP or Cloudflare URL)
 const char* SERVER_URL = "http://172.19.17.125:8000/api/v1/telemetry/ingest";
-
 const char* DEVICE_ID  = "ESP32_MULTI_NODE_01";
 
 // ==================== PIN DEFINITIONS ====================
@@ -84,48 +89,57 @@ int readAveragedAnalog(int pin, int samples = 10) {
   return (int)(sum / samples);
 }
 
-// ------------------- SENSOR READERS WITH FAULT TOLERANCE -------------------
+// ------------------- SENSOR READERS WITH NO FAKE FALLBACKS -------------------
 
-// 1. Soil Moisture Reader (Dry Air = 4095 -> 0.0% Moisture)
-float getSoilMoisture(int &rawADC) {
+// 1. Soil Moisture Reader
+bool getSoilMoisture(float &moisturePct, int &rawADC) {
   rawADC = readAveragedAnalog(SOIL_PIN, 10);
 
-  // Capacitive sensors output 4095 ADC when DRY (AirValue = 4095) and ~1200 ADC when WET (WaterValue = 1200)
-  float moisturePct = (float)map(rawADC, AirValue, WaterValue, 0, 100);
-  return constrain(moisturePct, 0.0f, 100.0f);
+  // Disconnection check: 0 indicates shorted/unconnected pin
+  if (rawADC < 10) {
+    Serial.printf("[SOIL FAULT] ⚠️ Sensor disconnected or shorted (Raw ADC: %d)\n", rawADC);
+    return false; // Disconnected
+  }
+
+  moisturePct = (float)map(rawADC, AirValue, WaterValue, 0, 100);
+  moisturePct = constrain(moisturePct, 0.0f, 100.0f);
+  return true; // Online
 }
 
-// 2. MQ-135 Gas / Air Quality Reader
-float getSmokePPM(int &rawADC) {
+// 2. MQ-135 Gas Reader
+bool getSmokePPM(float &smokePPM, int &rawADC) {
   rawADC = readAveragedAnalog(MQ135_PIN, 10);
 
   if (rawADC < 10) {
-    Serial.printf("[MQ135 WARN] Sensor unplugged (Raw ADC: %d). Using fallback 85.0 PPM\n", rawADC);
-    return 85.0f;
+    Serial.printf("[MQ135 FAULT] ⚠️ Sensor unplugged (Raw ADC: %d)\n", rawADC);
+    return false; // Disconnected
   }
 
-  float ppm = map(rawADC, 200, 3500, 50, 600);
-  return constrain(ppm, 20.0f, 999.0f);
+  smokePPM = (float)map(rawADC, 200, 3500, 50, 600);
+  smokePPM = constrain(smokePPM, 20.0f, 999.0f);
+  return true; // Online
 }
 
-// 3. DHT22 Temp & Humidity Reader with NaN Protection
-void getDHTData(float &tempC, float &humidityPct) {
+// 3. DHT22 Temp & Humidity Reader
+bool getDHTData(float &tempC, float &humidityPct) {
   float t = dht.readTemperature();
   float h = dht.readHumidity();
 
   if (isnan(t) || isnan(h)) {
-    Serial.println("[DHT22 WARN] Sensor disconnected / NaN! Using fallback (26.5°C, 62.0%)");
-    tempC = 26.5f;
-    humidityPct = 62.0f;
-  } else {
-    tempC = t;
-    humidityPct = h;
+    Serial.println("[DHT22 FAULT] ⚠️ Sensor disconnected / NaN reading!");
+    return false; // Disconnected
   }
+
+  tempC = t;
+  humidityPct = h;
+  return true; // Online
 }
 
 // ------------------- HTTP TELEMETRY TRANSMITTER -------------------
 
-void sendTelemetry(float soilMoisture, float tempC, float humidity, float smokePPM) {
+void sendTelemetry(bool soilOk, float soilMoisture,
+                   bool dhtOk, float tempC, float humidity,
+                   bool mqOk, float smokePPM) {
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("[Wi-Fi] Network connection lost! Reconnecting...");
     WiFi.reconnect();
@@ -136,15 +150,31 @@ void sendTelemetry(float soilMoisture, float tempC, float humidity, float smokeP
   http.begin(SERVER_URL);
   http.addHeader("Content-Type", "application/json");
 
-  char jsonBuffer[300];
-  snprintf(jsonBuffer, sizeof(jsonBuffer),
-           "{\"device_id\":\"%s\",\"soil_moisture\":%.1f,\"temperature\":%.1f,\"humidity\":%.1f,\"smoke_ppm\":%.1f}",
-           DEVICE_ID, soilMoisture, tempC, humidity, smokePPM);
+  // Format JSON payload with explicit nulls and status indicators
+  String soilStr   = soilOk ? String(soilMoisture, 1) : "null";
+  String tempStr   = dhtOk  ? String(tempC, 1)        : "null";
+  String humStr    = dhtOk  ? String(humidity, 1)     : "null";
+  String smokeStr  = mqOk   ? String(smokePPM, 1)     : "null";
 
-  Serial.print("[HTTP] Telemetry Payload: ");
-  Serial.println(jsonBuffer);
+  String soilStatus = soilOk ? "ONLINE" : "SENSOR_DISCONNECTED";
+  String dhtStatus  = dhtOk  ? "ONLINE" : "SENSOR_DISCONNECTED";
+  String mqStatus   = mqOk   ? "ONLINE" : "SENSOR_DISCONNECTED";
 
-  int httpCode = http.POST(jsonBuffer);
+  String jsonPayload = "{";
+  jsonPayload += "\"device_id\":\"" + String(DEVICE_ID) + "\",";
+  jsonPayload += "\"soil_moisture\":" + soilStr + ",";
+  jsonPayload += "\"soil_status\":\"" + soilStatus + "\",";
+  jsonPayload += "\"temperature\":" + tempStr + ",";
+  jsonPayload += "\"humidity\":" + humStr + ",";
+  jsonPayload += "\"dht_status\":\"" + dhtStatus + "\",";
+  jsonPayload += "\"smoke_ppm\":" + smokeStr + ",";
+  jsonPayload += "\"mq135_status\":\"" + mqStatus + "\"";
+  jsonPayload += "}";
+
+  Serial.print("[HTTP] Dispatching Telemetry: ");
+  Serial.println(jsonPayload);
+
+  int httpCode = http.POST(jsonPayload);
 
   if (httpCode > 0) {
     String response = http.getString();
@@ -166,16 +196,23 @@ void loop() {
     lastSendTime = currentMillis;
 
     int rawSoilADC = 0, rawMQADC = 0;
+    float soilMoisture = 0.0f, smokePPM = 0.0f;
     float tempC = 0.0f, humidity = 0.0f;
 
-    float soilMoisture = getSoilMoisture(rawSoilADC);
-    float smokePPM     = getSmokePPM(rawMQADC);
-    getDHTData(tempC, humidity);
+    bool soilOk = getSoilMoisture(soilMoisture, rawSoilADC);
+    bool mqOk   = getSmokePPM(smokePPM, rawMQADC);
+    bool dhtOk  = getDHTData(tempC, humidity);
 
     Serial.println("----------------------------------------------------------");
-    Serial.printf("[SENSOR READINGS] Raw Soil ADC (D34): %d -> Moisture: %.1f%%\n", rawSoilADC, soilMoisture);
-    Serial.printf("[SENSOR READINGS] Temp: %.1f°C | Humidity: %.1f%% | Air: %.1f PPM\n", tempC, humidity, smokePPM);
+    if (soilOk) Serial.printf("[READINGS] Soil Moisture: %.1f%% (ADC %d)\n", soilMoisture, rawSoilADC);
+    else        Serial.println("[READINGS] ⚠️ Soil Moisture Sensor: DISCONNECTED");
 
-    sendTelemetry(soilMoisture, tempC, humidity, smokePPM);
+    if (dhtOk)  Serial.printf("[READINGS] Temp: %.1f°C | Humidity: %.1f%%\n", tempC, humidity);
+    else        Serial.println("[READINGS] ⚠️ DHT22 Sensor: DISCONNECTED");
+
+    if (mqOk)   Serial.printf("[READINGS] Air Quality: %.1f PPM (ADC %d)\n", smokePPM, rawMQADC);
+    else        Serial.println("[READINGS] ⚠️ MQ-135 Sensor: DISCONNECTED");
+
+    sendTelemetry(soilOk, soilMoisture, dhtOk, tempC, humidity, mqOk, smokePPM);
   }
 }

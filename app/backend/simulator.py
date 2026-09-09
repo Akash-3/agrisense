@@ -22,18 +22,22 @@ class TelemetryPayload(BaseModel):
     nir_885nm: int = Field(default=6400, ge=0) # Near-Infrared Scattering (Cellular Health)
     
     # Environmental & Soil Telemetry
-    soil_moisture_vwc: float = Field(default=65.4, ge=0.0, le=100.0) # Soil VWC%
-    temperature_c: float = Field(default=26.5) # Microclimate Temp °C
-    humidity_pct: float = Field(default=62.0, ge=0.0, le=100.0) # Relative Humidity %
-    smoke_ppm: float = Field(default=85.0, ge=0.0) # MQ-2 Gas/Smoke Level
+    soil_moisture_vwc: Optional[float] = Field(default=65.4) # Soil VWC%
+    temperature_c: Optional[float] = Field(default=26.5) # Microclimate Temp °C
+    humidity_pct: Optional[float] = Field(default=62.0) # Relative Humidity %
+    smoke_ppm: Optional[float] = Field(default=85.0) # MQ-2 Gas/Smoke Level
+    soil_status: Optional[str] = Field(default="ONLINE")
+    dht_status: Optional[str] = Field(default="ONLINE")
+    mq135_status: Optional[str] = Field(default="ONLINE")
 
 class AIDiagnosticResult(BaseModel):
-    status: str # 'HEALTHY', 'PRE_SYMPTOMATIC_STRESS', 'SEVERE_DROUGHT', 'SMOKE_HAZARD'
+    status: str # 'HEALTHY', 'PRE_SYMPTOMATIC_STRESS', 'SEVERE_DROUGHT', 'SMOKE_HAZARD', 'SENSOR_FAULT'
     pathogen_risk_pct: float
     crop_health_index: float # R_CRI & S_NIR combined index
     pre_symptomatic_lead_days: float
     recommended_action: str
     hazard_alert: Optional[str] = None
+    sensor_fault_alert: Optional[str] = None
 
 class SimulationEngine:
     """
@@ -59,13 +63,23 @@ class SimulationEngine:
         
         # Determine Pathogen & Hazard State
         hazard_alert = None
-        if payload.smoke_ppm > 400.0:
+        sensor_faults = []
+        if payload.soil_status == "SENSOR_DISCONNECTED" or payload.soil_moisture_vwc is None:
+            sensor_faults.append("Soil Moisture Sensor DOWN")
+        if payload.dht_status == "SENSOR_DISCONNECTED" or payload.temperature_c is None:
+            sensor_faults.append("DHT22 Temp/Humidity Sensor DOWN")
+        if payload.mq135_status == "SENSOR_DISCONNECTED" or payload.smoke_ppm is None:
+            sensor_faults.append("MQ-135 Air Quality Sensor DOWN")
+
+        sensor_fault_alert = f"⚠️ HARDWARE WARNING: {', '.join(sensor_faults)}" if sensor_faults else None
+
+        if payload.smoke_ppm is not None and payload.smoke_ppm > 400.0:
             status = "SMOKE_HAZARD"
             risk = 92.5
             lead_days = 0.0
             rec = "🔥 CRITICAL: Stubble Fire / Smoke Hazard detected! Trigger emergency agricultural field alarm."
             hazard_alert = f"STUBBLE FIRE HAZARD: Smoke level {payload.smoke_ppm:.1f} PPM exceeds safe 400 PPM threshold!"
-        elif payload.soil_moisture_vwc < 30.0:
+        elif payload.soil_moisture_vwc is not None and payload.soil_moisture_vwc < 30.0:
             status = "SEVERE_DROUGHT"
             risk = 88.0
             lead_days = 0.0
@@ -88,7 +102,8 @@ class SimulationEngine:
             crop_health_index=chi,
             pre_symptomatic_lead_days=lead_days,
             recommended_action=rec,
-            hazard_alert=hazard_alert
+            hazard_alert=hazard_alert,
+            sensor_fault_alert=sensor_fault_alert
         )
 
     def generate_telemetry(self, preset: Optional[str] = None) -> TelemetryPayload:

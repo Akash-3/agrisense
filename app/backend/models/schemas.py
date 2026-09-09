@@ -100,10 +100,13 @@ class UpdateProfileRequest(BaseModel):
 
 class ESP32TelemetryIngest(BaseModel):
     device_id: str = "ESP32_SOIL_NODE_01"
-    soil_moisture: float
-    temperature: float = 25.0
-    humidity: float = 60.0
-    smoke_ppm: float = 80.0
+    soil_moisture: Optional[float] = None
+    temperature: Optional[float] = None
+    humidity: Optional[float] = None
+    smoke_ppm: Optional[float] = None
+    soil_status: Optional[str] = "ONLINE"
+    dht_status: Optional[str] = "ONLINE"
+    mq135_status: Optional[str] = "ONLINE"
     api_key: Optional[str] = None
 
 class CropImageDiagnosisRequest(BaseModel):

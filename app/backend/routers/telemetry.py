@@ -110,10 +110,14 @@ async def ingest_esp32_telemetry(payload: ESP32TelemetryIngest):
     global latest_telemetry, latest_ai_result
     
     latest_telemetry.device_id = payload.device_id
-    latest_telemetry.soil_moisture_vwc = max(0.0, min(100.0, payload.soil_moisture))
-    latest_telemetry.temperature_c = payload.temperature
-    latest_telemetry.humidity_pct = max(0.0, min(100.0, payload.humidity))
-    latest_telemetry.smoke_ppm = max(0.0, payload.smoke_ppm)
+    latest_telemetry.soil_moisture_vwc = payload.soil_moisture if payload.soil_moisture is not None else None
+    latest_telemetry.temperature_c = payload.temperature if payload.temperature is not None else None
+    latest_telemetry.humidity_pct = payload.humidity if payload.humidity is not None else None
+    latest_telemetry.smoke_ppm = payload.smoke_ppm if payload.smoke_ppm is not None else None
+    
+    latest_telemetry.soil_status = payload.soil_status or ("ONLINE" if payload.soil_moisture is not None else "SENSOR_DISCONNECTED")
+    latest_telemetry.dht_status = payload.dht_status or ("ONLINE" if payload.temperature is not None else "SENSOR_DISCONNECTED")
+    latest_telemetry.mq135_status = payload.mq135_status or ("ONLINE" if payload.smoke_ppm is not None else "SENSOR_DISCONNECTED")
     latest_telemetry.timestamp = time.time()
     
     latest_ai_result = simulator.compute_mm_ssnet_inference(latest_telemetry)
@@ -121,13 +125,16 @@ async def ingest_esp32_telemetry(payload: ESP32TelemetryIngest):
     
     return {
         "status": "success",
-        "message": f"ESP32 Soil Sensor Telemetry from '{payload.device_id}' ingested successfully!",
+        "message": f"ESP32 Multi-Sensor Telemetry from '{payload.device_id}' ingested!",
         "device_id": payload.device_id,
         "received_data": {
             "soil_moisture_pct": payload.soil_moisture,
+            "soil_status": latest_telemetry.soil_status,
             "temperature_c": payload.temperature,
             "humidity_pct": payload.humidity,
+            "dht_status": latest_telemetry.dht_status,
             "smoke_ppm": payload.smoke_ppm,
+            "mq135_status": latest_telemetry.mq135_status,
         },
         "ai_diagnosis": latest_ai_result.dict(),
         "timestamp": latest_telemetry.timestamp
