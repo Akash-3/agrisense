@@ -1991,7 +1991,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   TelemetryPacket? _latestPacket;
   bool _isConnected = false;
 
-  final String _currentAppVersion = "1.7.4";
+  final String _currentAppVersion = "1.7.8";
   bool _isCheckingUpdate = false;
   Map<String, dynamic>? _activeTopCapsule;
   Timer? _topCapsuleDismissTimer;
