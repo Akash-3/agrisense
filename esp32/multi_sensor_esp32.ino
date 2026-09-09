@@ -28,8 +28,8 @@
 const char* WIFI_SSID     = "YOUR_WIFI_SSID";       // Replace with your Wi-Fi name
 const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";   // Replace with your Wi-Fi password
 
-// Server Endpoint (Replace with your Laptop IP or Cloudflare URL)
-const char* SERVER_URL = "http://172.19.17.125:8000/api/v1/telemetry/ingest";
+// Server Endpoint (Tailscale Tailnet IP: 100.126.23.88 or Local Wi-Fi IP: 172.19.17.125)
+const char* SERVER_URL = "http://100.126.23.88:8000/api/v1/telemetry/ingest";
 const char* DEVICE_ID  = "ESP32_MULTI_NODE_01";
 
 // ==================== PIN DEFINITIONS ====================

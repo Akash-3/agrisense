@@ -23,7 +23,7 @@ async def check_app_update(request: Request, current_version: str = "1.0.0"):
     latest_version, version_code = load_latest_app_version()
     has_update = (current_version != latest_version)
     host = request.headers.get("host") or str(request.url.netloc) or "localhost:8000"
-    scheme = "https" if ("trycloudflare.com" in host or request.headers.get("x-forwarded-proto") == "https") else "http"
+    scheme = "https" if request.headers.get("x-forwarded-proto") == "https" else "http"
     download_url = f"{scheme}://{host}/api/v1/update/download"
         
     return {
