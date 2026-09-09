@@ -15,16 +15,15 @@ def load_latest_app_version():
                         return ver_name, ver_code
     except Exception as e:
         print(f"[SSOT VERSION LOADER ERROR] {e}")
-    return "1.7.4", 29
-
-LATEST_APP_VERSION, LATEST_VERSION_CODE = load_latest_app_version()
+    return "1.7.8", 33
 
 def get_existing_apk_path():
     project_apk = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "seashark_dart_app", "build", "app", "outputs", "flutter-apk", "app-debug.apk"))
+    ver_name, _ = load_latest_app_version()
     user_downloads = os.path.expanduser("~/Downloads")
     candidates = [
         project_apk,
-        os.path.join(user_downloads, f"AgriSense_v{LATEST_APP_VERSION}.apk"),
+        os.path.join(user_downloads, f"AgriSense_v{ver_name}.apk"),
         os.path.join(user_downloads, "AgriSense.apk"),
     ]
     for p in candidates:

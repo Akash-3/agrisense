@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisco
 from fastapi.responses import FileResponse, StreamingResponse
 from simulator import TelemetryPayload, AIDiagnosticResult, simulator
 from database import add_farm
-from config import load_latest_app_version, get_existing_apk_path, LATEST_APP_VERSION
+from config import load_latest_app_version, get_existing_apk_path
 from models.schemas import AddFarmRequest, ESP32TelemetryIngest
 
 router = APIRouter(tags=["Telemetry & System"])
@@ -16,7 +16,8 @@ active_ws_clients: List[WebSocket] = []
 
 @router.get("/api/v1/health")
 async def health_check():
-    return {"status": "online", "service": "AgriSense Backend", "version": f"{LATEST_APP_VERSION}", "security": "PBKDF2 SHA-256 Shield Active"}
+    ver_name, _ = load_latest_app_version()
+    return {"status": "online", "service": "AgriSense Backend", "version": f"{ver_name}", "security": "PBKDF2 SHA-256 Shield Active"}
 
 @router.get("/api/v1/update/check")
 async def check_app_update(request: Request, current_version: str = "1.0.0"):
@@ -41,7 +42,8 @@ async def download_apk_update(request: Request):
         raise HTTPException(status_code=404, detail="APK Update file not found on server")
 
     file_size = os.path.getsize(apk_path)
-    print(f"[OTA DOWNLOAD ENGINE] Serving package '{apk_path}' ({file_size} bytes) for v{LATEST_APP_VERSION}")
+    ver_name, _ = load_latest_app_version()
+    print(f"[OTA DOWNLOAD ENGINE] Serving package '{apk_path}' ({file_size} bytes) for v{ver_name}")
     range_header = request.headers.get("range")
 
     if range_header:
@@ -88,11 +90,11 @@ async def download_apk_update(request: Request):
         "Accept-Ranges": "bytes",
         "Content-Length": str(file_size),
         "Content-Type": "application/vnd.android.package-archive",
-        "Content-Disposition": f'attachment; filename="AgriSense_v{LATEST_APP_VERSION}.apk"'
+        "Content-Disposition": f'attachment; filename="AgriSense_v{ver_name}.apk"'
     }
     return FileResponse(
         path=apk_path,
-        filename=f"AgriSense_v{LATEST_APP_VERSION}.apk",
+        filename=f"AgriSense_v{ver_name}.apk",
         media_type="application/vnd.android.package-archive",
         headers=headers
     )
