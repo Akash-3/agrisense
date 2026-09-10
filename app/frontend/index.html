@@ -88,7 +88,7 @@
                 </h1>
 
                 <p class="text-slate-600 text-base font-normal max-w-lg leading-relaxed">
-                    Connecting precision IoT micro-sensors, 10-channel optical NIR spectroscopy, and MM-SSNet deep learning models for sub-surface moisture tracking and early pathogen diagnosis.
+                    Connecting precision IoT micro-sensors, multispectral optical spectroscopy, and MM-SSNet deep learning models for sub-surface moisture tracking and early pathogen diagnosis.
                 </p>
 
                 <!-- FEATURE CARDS -->
@@ -502,12 +502,12 @@
 
                     </div>
 
-                    <!-- 10-CHANNEL SPECTROMETRY OPTICS -->
+                    <!-- MULTISPECTRAL SPECTROMETRY OPTICS -->
                     <div class="card-agri p-6 space-y-4">
                         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                             <div>
-                                <h3 class="text-base font-bold text-slate-900">10-Channel Reflectance Spectrum</h3>
-                                <p class="text-xs text-slate-500">Adafruit AS7341 Multi-Spectral Optics (415nm - 885nm NIR)</p>
+                                <h3 class="text-base font-bold text-slate-900">Multispectral Reflectance Spectrum</h3>
+                                <p class="text-xs text-slate-500">Optical Crop Analysis (Violet - Near Infrared)</p>
                             </div>
                             <button onclick="UI.switchView('analytics')" class="px-3 py-1.5 rounded-xl btn-agri-secondary text-xs font-bold">
                                 View Full Analytics
@@ -711,7 +711,7 @@
 
                             <div>
                                 <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Sensor Payload</label>
-                                <select class="input-agri w-full">
+                                <select id="mpPayloadSelect" class="input-agri w-full">
                                     <option>Multispectral Crop Health Sensor</option>
                                     <option>NDVI Multispectral Vegetation Index</option>
                                     <option>High-Resolution RGB Leaf Disease Vision</option>
@@ -768,7 +768,7 @@
                         </div>
 
                         <div class="card-agri p-6 space-y-4">
-                            <h3 class="text-sm font-bold text-slate-900">10-Channel Reflectance Spectrum</h3>
+                            <h3 class="text-sm font-bold text-slate-900">Multispectral Reflectance Spectrum</h3>
                             <div class="h-64 relative">
                                 <canvas id="analyticsSpectralChart"></canvas>
                             </div>
@@ -971,11 +971,11 @@
                         </div>
                     </div>
 
-                    <!-- AS7341 10-CHANNEL SPECTRAL CHANNELS MATRIX -->
+                    <!-- MULTISPECTRAL WAVELENGTH MATRIX -->
                     <div class="card-agri p-6 space-y-4">
                         <div class="border-b border-slate-100 pb-3">
-                            <h3 class="text-base font-bold text-slate-900">AS7341 10-Channel Wavelength Readings</h3>
-                            <p class="text-xs text-slate-500">Adafruit AS7341 Multi-Spectral Reflectance Counts</p>
+                            <h3 class="text-base font-bold text-slate-900">Multispectral Wavelength Analysis</h3>
+                            <p class="text-xs text-slate-500">Optical Band Reflectance Measurements</p>
                         </div>
 
                         <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">

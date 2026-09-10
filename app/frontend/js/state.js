@@ -107,7 +107,7 @@ const AgriState = {
             id: 3,
             severity: "info",
             title: "Autonomous Drone Mission Completed",
-            message: "AGRIDRONE-01 completed 10-channel spectrometry scan of Plot A-14.",
+            message: "AGRIDRONE-01 completed multispectral scan of Plot A-14.",
             timestamp: "2 hours ago",
             read: true,
             field: "Green Valley Field"

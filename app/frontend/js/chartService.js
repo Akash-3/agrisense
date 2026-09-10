@@ -54,7 +54,7 @@ const ChartService = {
         this.charts[canvasId] = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ['F1 (415nm)', 'F2 (445nm)', 'F3 (480nm)', 'F4 (515nm)', 'F5 (555nm)', 'F6 (590nm)', 'F7 (630nm)', 'F8 (680nm)', 'Clear', 'NIR (885nm)'],
+                labels: ['Violet 415nm', 'Blue 445nm', 'Cyan 480nm', 'Green 515nm', 'Yellow 555nm', 'Amber 590nm', 'Red 630nm', 'Deep Red 680nm', 'Visible Clear', 'NIR 885nm'],
                 datasets: [{
                     label: 'Reflectance Intensity (Counts)',
                     data: defaultChannels,

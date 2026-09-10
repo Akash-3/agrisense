@@ -596,9 +596,14 @@ const UI = {
         if (!panel) return;
 
         // Set Values with fallback for data availability
-        document.getElementById('panelFieldName').innerText = field.name || "Field Plot";
-        document.getElementById('panelFieldAcres').innerText = field.acres ? `${field.acres} Acres` : "Not available";
-        document.getElementById('panelFieldCrop').innerText = field.crop || "Not available";
+        const nameEl = document.getElementById('panelFieldName');
+        if (nameEl) nameEl.innerText = field.name || "Field Plot";
+
+        const acresEl = document.getElementById('panelFieldAcres');
+        if (acresEl) acresEl.innerText = field.acres ? `${field.acres} Acres` : "Not available";
+
+        const cropEl = document.getElementById('panelFieldCrop');
+        if (cropEl) cropEl.innerText = field.crop || "Not available";
 
         const acresMeta = document.getElementById('panelFieldAcresMeta');
         if (acresMeta) acresMeta.innerText = field.acres ? `${field.acres} Acres` : "Not available";
@@ -606,9 +611,14 @@ const UI = {
         const cropMeta = document.getElementById('panelFieldCropMeta');
         if (cropMeta) cropMeta.innerText = field.crop || "Not available";
 
-        document.getElementById('panelFieldHealth').innerText = field.health !== undefined ? `${field.health.toFixed(1)} / 100` : "Not available";
-        document.getElementById('panelFieldHydration').innerText = field.hydration !== undefined ? `${field.hydration.toFixed(1)}%` : "Not available";
-        document.getElementById('panelFieldRisk').innerText = field.risk !== undefined ? `${field.risk.toFixed(1)}%` : "Not available";
+        const healthEl = document.getElementById('panelFieldHealth');
+        if (healthEl) healthEl.innerText = field.health !== undefined ? `${field.health.toFixed(1)} / 100` : "Not available";
+
+        const hydEl = document.getElementById('panelFieldHydration');
+        if (hydEl) hydEl.innerText = field.hydration !== undefined ? `${field.hydration.toFixed(1)}%` : "Not available";
+
+        const riskEl = document.getElementById('panelFieldRisk');
+        if (riskEl) riskEl.innerText = field.risk !== undefined ? `${field.risk.toFixed(1)}%` : "Not available";
 
         // Badges
         const healthBadge = document.getElementById('panelFieldHealthBadge');
