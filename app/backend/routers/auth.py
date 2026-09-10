@@ -146,6 +146,7 @@ async def handle_update_profile(req: UpdateProfileRequest):
         farmer_id=req.farmer_id,
         full_name=req.full_name,
         phone_or_email=req.phone_or_email,
+        phone=req.phone,
         farm_name=req.farm_name,
         farm_acres=req.farm_acres,
         crop_type=req.crop_type,

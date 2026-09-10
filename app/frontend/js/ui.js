@@ -9,6 +9,21 @@ const UI = {
         this.bindEvents();
         this.renderAll();
         
+        // Trigger smooth entrance animation on initial page load / refresh
+        const authScreen = document.getElementById('authScreen');
+        const loginCard = document.getElementById('loginCard');
+        const activeDash = document.getElementById('pageDashboard');
+
+        if (authScreen && !authScreen.classList.contains('hidden') && loginCard) {
+            loginCard.classList.remove('animate-view-entrance');
+            void loginCard.offsetWidth;
+            loginCard.classList.add('animate-view-entrance');
+        } else if (activeDash) {
+            activeDash.classList.remove('animate-view-entrance');
+            void activeDash.offsetWidth;
+            activeDash.classList.add('animate-view-entrance');
+        }
+
         // Start live telemetry simulation ticker
         window.AgriState.startLiveTelemetryLoop((t) => {
             this.renderTelemetryValues(t);
@@ -90,7 +105,7 @@ const UI = {
                 isDemoMode: false,
                 name: farmer.full_name || idInput,
                 email: farmer.phone_or_email || idInput,
-                phone: farmer.phone_or_email || "+1 (555) 019-2834",
+                phone: farmer.phone || "+1 (555) 019-2834",
                 farmName: farmer.farm_name || "Green Valley Field Plot",
                 farmSize: farmer.farm_acres || 15.0,
                 location: "Lat: 20.2961, Lon: 85.8245",
@@ -203,7 +218,7 @@ const UI = {
         }
 
         try {
-            this.showToast('Saving profile updates to SQLite database...', false);
+            this.showToast('Saving profile updates...', false);
             const res = await fetch('/api/v1/auth/profile/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -211,6 +226,7 @@ const UI = {
                     farmer_id: window.AgriState.currentUser.id || 1,
                     full_name: name,
                     phone_or_email: email,
+                    phone: phone,
                     farm_name: farmName,
                     farm_acres: farmAcres,
                     crop_type: cropType,

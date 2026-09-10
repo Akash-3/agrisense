@@ -91,6 +91,7 @@ class UpdateProfileRequest(BaseModel):
     farmer_id: int = 1
     full_name: str
     phone_or_email: Optional[str] = None
+    phone: Optional[str] = None
     farm_name: Optional[str] = None
     farm_acres: Optional[float] = None
     crop_type: Optional[str] = None

@@ -9,109 +9,212 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+# POSTGRES DB ENGINE CONNECTION WITH FALLBACK TO SQLITE
+POSTGRES_URL = os.getenv("POSTGRES_URL") or os.getenv("DATABASE_URL")
+IS_POSTGRES = bool(POSTGRES_URL)
+
 DB_PATH = os.getenv("DB_PATH", os.path.join(os.path.dirname(os.path.abspath(__file__)), "agrisense_farmer.db"))
 
-# LIVE GMAIL SMTP CREDENTIALS WITH ENVIRONMENT VARIABLE OVERRIDES
+def get_db_connection():
+    if IS_POSTGRES:
+        import psycopg2
+        url = POSTGRES_URL
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql://", 1)
+        conn = psycopg2.connect(url)
+        return conn
+    else:
+        return sqlite3.connect(DB_PATH)
+
+def format_query(sql: str) -> str:
+    if IS_POSTGRES:
+        return sql.replace("?", "%s")
+    return sql
+
+def execute_db(sql: str, params: tuple = (), fetchone: bool = False, fetchall: bool = False, commit: bool = False, return_lastrowid: bool = False):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    formatted_sql = format_query(sql)
+    
+    if IS_POSTGRES and return_lastrowid and "RETURNING id" not in formatted_sql and formatted_sql.strip().upper().startswith("INSERT"):
+        formatted_sql += " RETURNING id"
+    
+    cursor.execute(formatted_sql, params)
+    
+    res = None
+    if return_lastrowid:
+        if IS_POSTGRES:
+            res = cursor.fetchone()[0]
+        else:
+            res = cursor.lastrowid
+    elif fetchone:
+        res = cursor.fetchone()
+    elif fetchall:
+        res = cursor.fetchall()
+        
+    if commit or return_lastrowid:
+        conn.commit()
+        
+    conn.close()
+    return res
+
 GMAIL_SENDER = os.getenv("GMAIL_SENDER", "agrisense.support.tcsc@gmail.com")
 GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD", "rjfomljidtgtvgcw")
 
 MAX_LOGIN_ATTEMPTS = 5
-LOCKOUT_DURATION = 900 # 15 minutes in seconds
+LOCKOUT_DURATION = 900
 
 def init_db():
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS farmers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        full_name TEXT NOT NULL,
-        phone_or_email TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        salt TEXT DEFAULT '',
-        farm_name TEXT DEFAULT 'Main Farm',
-        gender TEXT DEFAULT 'Farmer',
-        age INTEGER DEFAULT 32,
-        avatar_id INTEGER DEFAULT 1,
-        created_at REAL NOT NULL
-    )
-    """)
-    # Migration column check
-    cursor.execute("PRAGMA table_info(farmers)")
-    columns = [col[1] for col in cursor.fetchall()]
-    if 'salt' not in columns:
-        try:
-            cursor.execute("ALTER TABLE farmers ADD COLUMN salt TEXT DEFAULT ''")
-        except Exception:
-            pass
-    if 'farm_name' not in columns:
-        try:
-            cursor.execute("ALTER TABLE farmers ADD COLUMN farm_name TEXT DEFAULT 'Main Farm'")
-        except Exception:
-            pass
-    if 'gender' not in columns:
-        try:
-            cursor.execute("ALTER TABLE farmers ADD COLUMN gender TEXT DEFAULT 'Farmer'")
-        except Exception:
-            pass
-    if 'age' not in columns:
-        try:
-            cursor.execute("ALTER TABLE farmers ADD COLUMN age INTEGER DEFAULT 32")
-        except Exception:
-            pass
-    if 'avatar_id' not in columns:
-        try:
-            cursor.execute("ALTER TABLE farmers ADD COLUMN avatar_id INTEGER DEFAULT 1")
-        except Exception:
-            pass
-    if 'password_updated_at' not in columns:
-        try:
-            cursor.execute("ALTER TABLE farmers ADD COLUMN password_updated_at REAL DEFAULT NULL")
-        except Exception:
-            pass
+    if not IS_POSTGRES:
+        os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS farms (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        farmer_id INTEGER NOT NULL,
-        farm_name TEXT NOT NULL,
-        farm_acres REAL DEFAULT 10.0,
-        crop_type TEXT DEFAULT 'Wheat & Paddy',
-        created_at REAL NOT NULL,
-        FOREIGN KEY(farmer_id) REFERENCES farmers(id)
-    )
-    """)
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS otp_codes (
-        email_or_phone TEXT PRIMARY KEY,
-        otp_code TEXT NOT NULL,
-        expires_at REAL NOT NULL,
-        attempts INTEGER DEFAULT 0
-    )
-    """)
-    cursor.execute("PRAGMA table_info(otp_codes)")
-    otp_cols = [c[1] for c in cursor.fetchall()]
-    if 'attempts' not in otp_cols:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    if IS_POSTGRES:
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS farmers (
+            id SERIAL PRIMARY KEY,
+            full_name VARCHAR(255) NOT NULL,
+            phone_or_email VARCHAR(255) UNIQUE NOT NULL,
+            phone VARCHAR(100) DEFAULT '+1 (555) 019-2834',
+            password_hash TEXT NOT NULL,
+            salt TEXT DEFAULT '',
+            farm_name VARCHAR(255) DEFAULT 'Main Farm',
+            gender VARCHAR(50) DEFAULT 'Farmer',
+            age INTEGER DEFAULT 32,
+            avatar_id INTEGER DEFAULT 1,
+            created_at DOUBLE PRECISION NOT NULL,
+            password_updated_at DOUBLE PRECISION DEFAULT NULL
+        );
+        CREATE TABLE IF NOT EXISTS farms (
+            id SERIAL PRIMARY KEY,
+            farmer_id INTEGER NOT NULL REFERENCES farmers(id) ON DELETE CASCADE,
+            farm_name VARCHAR(255) NOT NULL,
+            farm_acres DOUBLE PRECISION DEFAULT 10.0,
+            crop_type VARCHAR(255) DEFAULT 'Wheat & Paddy',
+            created_at DOUBLE PRECISION NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS otp_codes (
+            email_or_phone VARCHAR(255) PRIMARY KEY,
+            otp_code VARCHAR(10) NOT NULL,
+            expires_at DOUBLE PRECISION NOT NULL,
+            attempts INTEGER DEFAULT 0
+        );
+        CREATE TABLE IF NOT EXISTS login_attempts (
+            identifier VARCHAR(255) PRIMARY KEY,
+            failed_count INTEGER DEFAULT 0,
+            last_failed_at DOUBLE PRECISION NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS auth_sessions (
+            session_token VARCHAR(255) PRIMARY KEY,
+            farmer_id INTEGER NOT NULL REFERENCES farmers(id) ON DELETE CASCADE,
+            created_at DOUBLE PRECISION NOT NULL,
+            expires_at DOUBLE PRECISION NOT NULL
+        );
+        """)
         try:
-            cursor.execute("ALTER TABLE otp_codes ADD COLUMN attempts INTEGER DEFAULT 0")
+            cursor.execute("ALTER TABLE farmers ADD COLUMN IF NOT EXISTS phone VARCHAR(100) DEFAULT '+1 (555) 019-2834';")
         except Exception:
             pass
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS login_attempts (
-        identifier TEXT PRIMARY KEY,
-        failed_count INTEGER DEFAULT 0,
-        last_failed_at REAL NOT NULL
-    )
-    """)
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS auth_sessions (
-        session_token TEXT PRIMARY KEY,
-        farmer_id INTEGER NOT NULL,
-        created_at REAL NOT NULL,
-        expires_at REAL NOT NULL,
-        FOREIGN KEY(farmer_id) REFERENCES farmers(id)
-    )
-    """)
+    else:
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS farmers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            full_name TEXT NOT NULL,
+            phone_or_email TEXT UNIQUE NOT NULL,
+            phone TEXT DEFAULT '+1 (555) 019-2834',
+            password_hash TEXT NOT NULL,
+            salt TEXT DEFAULT '',
+            farm_name TEXT DEFAULT 'Main Farm',
+            gender TEXT DEFAULT 'Farmer',
+            age INTEGER DEFAULT 32,
+            avatar_id INTEGER DEFAULT 1,
+            created_at REAL NOT NULL
+        )
+        """)
+        cursor.execute("PRAGMA table_info(farmers)")
+        columns = [col[1] for col in cursor.fetchall()]
+        if 'phone' not in columns:
+            try:
+                cursor.execute("ALTER TABLE farmers ADD COLUMN phone TEXT DEFAULT '+1 (555) 019-2834'")
+            except Exception:
+                pass
+        if 'salt' not in columns:
+            try:
+                cursor.execute("ALTER TABLE farmers ADD COLUMN salt TEXT DEFAULT ''")
+            except Exception:
+                pass
+        if 'farm_name' not in columns:
+            try:
+                cursor.execute("ALTER TABLE farmers ADD COLUMN farm_name TEXT DEFAULT 'Main Farm'")
+            except Exception:
+                pass
+        if 'gender' not in columns:
+            try:
+                cursor.execute("ALTER TABLE farmers ADD COLUMN gender TEXT DEFAULT 'Farmer'")
+            except Exception:
+                pass
+        if 'age' not in columns:
+            try:
+                cursor.execute("ALTER TABLE farmers ADD COLUMN age INTEGER DEFAULT 32")
+            except Exception:
+                pass
+        if 'avatar_id' not in columns:
+            try:
+                cursor.execute("ALTER TABLE farmers ADD COLUMN avatar_id INTEGER DEFAULT 1")
+            except Exception:
+                pass
+        if 'password_updated_at' not in columns:
+            try:
+                cursor.execute("ALTER TABLE farmers ADD COLUMN password_updated_at REAL DEFAULT NULL")
+            except Exception:
+                pass
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS farms (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            farmer_id INTEGER NOT NULL,
+            farm_name TEXT NOT NULL,
+            farm_acres REAL DEFAULT 10.0,
+            crop_type TEXT DEFAULT 'Wheat & Paddy',
+            created_at REAL NOT NULL,
+            FOREIGN KEY(farmer_id) REFERENCES farmers(id)
+        )
+        """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS otp_codes (
+            email_or_phone TEXT PRIMARY KEY,
+            otp_code TEXT NOT NULL,
+            expires_at REAL NOT NULL,
+            attempts INTEGER DEFAULT 0
+        )
+        """)
+        cursor.execute("PRAGMA table_info(otp_codes)")
+        otp_cols = [c[1] for c in cursor.fetchall()]
+        if 'attempts' not in otp_cols:
+            try:
+                cursor.execute("ALTER TABLE otp_codes ADD COLUMN attempts INTEGER DEFAULT 0")
+            except Exception:
+                pass
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS login_attempts (
+            identifier TEXT PRIMARY KEY,
+            failed_count INTEGER DEFAULT 0,
+            last_failed_at REAL NOT NULL
+        )
+        """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS auth_sessions (
+            session_token TEXT PRIMARY KEY,
+            farmer_id INTEGER NOT NULL,
+            created_at REAL NOT NULL,
+            expires_at REAL NOT NULL,
+            FOREIGN KEY(farmer_id) REFERENCES farmers(id)
+        )
+        """)
+
     conn.commit()
     conn.close()
 
@@ -129,7 +232,6 @@ def generate_salt() -> str:
     return secrets.token_hex(16)
 
 def hash_password(password: str, salt: str = "") -> str:
-    # Keyed PBKDF2 HMAC-SHA256 combined with JWT Server Secret Key for high security
     keyed_pass = f"{password}:{JWT_SECRET_KEY}".encode('utf-8')
     salt_bytes = salt.encode('utf-8') if salt else b'default_agrisense_salt'
     return hashlib.pbkdf2_hmac('sha256', keyed_pass, salt_bytes, 100000).hex()
@@ -148,11 +250,7 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
     return True, "Password is strong."
 
 def is_account_locked(identifier: str) -> tuple[bool, int]:
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT failed_count, last_failed_at FROM login_attempts WHERE identifier = ?", (identifier.lower(),))
-    row = cursor.fetchone()
-    conn.close()
+    row = execute_db("SELECT failed_count, last_failed_at FROM login_attempts WHERE identifier = ?", (identifier.lower(),), fetchone=True)
     if row:
         failed_count, last_failed_at = row[0], row[1]
         elapsed = time.time() - last_failed_at
@@ -162,32 +260,27 @@ def is_account_locked(identifier: str) -> tuple[bool, int]:
     return False, 0
 
 def record_failed_attempt(identifier: str):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT failed_count FROM login_attempts WHERE identifier = ?", (identifier.lower(),))
-    row = cursor.fetchone()
+    row = execute_db("SELECT failed_count FROM login_attempts WHERE identifier = ?", (identifier.lower(),), fetchone=True)
     count = (row[0] + 1) if row else 1
-    cursor.execute(
-        "REPLACE INTO login_attempts (identifier, failed_count, last_failed_at) VALUES (?, ?, ?)",
-        (identifier.lower(), count, time.time())
-    )
-    conn.commit()
-    conn.close()
+    if IS_POSTGRES:
+        execute_db(
+            "INSERT INTO login_attempts (identifier, failed_count, last_failed_at) VALUES (?, ?, ?) ON CONFLICT (identifier) DO UPDATE SET failed_count = EXCLUDED.failed_count, last_failed_at = EXCLUDED.last_failed_at",
+            (identifier.lower(), count, time.time()),
+            commit=True
+        )
+    else:
+        execute_db(
+            "REPLACE INTO login_attempts (identifier, failed_count, last_failed_at) VALUES (?, ?, ?)",
+            (identifier.lower(), count, time.time()),
+            commit=True
+        )
 
 def clear_failed_attempts(identifier: str):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM login_attempts WHERE identifier = ?", (identifier.lower(),))
-    conn.commit()
-    conn.close()
+    execute_db("DELETE FROM login_attempts WHERE identifier = ?", (identifier.lower(),), commit=True)
 
 def check_farmer_exists(phone_or_email: str) -> bool:
     clean_id = phone_or_email.strip().lower()
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT id FROM farmers WHERE LOWER(phone_or_email) = ?", (clean_id,))
-    row = cursor.fetchone()
-    conn.close()
+    row = execute_db("SELECT id FROM farmers WHERE LOWER(phone_or_email) = ?", (clean_id,), fetchone=True)
     return row is not None
 
 def send_real_email_otp(to_email: str, otp_code: str, full_name: str = "Farmer"):
@@ -229,14 +322,18 @@ def generate_otp(email_or_phone: str, full_name: str = "Farmer") -> str:
     clean_id = email_or_phone.strip().lower()
     otp = str(random.randint(100000, 999999))
     expires = time.time() + 600
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute(
-        "REPLACE INTO otp_codes (email_or_phone, otp_code, expires_at, attempts) VALUES (?, ?, ?, 0)",
-        (clean_id, otp, expires)
-    )
-    conn.commit()
-    conn.close()
+    if IS_POSTGRES:
+        execute_db(
+            "INSERT INTO otp_codes (email_or_phone, otp_code, expires_at, attempts) VALUES (?, ?, ?, 0) ON CONFLICT (email_or_phone) DO UPDATE SET otp_code = EXCLUDED.otp_code, expires_at = EXCLUDED.expires_at, attempts = 0",
+            (clean_id, otp, expires),
+            commit=True
+        )
+    else:
+        execute_db(
+            "REPLACE INTO otp_codes (email_or_phone, otp_code, expires_at, attempts) VALUES (?, ?, ?, 0)",
+            (clean_id, otp, expires),
+            commit=True
+        )
     
     if "@" in clean_id:
         send_real_email_otp(clean_id, otp, full_name=full_name)
@@ -245,34 +342,25 @@ def generate_otp(email_or_phone: str, full_name: str = "Farmer") -> str:
 
 def verify_otp(email_or_phone: str, otp_code: str) -> bool:
     clean_id = email_or_phone.strip().lower()
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT otp_code, expires_at, attempts FROM otp_codes WHERE LOWER(email_or_phone) = ?", (clean_id,))
-    row = cursor.fetchone()
+    row = execute_db("SELECT otp_code, expires_at, attempts FROM otp_codes WHERE LOWER(email_or_phone) = ?", (clean_id,), fetchone=True)
     
     if not row:
-        conn.close()
         return False
         
     stored_otp, expires_at, attempts = row[0], row[1], row[2]
     
     if time.time() > expires_at or attempts >= 5:
-        conn.close()
         return False
         
-    cursor.execute("UPDATE otp_codes SET attempts = attempts + 1 WHERE LOWER(email_or_phone) = ?", (clean_id,))
-    conn.commit()
+    execute_db("UPDATE otp_codes SET attempts = attempts + 1 WHERE LOWER(email_or_phone) = ?", (clean_id,), commit=True)
     
     if stored_otp == otp_code:
-        cursor.execute("DELETE FROM otp_codes WHERE LOWER(email_or_phone) = ?", (clean_id,))
-        conn.commit()
-        conn.close()
+        execute_db("DELETE FROM otp_codes WHERE LOWER(email_or_phone) = ?", (clean_id,), commit=True)
         return True
         
-    conn.close()
     return False
 
-def register_farmer(full_name: str, phone_or_email: str, farm_name: str = "Main Farm", farm_acres: float = 10.0, password: str = "", gender: str = "Farmer", age: int = 32, avatar_id: int = 1, crop_type: str = "Wheat & Paddy"):
+def register_farmer(full_name: str, phone_or_email: str, farm_name: str = "Main Farm", farm_acres: float = 10.0, password: str = "", gender: str = "Farmer", age: int = 32, avatar_id: int = 1, crop_type: str = "Wheat & Paddy", phone: str = "+1 (555) 019-2834"):
     clean_id = phone_or_email.strip().lower()
     
     is_valid, msg = validate_password_strength(password)
@@ -288,20 +376,17 @@ def register_farmer(full_name: str, phone_or_email: str, farm_name: str = "Main 
     salt = generate_salt()
     pwd_hash = hash_password(password, salt)
 
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
     try:
-        cursor.execute(
-            "INSERT INTO farmers (full_name, phone_or_email, password_hash, salt, farm_name, gender, age, avatar_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (full_name, clean_id, pwd_hash, salt, farm_name, gender, age, avatar_id, time.time())
+        farmer_id = execute_db(
+            "INSERT INTO farmers (full_name, phone_or_email, phone, password_hash, salt, farm_name, gender, age, avatar_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (full_name, clean_id, phone, pwd_hash, salt, farm_name, gender, age, avatar_id, time.time()),
+            return_lastrowid=True
         )
-        farmer_id = cursor.lastrowid
-        cursor.execute(
+        execute_db(
             "INSERT INTO farms (farmer_id, farm_name, farm_acres, crop_type, created_at) VALUES (?, ?, ?, ?, ?)",
-            (farmer_id, farm_name, farm_acres, crop_type, time.time())
+            (farmer_id, farm_name, farm_acres, crop_type, time.time()),
+            commit=True
         )
-        conn.commit()
-        conn.close()
         
         session_token = create_session_token(farmer_id)
         return {
@@ -314,14 +399,7 @@ def register_farmer(full_name: str, phone_or_email: str, farm_name: str = "Main 
             "avatar_id": avatar_id,
             "session_token": session_token
         }
-    except sqlite3.IntegrityError:
-        conn.close()
-        return {
-            "status": "error",
-            "message": f"Account Already Exists: '{clean_id}' is already registered! Please switch to the Login tab to sign in."
-        }
     except Exception as err:
-        conn.close()
         print(f"[REGISTER DB EXCEPTION] {err}")
         return {
             "status": "error",
@@ -338,13 +416,11 @@ def login_farmer(phone_or_email: str, password: str):
             "message": f"Account Locked: Too many failed attempts. Try again in {remaining_mins} minutes."
         }
 
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT id, full_name, password_hash, salt, gender, age, avatar_id, password_updated_at FROM farmers WHERE LOWER(phone_or_email) = ?",
-        (clean_id,)
+    row = execute_db(
+        "SELECT id, full_name, password_hash, salt, gender, age, avatar_id, password_updated_at, phone FROM farmers WHERE LOWER(phone_or_email) = ?",
+        (clean_id,),
+        fetchone=True
     )
-    row = cursor.fetchone()
     
     if row:
         farmer_id = row[0]
@@ -355,6 +431,7 @@ def login_farmer(phone_or_email: str, password: str):
         age = row[5] if len(row) > 5 and row[5] else 32
         avatar_id = row[6] if len(row) > 6 and row[6] else 1
         password_updated_at = row[7] if len(row) > 7 else None
+        phone = row[8] if len(row) > 8 and row[8] else "+1 (555) 019-2834"
         
         computed_hash = hash_password(password, salt) if salt else hash_password(password)
         salt_bytes = salt.encode('utf-8') if salt else b''
@@ -362,9 +439,8 @@ def login_farmer(phone_or_email: str, password: str):
         
         if computed_hash == stored_hash or legacy_hash == stored_hash or hash_password(password) == stored_hash:
             clear_failed_attempts(clean_id)
-            cursor.execute("SELECT id, farm_name, farm_acres, crop_type FROM farms WHERE farmer_id = ?", (farmer_id,))
-            farms = [{"id": f[0], "farm_name": f[1], "farm_acres": f[2], "crop_type": f[3]} for f in cursor.fetchall()]
-            conn.close()
+            farm_rows = execute_db("SELECT id, farm_name, farm_acres, crop_type FROM farms WHERE farmer_id = ?", (farmer_id,), fetchall=True)
+            farms = [{"id": f[0], "farm_name": f[1], "farm_acres": f[2], "crop_type": f[3]} for f in (farm_rows or [])]
             
             token = create_session_token(farmer_id)
             return {
@@ -374,6 +450,7 @@ def login_farmer(phone_or_email: str, password: str):
                     "id": farmer_id,
                     "full_name": full_name,
                     "phone_or_email": clean_id,
+                    "phone": phone,
                     "gender": gender,
                     "age": age,
                     "avatar_id": avatar_id,
@@ -382,75 +459,57 @@ def login_farmer(phone_or_email: str, password: str):
                 }
             }
 
-    conn.close()
     record_failed_attempt(clean_id)
     return {"status": "error", "message": "Invalid mobile number/email or password!"}
 
 def reset_password_with_otp(phone_or_email: str, new_password: str, otp_code: str) -> dict:
     clean_id = phone_or_email.strip().lower()
     
-    # 1. Verify OTP Code
     if not verify_otp(clean_id, otp_code):
         return {"status": "error", "message": "Invalid or expired OTP code!"}
         
-    # 2. Validate Password Strength
     valid, msg = validate_password_strength(new_password)
     if not valid:
         return {"status": "error", "message": msg}
         
-    # 3. Check Farmer Account Exists
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT id FROM farmers WHERE LOWER(phone_or_email) = ?", (clean_id,))
-    row = cursor.fetchone()
+    row = execute_db("SELECT id FROM farmers WHERE LOWER(phone_or_email) = ?", (clean_id,), fetchone=True)
     if not row:
-        conn.close()
         return {"status": "error", "message": f"No account registered with '{clean_id}'."}
         
-    # 4. Hash New Password with Salt & Server JWT Secret Key
     salt = generate_salt()
     pwd_hash = hash_password(new_password, salt)
     now = time.time()
     
-    cursor.execute("UPDATE farmers SET password_hash = ?, salt = ?, password_updated_at = ? WHERE LOWER(phone_or_email) = ?", (pwd_hash, salt, now, clean_id))
-    conn.commit()
-    conn.close()
-    
+    execute_db("UPDATE farmers SET password_hash = ?, salt = ?, password_updated_at = ? WHERE LOWER(phone_or_email) = ?", (pwd_hash, salt, now, clean_id), commit=True)
     clear_failed_attempts(clean_id)
     return {"status": "success", "message": "Password reset successfully! You can now log in with your new password.", "password_updated_at": now}
 
 def create_session_token(farmer_id: int) -> str:
     token = secrets.token_hex(32)
     expires = time.time() + 86400 * 30 # 30 Days
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute(
+    execute_db(
         "INSERT INTO auth_sessions (session_token, farmer_id, created_at, expires_at) VALUES (?, ?, ?, ?)",
-        (token, farmer_id, time.time(), expires)
+        (token, farmer_id, time.time(), expires),
+        commit=True
     )
-    conn.commit()
-    conn.close()
     return token
 
 def add_farm(farmer_id: int, farm_name: str, farm_acres: float, crop_type: str):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute(
+    farm_id = execute_db(
         "INSERT INTO farms (farmer_id, farm_name, farm_acres, crop_type, created_at) VALUES (?, ?, ?, ?, ?)",
-        (farmer_id, farm_name, farm_acres, crop_type, time.time())
+        (farmer_id, farm_name, farm_acres, crop_type, time.time()),
+        return_lastrowid=True
     )
-    conn.commit()
-    farm_id = cursor.lastrowid
-    conn.close()
     return {"status": "success", "farm_id": farm_id}
 
-def update_farmer_profile(farmer_id: int, full_name: str, phone_or_email: str = None, farm_name: str = None, farm_acres: float = None, crop_type: str = None, new_password: str = None, gender: str = "Farmer", age: int = 32, avatar_id: int = 1, location: str = None):
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    
+def update_farmer_profile(farmer_id: int, full_name: str, phone_or_email: str = None, farm_name: str = None, farm_acres: float = None, crop_type: str = None, new_password: str = None, gender: str = "Farmer", age: int = 32, avatar_id: int = 1, location: str = None, phone: str = None):
     fields = ["full_name = ?", "gender = ?", "age = ?", "avatar_id = ?"]
     params = [full_name, gender, age, avatar_id]
     updated_at_val = None
+
+    if phone:
+        fields.append("phone = ?")
+        params.append(phone.strip())
 
     if phone_or_email:
         fields.append("phone_or_email = ?")
@@ -471,20 +530,23 @@ def update_farmer_profile(farmer_id: int, full_name: str, phone_or_email: str = 
 
     params.append(farmer_id)
     query = f"UPDATE farmers SET {', '.join(fields)} WHERE id = ?"
-    cursor.execute(query, tuple(params))
+    execute_db(query, tuple(params), commit=True)
 
     if farm_name or farm_acres or crop_type:
-        cursor.execute("UPDATE farms SET farm_name = COALESCE(?, farm_name), farm_acres = COALESCE(?, farm_acres), crop_type = COALESCE(?, crop_type) WHERE farmer_id = ?", (farm_name, farm_acres, crop_type, farmer_id))
+        execute_db("UPDATE farms SET farm_name = COALESCE(?, farm_name), farm_acres = COALESCE(?, farm_acres), crop_type = COALESCE(?, crop_type) WHERE farmer_id = ?", (farm_name, farm_acres, crop_type, farmer_id), commit=True)
 
-    conn.commit()
-    conn.close()
+    row = execute_db("SELECT phone_or_email, phone FROM farmers WHERE id = ?", (farmer_id,), fetchone=True)
+    stored_email = row[0] if row else phone_or_email
+    stored_phone = row[1] if row and len(row) > 1 and row[1] else (phone or "+1 (555) 019-2834")
+
     return {
         "status": "success",
         "message": "Profile & Farm details updated in database successfully!",
         "farmer": {
             "id": farmer_id,
             "full_name": full_name,
-            "phone_or_email": phone_or_email,
+            "phone_or_email": stored_email,
+            "phone": stored_phone,
             "farm_name": farm_name,
             "farm_acres": farm_acres,
             "crop_type": crop_type,
@@ -494,9 +556,6 @@ def update_farmer_profile(farmer_id: int, full_name: str, phone_or_email: str = 
             "password_updated_at": updated_at_val
         }
     }
-
-# Run table initialization on module load
-init_db()
 
 # Run table initialization on module load
 init_db()
