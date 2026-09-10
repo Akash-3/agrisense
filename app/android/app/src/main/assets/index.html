@@ -342,11 +342,11 @@
                         <!-- DEMO MODE BADGE INDICATOR -->
                         <div id="headerDemoBadge"></div>
 
-                        <!-- LIVE TELEMETRY PULSE -->
-                        <div class="hidden md:flex items-center space-x-2 px-3 py-1 rounded-full bg-agri-verylight border border-agri-mint text-agri-primary text-xs font-bold">
-                            <span class="w-2 h-2 rounded-full bg-agri-primary animate-pulse"></span>
-                            <span>LIVE TELEMETRY</span>
-                        </div>
+                        <!-- LIVE TELEMETRY PULSE & HARDWARE STATUS BADGE -->
+                        <button onclick="AgriState.toggleHardwareStatus()" id="topTelemetryBadge" class="hidden md:flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 transition hover:opacity-90">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                            <span>LIVE SENSORS STREAM</span>
+                        </button>
 
                         <!-- DRONE STATUS BADGE -->
                         <span id="headerDroneStatus" class="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
@@ -378,6 +378,22 @@
 
                 <!-- ---------------- VIEW 1: DASHBOARD ---------------- -->
                 <div id="pageDashboard" class="space-y-6">
+
+                    <!-- SENSOR HARDWARE STATUS WARNING BANNER -->
+                    <div id="dashHardwareAlert" class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start space-x-3 text-xs">
+                        <div class="p-2 rounded-xl bg-amber-500/20 text-amber-700 shrink-0 font-bold">
+                            <i class="fa-solid fa-triangle-exclamation text-base"></i>
+                        </div>
+                        <div class="flex-1 space-y-0.5">
+                            <div class="font-black text-sm text-amber-900">⚠️ Physical Sensor Hardware Offline (No Hardware Stream Connected)</div>
+                            <p class="text-amber-800 leading-relaxed font-medium">
+                                Physical ESP32 field sensor nodes are currently unpowered or disconnected. Showing baseline telemetry stream until physical node reconnects. Click status badge to run hardware diagnostic toggle.
+                            </p>
+                        </div>
+                        <button onclick="AgriState.toggleHardwareStatus()" class="px-3 py-1.5 rounded-xl bg-amber-200 hover:bg-amber-300 text-amber-900 font-bold shrink-0">
+                            Run Hardware Sync
+                        </button>
+                    </div>
                     
                     <!-- HERO GREETING BANNER -->
                     <div class="card-agri p-6 sm:p-8 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white relative overflow-hidden">
@@ -502,19 +518,19 @@
 
                     </div>
 
-                    <!-- MULTISPECTRAL SPECTROMETRY OPTICS -->
+                    <!-- 24-HOUR FIELD MOISTURE & MICROCLIMATE TRENDS -->
                     <div class="card-agri p-6 space-y-4">
                         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                             <div>
-                                <h3 class="text-base font-bold text-slate-900">Multispectral Reflectance Spectrum</h3>
-                                <p class="text-xs text-slate-500">Optical Crop Analysis (Violet - Near Infrared)</p>
+                                <h3 class="text-base font-bold text-slate-900">24-Hour Field Moisture & Microclimate Trends</h3>
+                                <p class="text-xs text-slate-500">Real-Time Soil Hydration Stability & Canopy Temperature Curve</p>
                             </div>
                             <button onclick="UI.switchView('analytics')" class="px-3 py-1.5 rounded-xl btn-agri-secondary text-xs font-bold">
-                                View Full Analytics
+                                View Full Field Analytics
                             </button>
                         </div>
                         <div class="h-64 relative">
-                            <canvas id="dashboardSpectralChart"></canvas>
+                            <canvas id="dashboardTrendChart"></canvas>
                         </div>
                     </div>
 
@@ -917,11 +933,11 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div class="card-agri p-4 space-y-1">
                             <div class="text-xs font-bold text-slate-400 uppercase">Hardware Status</div>
-                            <div class="text-xl font-black text-emerald-600 flex items-center space-x-2">
-                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                <span>100% ONLINE</span>
+                            <div id="telemHardwareStatusBadge" class="text-xl font-black text-red-600 flex items-center space-x-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                                <span>OFFLINE (NO SENSOR DATA)</span>
                             </div>
-                            <div class="text-[11px] text-slate-500 font-medium">3 Micro-Nodes Operational</div>
+                            <div class="text-[11px] text-slate-500 font-medium">Click top badge to toggle diagnostic</div>
                         </div>
 
                         <div class="card-agri p-4 space-y-1">

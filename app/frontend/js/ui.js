@@ -345,7 +345,7 @@ const UI = {
         // Trigger view-specific initializations
         if (viewName === 'dashboard') {
             window.ChartService.initDashboardSparklines();
-            window.ChartService.initSpectrometryChart('dashboardSpectralChart');
+            window.ChartService.initDashboardFieldTrends('dashboardTrendChart');
         } else if (viewName === 'map') {
             window.MapService.init('mapContainer');
         } else if (viewName === 'analytics') {
@@ -399,6 +399,42 @@ const UI = {
         this.renderDroneState(window.DroneService.getPrimaryDrone());
         this.renderNotifications();
         this.renderFarmsList();
+        this.renderHardwareStatus();
+    },
+
+    renderHardwareStatus() {
+        const isOnline = window.AgriState.hardwareStatus === "ONLINE";
+        
+        // Top Bar Badge
+        const topBadge = document.getElementById('topTelemetryBadge');
+        if (topBadge) {
+            if (isOnline) {
+                topBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span><span>LIVE SENSORS STREAM</span>`;
+                topBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center space-x-1.5 cursor-pointer';
+            } else {
+                topBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500"></span><span>⚠️ SENSORS OFFLINE</span>`;
+                topBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-300 flex items-center space-x-1.5 cursor-pointer';
+            }
+        }
+
+        // Offline Alert Banner on Dashboard
+        const dashAlert = document.getElementById('dashHardwareAlert');
+        if (dashAlert) {
+            if (isOnline) dashAlert.classList.add('hidden');
+            else dashAlert.classList.remove('hidden');
+        }
+
+        // Telemetry Page Hardware Status Badge
+        const telemBadge = document.getElementById('telemHardwareStatusBadge');
+        if (telemBadge) {
+            if (isOnline) {
+                telemBadge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span><span>100% ONLINE</span>`;
+                telemBadge.className = 'text-xl font-black text-emerald-600 flex items-center space-x-2';
+            } else {
+                telemBadge.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-red-500"></span><span>OFFLINE (NO SENSOR DATA)</span>`;
+                telemBadge.className = 'text-xl font-black text-red-600 flex items-center space-x-2';
+            }
+        }
     },
 
     renderUser() {

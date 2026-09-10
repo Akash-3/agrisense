@@ -15,6 +15,18 @@ const AgriState = {
         avatar: "AV"
     },
 
+    // Hardware Connection & Sensor Diagnostic State
+    hardwareStatus: "OFFLINE", // "ONLINE" or "OFFLINE"
+
+    toggleHardwareStatus() {
+        this.hardwareStatus = this.hardwareStatus === "ONLINE" ? "OFFLINE" : "ONLINE";
+        if (window.UI) {
+            window.UI.renderHardwareStatus();
+            window.UI.showToast(`Hardware Sensor Status: ${this.hardwareStatus}`, false);
+        }
+        return this.hardwareStatus;
+    },
+
     // Settings Configuration
     settings: {
         tempUnit: "C", // "C" or "F"
