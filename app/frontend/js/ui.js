@@ -99,7 +99,7 @@ const UI = {
 
             this.renderUser();
             this.switchView('dashboard');
-            this.showToast(`✅ Welcome back, ${window.AgriState.currentUser.name}! Authenticated via SQLite DB.`, false);
+            this.showToast(`✅ Welcome back, ${window.AgriState.currentUser.name}!`, false);
         } else {
             this.showToast(data.detail || data.message || 'Invalid credentials or locked account.', true);
         }
@@ -125,7 +125,7 @@ const UI = {
 
             this.renderUser();
             this.switchView('dashboard');
-            this.showToast(`🚜 Welcome to AgriSense Demo Mode! Data is for evaluation.`, false);
+            this.showToast(`🚜 Welcome to AgriSense! Demo account active.`, false);
         }
     },
 
@@ -334,7 +334,7 @@ const UI = {
             window.MapService.init('mapContainer');
         } else if (viewName === 'analytics') {
             window.ChartService.initAnalyticsTrends('analyticsTrendChart');
-            window.ChartService.initSpectrometryChart('analyticsSpectralChart');
+            window.ChartService.initAnalyticsSoilTemp('analyticsSoilTempChart');
         } else if (viewName === 'scenarios') {
             window.ChartService.initScenarioChart('scenarioSimChart', window.AgriState.activeScenario);
         } else if (viewName === 'missionPlanner') {

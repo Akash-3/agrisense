@@ -749,13 +749,60 @@
                 <div id="pageAnalytics" class="space-y-6 hidden">
                     <div class="flex items-center justify-between">
                         <div>
-                            <h2 class="text-xl font-black text-slate-900">Crop Analytics & Trends</h2>
-                            <p class="text-xs text-slate-500">Historical Health Index, Moisture & Spectrometry Data</p>
+                            <h2 class="text-xl font-black text-slate-900">Crop Analytics & Field Intelligence</h2>
+                            <p class="text-xs text-slate-500">Historical Health Index, Moisture & Microclimate Analytics</p>
                         </div>
                         <div class="bg-slate-100 p-1 rounded-xl flex items-center text-xs font-bold">
                             <button class="px-3 py-1.5 rounded-lg bg-white shadow-sm text-slate-800">Daily</button>
                             <button class="px-3 py-1.5 rounded-lg text-slate-600">Weekly</button>
                             <button class="px-3 py-1.5 rounded-lg text-slate-600">Monthly</button>
+                        </div>
+                    </div>
+
+                    <!-- ANALYTICS KPI SUMMARY CARDS -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="card-agri p-5 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-400 uppercase">NDVI Health Index</span>
+                                <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                    <i class="fa-solid fa-leaf text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="text-2xl font-black text-slate-900">88.5%</div>
+                            <div class="text-[11px] text-emerald-600 font-bold">↑ +3.2% vs last week</div>
+                        </div>
+
+                        <div class="card-agri p-5 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-400 uppercase">Soil Hydration</span>
+                                <div class="w-8 h-8 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center">
+                                    <i class="fa-solid fa-droplet text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="text-2xl font-black text-slate-900">42.5% VWC</div>
+                            <div class="text-[11px] text-cyan-600 font-bold">Optimal Moisture Target</div>
+                        </div>
+
+                        <div class="card-agri p-5 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-400 uppercase">Disease Immunity</span>
+                                <div class="w-8 h-8 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
+                                    <i class="fa-solid fa-shield-halved text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="text-2xl font-black text-slate-900">90.1%</div>
+                            <div class="text-[11px] text-teal-600 font-bold">Low Fungal Vulnerability</div>
+                        </div>
+
+                        <div class="card-agri p-5 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-400 uppercase">Canopy Temp</span>
+                                <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                                    <i class="fa-solid fa-temperature-half text-sm"></i>
+                                </div>
+                            </div>
+                            <div class="text-2xl font-black text-slate-900">24.2 °C</div>
+                            <div class="text-[11px] text-amber-600 font-bold">Balanced Thermal Zone</div>
                         </div>
                     </div>
 
@@ -768,9 +815,42 @@
                         </div>
 
                         <div class="card-agri p-6 space-y-4">
-                            <h3 class="text-sm font-bold text-slate-900">Multispectral Reflectance Spectrum</h3>
+                            <h3 class="text-sm font-bold text-slate-900">Soil Hydration & Microclimate Temperature</h3>
                             <div class="h-64 relative">
-                                <canvas id="analyticsSpectralChart"></canvas>
+                                <canvas id="analyticsSoilTempChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AGRONOMIC INSIGHTS BANNER -->
+                    <div class="card-agri p-6 space-y-3 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center">
+                                <i class="fa-solid fa-lightbulb text-sm"></i>
+                            </div>
+                            <h3 class="text-base font-extrabold text-white">Agronomic Field Insights & Actionable Guidance</h3>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-300 pt-2">
+                            <div class="p-3 rounded-xl bg-white/10 space-y-1">
+                                <div class="font-bold text-white flex items-center space-x-1.5">
+                                    <i class="fa-solid fa-droplet text-cyan-400"></i>
+                                    <span>Optimal Hydration</span>
+                                </div>
+                                <p>Sub-surface moisture is stable at 42.5% VWC. No supplementary irrigation required for 48h.</p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-white/10 space-y-1">
+                                <div class="font-bold text-white flex items-center space-x-1.5">
+                                    <i class="fa-solid fa-shield-virus text-emerald-400"></i>
+                                    <span>Fungal Immunity</span>
+                                </div>
+                                <p>Pathogen risk index is low (9.9%). Spectral canopy absorption indicates high natural crop defense.</p>
+                            </div>
+                            <div class="p-3 rounded-xl bg-white/10 space-y-1">
+                                <div class="font-bold text-white flex items-center space-x-1.5">
+                                    <i class="fa-solid fa-plane-fly text-teal-400"></i>
+                                    <span>Aerial Survey</span>
+                                </div>
+                                <p>Autonomous drone scan confirms 100% uniform canopy density across all 15.0 acres of plot.</p>
                             </div>
                         </div>
                     </div>

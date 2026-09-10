@@ -186,6 +186,67 @@ const ChartService = {
                 scales: { x: { grid: { display: false } }, y: { grid: { color: '#F1F5F9' } } }
             }
         });
+    },
+
+    initAnalyticsSoilTemp(canvasId) {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return;
+
+        if (this.charts[canvasId]) {
+            this.charts[canvasId].destroy();
+        }
+
+        this.charts[canvasId] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [
+                    {
+                        label: 'Soil Moisture (% VWC)',
+                        data: [40, 41, 41.5, 42, 42.5, 43, 42.8],
+                        borderColor: '#249EAF',
+                        backgroundColor: 'rgba(36, 158, 175, 0.12)',
+                        fill: true,
+                        tension: 0.3,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Air Temp (°C)',
+                        data: [25.5, 25.8, 26, 26.1, 25.9, 25.4, 25.2],
+                        borderColor: '#F4A019',
+                        borderDash: [4, 4],
+                        fill: false,
+                        tension: 0.3,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { font: { family: 'Inter', size: 12, weight: '600' } } },
+                    tooltip: { backgroundColor: '#0D172B', cornerRadius: 12 }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        grid: { color: '#F1F5F9' },
+                        title: { display: true, text: 'Soil VWC %', font: { family: 'Inter', size: 11, weight: 'bold' } }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        title: { display: true, text: 'Temp °C', font: { family: 'Inter', size: 11, weight: 'bold' } }
+                    }
+                }
+            }
+        });
     }
 };
 
