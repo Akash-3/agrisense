@@ -201,19 +201,34 @@ const AgriState = {
 
     startLiveTelemetryLoop(callback) {
         if (this.simInterval) clearInterval(this.simInterval);
-        this.simInterval = setInterval(() => {
-            // Subtle realistic jitter
-            const deltaMoisture = (Math.random() - 0.5) * 0.4;
-            const deltaTemp = (Math.random() - 0.5) * 0.2;
-            
-            this.telemetry.soilMoisture = Math.max(5, Math.min(95, this.telemetry.soilMoisture + deltaMoisture));
-            this.telemetry.temperatureC = Math.max(10, Math.min(50, this.telemetry.temperatureC + deltaTemp));
-            this.telemetry.lastUpdated = new Date();
 
-            if (typeof callback === 'function') {
-                callback(this.telemetry);
+        const fetchLatest = async () => {
+            try {
+                const res = await fetch('/api/v1/telemetry/latest');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.telemetry) {
+                        const t = data.telemetry;
+                        this.telemetry.soilMoisture = t.soil_moisture_vwc !== null ? t.soil_moisture_vwc : 42.5;
+                        this.telemetry.temperatureC = t.temperature_c !== null ? t.temperature_c : 26.1;
+                        this.telemetry.humidity = t.humidity_pct !== null ? t.humidity_pct : 68.4;
+                        this.telemetry.airQualityPpm = t.smoke_ppm !== null ? t.smoke_ppm : 80.0;
+                        this.telemetry.isRealHardware = t.is_real_hardware || false;
+
+                        if (t.is_real_hardware) {
+                            this.hardwareStatus = "ONLINE";
+                        }
+
+                        if (typeof callback === 'function') callback(this.telemetry);
+                    }
+                }
+            } catch (_) {
+                if (typeof callback === 'function') callback(this.telemetry);
             }
-        }, this.settings.telemetryRefreshInterval * 1000);
+        };
+
+        fetchLatest();
+        this.simInterval = setInterval(fetchLatest, this.settings.telemetryRefreshInterval * 1000);
     }
 };
 

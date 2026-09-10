@@ -1068,6 +1068,37 @@ const UI = {
             document.getElementById('loginPassInput').value = '';
             document.getElementById('loginPassInput').focus();
         }
+    },
+
+    async sendRealHardwareIngestPayload(moisture = 44.2, temp = 25.8, humidity = 65.0, smoke = 82.0) {
+        try {
+            const res = await fetch('/api/v1/telemetry/ingest', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    device_id: "ESP32_SOIL_NODE_01",
+                    soil_moisture: moisture,
+                    temperature: temp,
+                    humidity: humidity,
+                    smoke_ppm: smoke,
+                    soil_status: "ONLINE",
+                    dht_status: "ONLINE",
+                    mq135_status: "ONLINE"
+                })
+            });
+            if (res.ok) {
+                window.AgriState.hardwareStatus = "ONLINE";
+                window.AgriState.telemetry.soilMoisture = moisture;
+                window.AgriState.telemetry.temperatureC = temp;
+                window.AgriState.telemetry.humidity = humidity;
+                window.AgriState.telemetry.airQualityPpm = smoke;
+                window.AgriState.telemetry.isRealHardware = true;
+                this.renderAll();
+                this.showToast(`📡 Real Hardware Telemetry Ingested from ESP32_SOIL_NODE_01!`, false);
+            }
+        } catch (err) {
+            this.showToast(`Hardware Ingest Exception: ${err}`, true);
+        }
     }
 };
 

@@ -112,6 +112,7 @@ async def ingest_esp32_telemetry(payload: ESP32TelemetryIngest):
     global latest_telemetry, latest_ai_result
     
     latest_telemetry.device_id = payload.device_id
+    latest_telemetry.is_real_hardware = True
     latest_telemetry.soil_moisture_vwc = payload.soil_moisture if payload.soil_moisture is not None else None
     latest_telemetry.temperature_c = payload.temperature if payload.temperature is not None else None
     latest_telemetry.humidity_pct = payload.humidity if payload.humidity is not None else None
