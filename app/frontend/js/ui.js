@@ -701,7 +701,7 @@ const UI = {
     onPlannerFieldSelect(fieldId) {
         const id = parseInt(fieldId) || 1;
         if (window.MapService) {
-            window.MapService.selectFieldById(id);
+            window.MapService.selectFieldById(id, false);
         }
     },
 

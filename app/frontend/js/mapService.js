@@ -116,7 +116,7 @@ const MapService = {
         return this.fieldDataList.find(f => f.id === parseInt(id)) || null;
     },
 
-    selectFieldById(id) {
+    selectFieldById(id, openDrawer = null) {
         const field = this.getFieldById(id);
         if (!field) return;
 
@@ -126,7 +126,8 @@ const MapService = {
             if (this.map) {
                 this.map.fitBounds(targetPolygon.getBounds(), { padding: [60, 60], maxZoom: 16, animate: true });
             }
-            if (window.UI) {
+            const shouldOpen = openDrawer !== null ? openDrawer : (window.UI && window.UI.currentView === 'map');
+            if (window.UI && shouldOpen) {
                 window.UI.showFieldDetailPanel(field, targetPolygon);
             }
         }
@@ -231,7 +232,7 @@ const MapService = {
                     targetSelect.value = field.id.toString();
                 }
 
-                if (window.UI) {
+                if (window.UI && window.UI.currentView === 'map') {
                     window.UI.showFieldDetailPanel(field, polygon);
                 }
             });
