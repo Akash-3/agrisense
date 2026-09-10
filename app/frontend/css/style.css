@@ -52,55 +52,74 @@ body {
     -webkit-backdrop-filter: blur(12px);
 }
 
-/* Brand Card Styling */
+/* Brand Card Styling & Hover Micro-Interactions */
 .card-agri {
     background: #FFFFFF;
     border-radius: 20px;
     border: 1px solid #E2E8F0;
     box-shadow: 0 4px 20px -2px rgba(13, 23, 43, 0.04), 0 2px 6px -1px rgba(13, 23, 43, 0.02);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+    will-change: transform, box-shadow;
 }
 
 .card-agri:hover {
-    box-shadow: 0 12px 32px -4px rgba(13, 23, 43, 0.08);
+    transform: translateY(-3px);
+    box-shadow: 0 16px 36px -6px rgba(13, 23, 43, 0.1);
+    border-color: rgba(7, 154, 112, 0.3);
 }
 
-/* Primary Button Styling */
+/* Primary Button Styling & Active Ripple Dynamics */
 .btn-agri-primary {
     background: linear-gradient(135deg, #079A70 0%, #159B7A 100%);
     color: #FFFFFF;
     box-shadow: 0 4px 14px rgba(7, 154, 112, 0.28);
-    transition: all 0.2s ease-in-out;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease, box-shadow 0.2s ease;
+    will-change: transform, box-shadow;
 }
 
 .btn-agri-primary:hover {
     background: linear-gradient(135deg, #006B50 0%, #079A70 100%);
-    box-shadow: 0 6px 20px rgba(7, 154, 112, 0.38);
-    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(7, 154, 112, 0.38);
+    transform: translateY(-2px);
 }
 
 .btn-agri-primary:active {
-    transform: translateY(0);
+    transform: translateY(0) scale(0.98);
 }
 
 .btn-agri-secondary {
     background: #DDF4EC;
     color: #006B50;
     border: 1px solid #A7F3D0;
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .btn-agri-secondary:hover {
     background: #C7EFE0;
     color: #004D3A;
+    transform: translateY(-1px);
 }
 
-/* Sidebar Active Nav Item */
+.btn-agri-secondary:active {
+    transform: translateY(0) scale(0.98);
+}
+
+/* Sidebar Nav Item Micro-Animations */
+.nav-link {
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-link:hover {
+    transform: translateX(4px);
+}
+
 .nav-item-active {
     background-color: #DDF4EC !important;
     color: #079A70 !important;
     font-weight: 700 !important;
     border-right: 4px solid #079A70;
+    transform: translateX(4px);
+    box-shadow: 0 2px 8px rgba(7, 154, 112, 0.12);
 }
 
 /* Badge Styling */
@@ -110,6 +129,7 @@ body {
     color: #079A70;
     border-radius: 9999px;
     font-weight: 700;
+    transition: all 0.2s ease;
 }
 
 /* Map Leaflet Container */
@@ -121,7 +141,7 @@ body {
     z-index: 10;
 }
 
-/* Drone Pulsing Status */
+/* Drone Pulsing Status & Live Beacon Keyframes */
 .pulse-emerald {
     box-shadow: 0 0 0 0 rgba(7, 154, 112, 0.7);
     animation: pulse-emerald-anim 1.8s infinite;
@@ -157,9 +177,75 @@ body {
     box-shadow: 0 0 0 3px rgba(7, 154, 112, 0.15);
 }
 
-/* Modal Overlay */
+/* Modal Overlay & Spring Keyframe Entrance */
 .modal-backdrop {
     background: rgba(13, 23, 43, 0.55);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
+    transition: opacity 0.25s ease;
+}
+
+/* ==================== VIEW TRANSITION ANIMATIONS ==================== */
+@keyframes viewEntrance {
+    0% {
+        opacity: 0;
+        transform: translateY(14px) scale(0.992);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.animate-view-entrance {
+    animation: viewEntrance 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    will-change: opacity, transform;
+}
+
+/* Staggered Card Grid Loading Delays */
+@keyframes cardStaggerIn {
+    0% {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stagger-card-1 { animation: cardStaggerIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.04s backwards; }
+.stagger-card-2 { animation: cardStaggerIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.08s backwards; }
+.stagger-card-3 { animation: cardStaggerIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.12s backwards; }
+.stagger-card-4 { animation: cardStaggerIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.16s backwards; }
+
+/* Scenario Flash & Glow Highlight */
+@keyframes scenarioFlashAnim {
+    0% {
+        box-shadow: 0 0 0 0 rgba(7, 154, 112, 0.6);
+        transform: scale(0.98);
+    }
+    50% {
+        box-shadow: 0 0 0 12px rgba(7, 154, 112, 0);
+        transform: scale(1.01);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(7, 154, 112, 0);
+        transform: scale(1);
+    }
+}
+
+.animate-scenario-active {
+    animation: scenarioFlashAnim 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Metric Counter Pop Animation */
+@keyframes metricPop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.06); color: #079A70; }
+    100% { transform: scale(1); }
+}
+
+.animate-metric-pop {
+    animation: metricPop 0.4s ease-out;
 }

@@ -299,10 +299,24 @@ const UI = {
             if (el) el.classList.add('hidden');
         });
 
-        // Show active page
+        // Show active page with smooth entrance keyframe animation & staggered cards
         const activePageId = 'page' + viewName.charAt(0).toUpperCase() + viewName.slice(1);
         const activeEl = document.getElementById(activePageId);
-        if (activeEl) activeEl.classList.remove('hidden');
+        if (activeEl) {
+            activeEl.classList.remove('hidden');
+            activeEl.classList.remove('animate-view-entrance');
+            void activeEl.offsetWidth; // Force reflow to re-trigger animation
+            activeEl.classList.add('animate-view-entrance');
+
+            // Apply staggered entrance animation to cards inside active view
+            const cards = activeEl.querySelectorAll('.card-agri');
+            cards.forEach((card, idx) => {
+                const staggerClass = `stagger-card-${(idx % 4) + 1}`;
+                card.classList.remove('stagger-card-1', 'stagger-card-2', 'stagger-card-3', 'stagger-card-4');
+                void card.offsetWidth;
+                card.classList.add(staggerClass);
+            });
+        }
 
         // Update sidebar active nav highlights
         document.querySelectorAll('.nav-link').forEach(link => {
