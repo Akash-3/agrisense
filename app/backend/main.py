@@ -66,7 +66,8 @@ app.add_middleware(
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+frontend_dir = os.path.abspath(os.path.join(BASE_DIR, "..", "frontend"))
 
 app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
 
@@ -75,7 +76,7 @@ async def serve_web_dashboard():
     index_path = os.path.join(frontend_dir, "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
-    return RedirectResponse(url="/docs")
+    return JSONResponse(status_code=404, content={"error": "index.html not found", "path": index_path})
 
 # MOUNT MODULAR ROUTERS
 app.include_router(auth.router)
