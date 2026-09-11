@@ -76,10 +76,13 @@ python -m esptool --port COM3 --baud 921600 write_flash 0x10000 esp32/build/mult
 
 ```
 agrisense/
-├── app/                  # FastAPI Backend Server, Models & Frontend Web Assets
+├── app/                  # Web Application & Backend API
 │   ├── backend/          # REST Endpoints, SQLite/Postgres DB Engine, Auth, & Telemetry
-│   ├── frontend/         # Responsive Tailwind UI, Leaflet Maps, & State Layer
+│   ├── frontend/         # Web Dashboard UI, Leaflet Maps, & State Layer
 │   └── run_app.py        # Main Application Server Entry Point
+├── mobile_app/           # Flutter Cross-Platform Mobile Application (Android/iOS)
+│   ├── lib/              # UI Screens, Widgets, Models, & Native Services
+│   └── pubspec.yaml      # Flutter Mobile Dependencies
 ├── esp32/                # Production ESP32 C++/Arduino Firmware & Pre-compiled Binaries
 │   ├── multi_sensor_esp32/  # Main ESP32 Sketch Folder
 │   └── build/            # Pre-compiled .bin Binaries for esptool Flashing

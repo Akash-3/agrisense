@@ -3,7 +3,7 @@ from database import sanitize_input
 
 def load_latest_app_version():
     try:
-        pubspec_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "seashark_dart_app", "pubspec.yaml"))
+        pubspec_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "mobile_app", "pubspec.yaml"))
         if os.path.exists(pubspec_path):
             with open(pubspec_path, "r", encoding="utf-8") as f:
                 for line in f:
@@ -18,7 +18,7 @@ def load_latest_app_version():
     return "1.7.8", 33
 
 def get_existing_apk_path():
-    project_apk = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "seashark_dart_app", "build", "app", "outputs", "flutter-apk", "app-debug.apk"))
+    project_apk = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "mobile_app", "build", "app", "outputs", "flutter-apk", "app-debug.apk"))
     ver_name, _ = load_latest_app_version()
     user_downloads = os.path.expanduser("~/Downloads")
     candidates = [
