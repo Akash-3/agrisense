@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision.models as tv_models
 
 class SpectralEncoder1D(nn.Module):
     """
@@ -17,7 +18,8 @@ class SpectralEncoder1D(nn.Module):
 
     def forward(self, x):
         # x: (B, 10) -> reshape to (B, 1, 10)
-        x = x.unsqueeze(1)
+        if x.dim() == 2:
+            x = x.unsqueeze(1)
         x = F.relu(self.bn1(self.conv1(x)))
         x = F.relu(self.bn2(self.conv2(x)))
         x = self.pool(x).squeeze(-1) # (B, 64)
@@ -26,27 +28,29 @@ class SpectralEncoder1D(nn.Module):
 
 class SpatialEncoder2D(nn.Module):
     """
-    Stream 2: 2D Convolutional Encoder for (3, 64, 64) RGB Crop Canopy Imagery
+    Stream 2: PyTorch MobileNetV3-Small Backbone for RGB Crop Canopy Imagery
+    Instantiates genuine MobileNetV3 architecture with AdaptiveAvgPool & FC projection head.
     """
     def __init__(self, in_channels=3, embed_dim=128):
         super().__init__()
-        self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=3, stride=2, padding=1)
-        self.bn1 = nn.BatchNorm2d(32)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1)
-        self.bn2 = nn.BatchNorm2d(64)
-        self.conv3 = nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1)
-        self.bn3 = nn.BatchNorm2d(128)
-        self.pool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(128, embed_dim)
+        try:
+            weights = tv_models.MobileNet_V3_Small_Weights.DEFAULT
+            self.backbone = tv_models.mobilenet_v3_small(weights=weights)
+        except Exception:
+            self.backbone = tv_models.mobilenet_v3_small(weights=None)
+
+        # Access last classifier layer in_features
+        in_features = self.backbone.classifier[0].in_features
+        self.backbone.classifier = nn.Sequential(
+            nn.Linear(in_features, 256),
+            nn.Hardswish(),
+            nn.Dropout(p=0.2, inplace=True),
+            nn.Linear(256, embed_dim)
+        )
 
     def forward(self, x):
-        # x: (B, 3, 64, 64)
-        x = F.relu(self.bn1(self.conv1(x)))
-        x = F.relu(self.bn2(self.conv2(x)))
-        x = F.relu(self.bn3(self.conv3(x)))
-        x = self.pool(x).squeeze(-1).squeeze(-1) # (B, 128)
-        out = self.fc(x)                         # (B, embed_dim)
-        return out
+        # x: (B, 3, H, W)
+        return self.backbone(x)
 
 class EnvironmentalEncoder(nn.Module):
     """
@@ -81,18 +85,14 @@ class CrossAttentionFusion(nn.Module):
 
     def forward(self, spec_emb, spat_emb, env_emb):
         # spec_emb: (B, 128), spat_emb: (B, 128), env_emb: (B, 64)
-        # Reshape for multi-head attention: (B, 1, 128)
         q = spat_emb.unsqueeze(1)
         k = spec_emb.unsqueeze(1)
         v = spec_emb.unsqueeze(1)
 
-        attn_out, attn_weights = self.cross_attn(q, k, v) # (B, 1, 128)
+        attn_out, attn_weights = self.cross_attn(q, k, v)
         attn_out = attn_out.squeeze(1)
-        
-        # Residual connection + norm
-        spatial_spectral_fused = self.layer_norm(spat_emb + attn_out)
 
-        # Concatenate with environmental features
+        spatial_spectral_fused = self.layer_norm(spat_emb + attn_out)
         concat_features = torch.cat([spatial_spectral_fused, env_emb], dim=-1) # (B, 192)
         fused_embedding = self.fusion_fc(concat_features)                      # (B, 128)
 
@@ -100,11 +100,8 @@ class CrossAttentionFusion(nn.Module):
 
 class MMSSNet(nn.Module):
     """
-    Multi-Modal Spectral-Spatial Network (MM-SSNet) for Agricultural Stress Classification & Severity Estimation.
-    Outputs:
-    - Condition Classification Logits (6 classes)
-    - Continuous Severity Score (0 to 100)
-    - Empirical Lead-Time Estimate (hours to symptomatic manifestation)
+    Multi-Modal Spectral-Spatial Network (MM-SSNet)
+    Backbone: MobileNetV3-Small (Spatial) + 1D Conv (Spectral) + MLP (Environmental)
     """
     def __init__(self, num_classes=6, embed_dim=128, env_dim=64):
         super().__init__()
@@ -113,7 +110,6 @@ class MMSSNet(nn.Module):
         self.env_stream = EnvironmentalEncoder(in_features=4, embed_dim=env_dim)
         self.fusion = CrossAttentionFusion(embed_dim=embed_dim, env_dim=env_dim)
 
-        # Multi-task heads
         self.class_head = nn.Linear(embed_dim, num_classes)
         self.severity_head = nn.Sequential(
             nn.Linear(embed_dim, 64),
@@ -136,7 +132,7 @@ class MMSSNet(nn.Module):
         fused_emb, attn_weights = self.fusion(spec_emb, spat_emb, env_emb)
 
         class_logits = self.class_head(fused_emb)
-        severity = self.severity_head(fused_emb) * 100.0 # Scale to 0-100
+        severity = self.severity_head(fused_emb) * 100.0
         lead_time = self.lead_time_head(fused_emb)
 
         return {

@@ -1,26 +1,60 @@
 import time
+import requests
+
+class RelayAdapter:
+    """
+    Abstract Hardware Relay Adapter Interface.
+    """
+    def send_relay_command(self, zone_id, state, duration_sec=0):
+        raise NotImplementedError
+
+class SimulationRelayAdapter(RelayAdapter):
+    """
+    Software simulation relay adapter for testing and SIL Digital Twin mode.
+    """
+    MODE = "SIMULATED_RELAY"
+
+    def send_relay_command(self, zone_id, state, duration_sec=0):
+        print(f"[SimulationRelayAdapter] Software relay state set to {state} for Zone '{zone_id}' ({duration_sec}s)")
+        return {"success": True, "relay_mode": self.MODE, "hardware_dispatched": False}
+
+class ESP32RelayAdapter(RelayAdapter):
+    """
+    Real ESP32 Hardware Relay Adapter sending REST/HTTP actuation commands over local IP.
+    """
+    MODE = "REAL_RELAY"
+
+    def __init__(self, esp32_ip="http://192.168.1.100"):
+        self.esp32_ip = esp32_ip
+
+    def send_relay_command(self, zone_id, state, duration_sec=0):
+        url = f"{self.esp32_ip}/api/actuator/relay"
+        try:
+            res = requests.post(url, json={"zone_id": zone_id, "state": state, "duration_sec": duration_sec}, timeout=3.0)
+            if res.status_code == 200:
+                return {"success": True, "relay_mode": self.MODE, "hardware_dispatched": True}
+        except Exception as e:
+            print(f"[ESP32RelayAdapter] Hardware REST dispatch error to {url}: {e}")
+        return {"success": False, "relay_mode": self.MODE, "hardware_dispatched": False, "error": "ESP32 hardware unreachable"}
+
 
 class IrrigationService:
     """
-    Closed-Loop Irrigation & Actuator Control Engine with Hardware Safety Limits.
-    Enforces:
-    - Maximum single actuation pulse duration (<= 300s)
-    - Cooldown period between activations (15 minutes = 900s)
-    - Emergency Stop Override
-    - Post-actuation soil moisture feedback verification
+    Closed-Loop Irrigation Engine with Hardware Safety Limits & Pluggable Relay Adapters.
     """
-    def __init__(self):
+    def __init__(self, adapter=None):
+        self.adapter = adapter or SimulationRelayAdapter()
         self.last_actuation_time = 0.0
         self.cooldown_period_sec = 900.0 # 15 minutes
         self.max_duration_sec = 300.0   # 5 minutes max
         self.emergency_stop_active = False
-        self.relay_state = "OFF"
+        self.software_relay_state = "OFF"
         self.actuation_history = []
 
+    def set_adapter(self, adapter):
+        self.adapter = adapter
+
     def trigger_actuator(self, zone_id, duration_sec=60, trigger_source="AI_CLOSED_LOOP"):
-        """
-        Triggers pump/valve relay actuation after validating safety constraints.
-        """
         current_time = time.time()
 
         if self.emergency_stop_active:
@@ -28,27 +62,28 @@ class IrrigationService:
                 "success": False,
                 "status": "BLOCKED_EMERGENCY_STOP",
                 "message": "Actuation rejected: Emergency Stop is ACTIVE.",
-                "relay_state": "OFF"
+                "relay_state": "OFF",
+                "relay_mode": self.adapter.MODE
             }
 
-        # Check duration cap
         if duration_sec > self.max_duration_sec:
             duration_sec = self.max_duration_sec
 
-        # Check cooldown timer
         time_since_last = current_time - self.last_actuation_time
         if self.last_actuation_time > 0 and time_since_last < self.cooldown_period_sec:
             remaining_cooldown = round(self.cooldown_period_sec - time_since_last, 1)
             return {
                 "success": False,
                 "status": "BLOCKED_COOLDOWN_ACTIVE",
-                "message": f"Actuation rejected: System in safety cooldown ({remaining_cooldown}s remaining).",
+                "message": f"Actuation rejected: Safety cooldown active ({remaining_cooldown}s remaining).",
                 "cooldown_remaining_sec": remaining_cooldown,
-                "relay_state": "OFF"
+                "relay_state": "OFF",
+                "relay_mode": self.adapter.MODE
             }
 
-        # Execute actuation pulse
-        self.relay_state = "ON"
+        # Dispatch through hardware adapter
+        dispatch_res = self.adapter.send_relay_command(zone_id, "ON", duration_sec)
+        self.software_relay_state = "ON"
         self.last_actuation_time = current_time
 
         record = {
@@ -56,37 +91,38 @@ class IrrigationService:
             "zone_id": zone_id,
             "duration_sec": duration_sec,
             "trigger_source": trigger_source,
-            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(current_time)),
-            "status": "COMPLETED"
+            "relay_mode": self.adapter.MODE,
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(current_time))
         }
         self.actuation_history.append(record)
 
         return {
             "success": True,
             "status": "ACTUATION_EXECUTED",
-            "message": f"Relay activated for Zone {zone_id} for {duration_sec} seconds.",
+            "message": f"Relay actuation command ({self.adapter.MODE}) sent for Zone {zone_id} ({duration_sec}s).",
             "duration_sec": duration_sec,
             "zone_id": zone_id,
             "relay_state": "ON",
-            "verification": "Post-actuation moisture sampling scheduled in +300s"
+            "relay_mode": self.adapter.MODE,
+            "hardware_dispatched": dispatch_res.get("hardware_dispatched", False)
         }
 
     def emergency_stop(self):
-        """
-        Activates emergency kill switch immediately cutting relay power.
-        """
         self.emergency_stop_active = True
-        self.relay_state = "OFF"
+        self.software_relay_state = "OFF"
+        self.adapter.send_relay_command("ALL_ZONES", "OFF", 0)
         return {
             "emergency_stop": True,
             "relay_state": "OFF",
-            "message": "EMERGENCY STOP ACTIVATED. All relays deactivated."
+            "relay_mode": self.adapter.MODE,
+            "message": "EMERGENCY STOP ACTIVATED. All relays powered OFF."
         }
 
     def reset_emergency_stop(self):
         self.emergency_stop_active = False
         return {
             "emergency_stop": False,
+            "relay_mode": self.adapter.MODE,
             "message": "Emergency stop cleared. Relays returned to normal operation."
         }
 
@@ -96,11 +132,11 @@ class IrrigationService:
         cooldown_rem = max(0.0, self.cooldown_period_sec - time_since_last) if in_cooldown else 0.0
 
         return {
-            "relay_state": self.relay_state,
+            "relay_state": self.software_relay_state,
+            "relay_mode": self.adapter.MODE,
             "emergency_stop_active": self.emergency_stop_active,
             "in_cooldown": in_cooldown,
             "cooldown_remaining_sec": round(cooldown_rem, 1),
-            "max_duration_sec": self.max_duration_sec,
             "actuation_count": len(self.actuation_history)
         }
 

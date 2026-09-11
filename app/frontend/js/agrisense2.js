@@ -1,29 +1,91 @@
 /**
  * AgriSense 2.0 Research Platform Frontend Controller
- * Connects frontend UI to PyTorch MM-SSNet, DBSCAN Spatial Clustering,
- * Grad-CAM XAI, MAVLink Mission Planner, Closed-Loop Actuators & SIL Digital Twin APIs.
+ * Connects frontend UI to PyTorch MM-SSNet (MobileNetV3), DBSCAN Spatial Clustering,
+ * PyTorch Grad-CAM XAI, MAVLink Mission Planner, Closed-Loop Relays & SIL Digital Twin APIs.
  */
 
 const AgriSense2 = {
+    operatingMode: "SIMULATION", // "REAL_HARDWARE" or "SIMULATION"
     activeScenario: "HEALTHY_FIELD",
-    actuatorCooldownTimer: null,
-    actuatorCooldownSec: 0,
+    wsConnection: null,
 
     init() {
         console.log("[AgriSense 2.0] Initializing Research Component Controller...");
         this.bindEvents();
-        this.fetchSILTelemetry();
+        this.setOperatingMode(this.operatingMode);
         this.fetchSpatialHotspots();
         this.fetchActuatorStatus();
     },
 
     bindEvents() {
-        // Dropdown scenario selector listener
         const scenarioSelect = document.getElementById('silScenarioSelect');
         if (scenarioSelect) {
             scenarioSelect.addEventListener('change', (e) => {
                 this.setSILScenario(e.target.value);
             });
+        }
+
+        const modeSelect = document.getElementById('v2OperatingModeSelect');
+        if (modeSelect) {
+            modeSelect.addEventListener('change', (e) => {
+                this.setOperatingMode(e.target.value);
+            });
+        }
+    },
+
+    setOperatingMode(mode) {
+        this.operatingMode = mode;
+        console.log(`[AgriSense 2.0] Operating Mode set to: ${mode}`);
+
+        const modeBadge = document.getElementById('v2OperatingModeBadge');
+        if (modeBadge) {
+            modeBadge.innerText = mode === "REAL_HARDWARE" ? "🔴 REAL HARDWARE PIPELINE" : "🧪 SIL SIMULATION MODE";
+            modeBadge.className = mode === "REAL_HARDWARE" ?
+                "px-3 py-1 rounded-full text-xs font-black bg-emerald-600 text-white animate-pulse" :
+                "px-3 py-1 rounded-full text-xs font-black bg-purple-600 text-white";
+        }
+
+        if (mode === "REAL_HARDWARE") {
+            this.connectRealHardwareWebSocket();
+        } else {
+            if (this.wsConnection) {
+                this.wsConnection.close();
+                this.wsConnection = null;
+            }
+            this.fetchSILTelemetry();
+        }
+
+        if (window.UI) window.UI.showToast(`Operating Mode switched to: ${mode}`, false);
+    },
+
+    connectRealHardwareWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/v1/telemetry`;
+
+        try {
+            this.wsConnection = new WebSocket(wsUrl);
+            this.wsConnection.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.telemetry) {
+                    const tel = {
+                        temperature: data.telemetry.temperature_c || 25.0,
+                        humidity: data.telemetry.humidity_pct || 60.0,
+                        soil_moisture: data.telemetry.soil_moisture_vwc || 50.0,
+                        smoke_ppm: data.telemetry.smoke_ppm || 80.0,
+                        spectral: [0.15, 0.18, 0.20, 0.35, 0.65, 0.40, 0.25, 0.15, 0.70, 0.90],
+                        scenario: "REAL_ESP32_TELEMETRY"
+                    };
+                    this.renderTelemetryUI(tel);
+                    if (data.ai_diagnosis) {
+                        this.renderAIResultsFromWebSocket(data.ai_diagnosis);
+                    }
+                }
+            };
+            this.wsConnection.onerror = (err) => {
+                console.error("[AgriSense 2.0] Hardware WebSocket error", err);
+            };
+        } catch (e) {
+            console.error("[AgriSense 2.0] Failed to open WebSocket connection", e);
         }
     },
 
@@ -37,8 +99,9 @@ const AgriSense2 = {
             const data = await res.json();
             if (data.status === 'SUCCESS') {
                 this.activeScenario = scenarioName;
-                if (window.UI) window.UI.showToast(`SIL Digital Twin Scenario set to: ${scenarioName}`, false);
-                this.fetchSILTelemetry();
+                if (this.operatingMode === "SIMULATION") {
+                    this.fetchSILTelemetry();
+                }
             }
         } catch (e) {
             console.error("[AgriSense 2.0] Failed to set SIL scenario", e);
@@ -72,9 +135,6 @@ const AgriSense2 = {
         if (elSmoke) elSmoke.innerText = `${tel.smoke_ppm.toFixed(1)} PPM`;
         if (elScenarioBadge) {
             elScenarioBadge.innerText = tel.scenario.replace(/_/g, ' ');
-            elScenarioBadge.className = tel.scenario === 'HEALTHY_FIELD' ?
-                'px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800' :
-                'px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-800 animate-pulse';
         }
     },
 
@@ -96,10 +156,30 @@ const AgriSense2 = {
             const data = await res.json();
             if (data.status === 'SUCCESS') {
                 this.renderAIResults(data);
-                this.fetchXAIExplanation(payload.spectral, data.fused_diagnosis.final_condition);
+                this.fetchXAIExplanation(payload.spectral);
             }
         } catch (e) {
             console.error("[AgriSense 2.0] MM-SSNet prediction error", e);
+        }
+    },
+
+    renderAIResultsFromWebSocket(diag) {
+        const badge = document.getElementById('mmssnetConditionBadge');
+        if (badge && diag.condition) {
+            badge.innerText = diag.condition.replace(/_/g, ' ');
+        }
+
+        const elConf = document.getElementById('mmssnetConfidenceVal');
+        const elSev = document.getElementById('mmssnetSeverityVal');
+        const elLead = document.getElementById('mmssnetLeadTimeVal');
+
+        if (elConf && diag.confidence) elConf.innerText = `${(diag.confidence * 100).toFixed(1)}%`;
+        if (elSev && diag.severity_score) elSev.innerText = `${diag.severity_score.toFixed(1)} / 100`;
+        if (elLead && diag.estimated_lead_time_hours) elLead.innerText = `${diag.estimated_lead_time_hours.toFixed(1)} Hours`;
+
+        const traceBox = document.getElementById('fusionReasoningTrace');
+        if (traceBox && diag.reasoning_trace) {
+            traceBox.innerHTML = diag.reasoning_trace.map(r => `<div class="flex items-center space-x-2 text-slate-700"><i class="fa-solid fa-circle-check text-emerald-500"></i><span>${r}</span></div>`).join('');
         }
     },
 
@@ -108,7 +188,6 @@ const AgriSense2 = {
         const fused = data.fused_diagnosis;
         const ood = data.anomaly_analysis;
 
-        // Render Condition Badge
         const badge = document.getElementById('mmssnetConditionBadge');
         if (badge) {
             badge.innerText = fused.final_condition.replace(/_/g, ' ');
@@ -122,7 +201,6 @@ const AgriSense2 = {
             badge.className = `px-4 py-1.5 rounded-full text-xs font-black border ${bgClass}`;
         }
 
-        // Render Metrics
         const elConf = document.getElementById('mmssnetConfidenceVal');
         const elSev = document.getElementById('mmssnetSeverityVal');
         const elLead = document.getElementById('mmssnetLeadTimeVal');
@@ -131,15 +209,19 @@ const AgriSense2 = {
         if (elConf) elConf.innerText = `${(fused.disambiguated_confidence * 100).toFixed(1)}%`;
         if (elSev) elSev.innerText = `${fused.severity_score.toFixed(1)} / 100`;
         if (elLead) elLead.innerText = `${pred.estimated_lead_time_hours.toFixed(1)} Hours`;
-        if (elOOD) elOOD.innerText = `${ood.mahalanobis_distance.toFixed(2)}`;
+        if (elOOD) {
+            if (ood.is_calibrated) {
+                elOOD.innerText = `${ood.mahalanobis_distance.toFixed(2)} (Thresh: ${ood.anomaly_threshold})`;
+            } else {
+                elOOD.innerText = "NOT CALIBRATED";
+            }
+        }
 
-        // Render Reasoning Trace
         const traceBox = document.getElementById('fusionReasoningTrace');
         if (traceBox && fused.reasoning_trace) {
             traceBox.innerHTML = fused.reasoning_trace.map(r => `<div class="flex items-center space-x-2 text-slate-700"><i class="fa-solid fa-circle-check text-emerald-500"></i><span>${r}</span></div>`).join('');
         }
 
-        // Render Probability Bars
         const probContainer = document.getElementById('softmaxProbBars');
         if (probContainer && pred.probabilities) {
             let html = '';
@@ -161,12 +243,12 @@ const AgriSense2 = {
         }
     },
 
-    async fetchXAIExplanation(spectral, condition) {
+    async fetchXAIExplanation(spectral) {
         try {
             const res = await fetch('/api/v2/ai/xai', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ spectral: spectral, condition: condition })
+                body: JSON.stringify({ spectral: spectral })
             });
             const data = await res.json();
             if (data.status === 'SUCCESS') {
@@ -197,7 +279,6 @@ const AgriSense2 = {
             bandList.innerHTML = html;
         }
 
-        // Draw Grad-CAM heatmap grid on HTML5 canvas
         const canvas = document.getElementById('gradcamCanvas');
         if (canvas && xai.gradcam_heatmap_grid) {
             const ctx = canvas.getContext('2d');
@@ -209,7 +290,6 @@ const AgriSense2 = {
             for (let r = 0; r < size; r++) {
                 for (let c = 0; c < size; c++) {
                     const val = grid[r][c];
-                    // Map val (0-1) to Red-Green heatmap
                     const red = Math.floor(val * 255);
                     const green = Math.floor((1 - val) * 180);
                     ctx.fillStyle = `rgba(${red}, ${green}, 40, ${val * 0.75})`;
@@ -221,7 +301,7 @@ const AgriSense2 = {
 
     async fetchSpatialHotspots() {
         try {
-            const res = await fetch('/api/v2/spatial/hotspots');
+            const res = await fetch('/api/v2/spatial/hotspots/simulation');
             const data = await res.json();
             if (data.status === 'SUCCESS' && data.spatial_clusters) {
                 const clusters = data.spatial_clusters;
@@ -229,7 +309,7 @@ const AgriSense2 = {
                 const elCount = document.getElementById('v2HotspotCountVal');
                 const list = document.getElementById('dbscanHotspotList');
 
-                if (elArea) elArea.innerText = `${clusters.total_affected_area_m2} m²`;
+                if (elArea) elArea.innerText = `${clusters.estimated_bounding_area_m2} m²`;
                 if (elCount) elCount.innerText = `${clusters.total_hotspots} Clusters`;
 
                 if (list && clusters.hotspots) {
@@ -240,7 +320,7 @@ const AgriSense2 = {
                                 <div class="text-slate-500">Centroid: (${hs.centroid.lat}, ${hs.centroid.lng})</div>
                             </div>
                             <div class="text-right space-y-1">
-                                <span class="px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800">${hs.area_m2} m²</span>
+                                <span class="px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800">${hs.estimated_bounding_area_m2} m²</span>
                                 <div><button onclick="AgriSense2.planTargetedRevisit('${hs.hotspot_id}', ${hs.centroid.lat}, ${hs.centroid.lng})" class="text-[10px] font-bold text-agri-primary hover:underline">Target UAV Revisit</button></div>
                             </div>
                         </div>
@@ -254,17 +334,21 @@ const AgriSense2 = {
 
     async generateLawnmowerMission() {
         try {
+            const bounds = [
+                { lat: 28.6135, lng: 77.2085 },
+                { lat: 28.6145, lng: 77.2085 },
+                { lat: 28.6145, lng: 77.2095 },
+                { lat: 28.6135, lng: 77.2095 }
+            ];
             const res = await fetch('/api/v2/uav/mission/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ altitude_m: 15.0, spacing_m: 10.0 })
+                body: JSON.stringify({ boundary_coords: bounds, altitude_m: 15.0, spacing_m: 10.0 })
             });
             const data = await res.json();
             if (data.status === 'SUCCESS' && data.uav_mission) {
                 const m = data.uav_mission;
-                if (window.UI) window.UI.showToast(`✈️ Lawnmower Mission Planned: ${m.waypoint_count} MAVLink Waypoints (${m.estimated_duration_minutes} min)`, false);
-                const elWay = document.getElementById('uavWaypointCount');
-                if (elWay) elWay.innerText = `${m.waypoint_count} Waypoints (${m.estimated_distance_km} km)`;
+                if (window.UI) window.UI.showToast(`✈️ ${m.execution_mode}: ${m.waypoint_count} Waypoints (${m.estimated_duration_minutes} min)`, false);
             }
         } catch (e) {
             console.error("[AgriSense 2.0] Lawnmower mission error", e);
@@ -281,7 +365,7 @@ const AgriSense2 = {
             const data = await res.json();
             if (data.status === 'SUCCESS' && data.revisit_mission) {
                 const r = data.revisit_mission;
-                if (window.UI) window.UI.showToast(`🎯 Targeted UAV Revisit Scheduled for Hotspot ${hotspotId} (Altitude: 6m)`, false);
+                if (window.UI) window.UI.showToast(`🎯 Targeted UAV Revisit Scheduled for Hotspot ${hotspotId} (${r.execution_mode})`, false);
             }
         } catch (e) {
             console.error("[AgriSense 2.0] Targeted revisit error", e);
@@ -323,19 +407,6 @@ const AgriSense2 = {
         }
     },
 
-    async resetEmergencyStop() {
-        try {
-            const res = await fetch('/api/v2/actuators/reset-emergency-stop', { method: 'POST' });
-            const data = await res.json();
-            if (data.status === 'SUCCESS') {
-                if (window.UI) window.UI.showToast('✅ Emergency Stop Cleared.', false);
-                this.fetchActuatorStatus();
-            }
-        } catch (e) {
-            console.error("[AgriSense 2.0] Reset emergency stop error", e);
-        }
-    },
-
     async fetchActuatorStatus() {
         try {
             const res = await fetch('/api/v2/actuators/status');
@@ -346,7 +417,7 @@ const AgriSense2 = {
                 const elCooldown = document.getElementById('actuatorCooldownBadge');
 
                 if (elState) {
-                    elState.innerText = st.relay_state;
+                    elState.innerText = `${st.relay_state} (${st.relay_mode})`;
                     elState.className = st.relay_state === 'ON' ?
                         'px-3 py-1 rounded-full text-xs font-black bg-emerald-500 text-white animate-pulse' :
                         'px-3 py-1 rounded-full text-xs font-black bg-slate-200 text-slate-800';
@@ -355,10 +426,10 @@ const AgriSense2 = {
                 if (elCooldown) {
                     if (st.in_cooldown) {
                         elCooldown.innerText = `Cooldown (${st.cooldown_remaining_sec}s)`;
-                        elCooldown.className = 'px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800';
+                        elCooldown.className = 'px-3 py-1 rounded-lg text-[10px] font-bold bg-amber-100 text-amber-800';
                     } else {
                         elCooldown.innerText = 'Ready (No Cooldown)';
-                        elCooldown.className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800';
+                        elCooldown.className = 'px-3 py-1 rounded-lg text-[10px] font-bold bg-emerald-100 text-emerald-800';
                     }
                 }
             }

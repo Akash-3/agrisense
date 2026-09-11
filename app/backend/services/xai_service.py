@@ -1,17 +1,103 @@
+import torch
+import torch.nn.functional as F
 import numpy as np
+from app.backend.services.ai_service import ai_service
 
 class XAIService:
     """
-    Explainable AI (XAI) Attribution Engine.
-    Provides:
-    - Grad-CAM Heatmap overlay generation for RGB Canopy Spatial Input
-    - AS7341 Spectral Band Importance Attribution Scores
+    Explainable AI (XAI) Engine using PyTorch Grad-CAM & Input x Gradient attributions.
+    NO FIXED GAUSSIAN HEATMAPS OR HARDCODED WEIGHTS ARE USED.
     """
 
-    def generate_xai_explanation(self, spectral_data, condition_name="WATER_STRESS"):
+    def generate_xai_explanation(self, spectral_data, spatial_img=None, target_class_id=None):
         """
-        Generates 10-band spectral channel importance scores and 64x64 Grad-CAM heatmap array.
+        Generates real Grad-CAM heatmap matrix and Input x Gradient spectral band attributions.
+        - spectral_data: list of 10 AS7341 band values
+        - spatial_img: optional (3, 64, 64) numpy array or None
         """
+        model = ai_service.model
+        device = ai_service.device
+        model.eval()
+
+        spec_arr = np.array(spectral_data if len(spectral_data) == 10 else [0.2]*10, dtype=np.float32)
+        spec_tensor = torch.tensor([spec_arr], dtype=torch.float32, device=device).requires_grad_(True)
+
+        if spatial_img is None:
+            spat_arr = np.zeros((3, 64, 64), dtype=np.float32)
+            spat_arr[0] = 0.15
+            spat_arr[1] = 0.70
+            spat_arr[2] = 0.15
+        else:
+            spat_arr = np.array(spatial_img, dtype=np.float32)
+            if spat_arr.ndim == 3 and spat_arr.shape[0] != 3:
+                spat_arr = spat_arr.transpose(2, 0, 1)
+
+        spat_tensor = torch.tensor([spat_arr], dtype=torch.float32, device=device).requires_grad_(True)
+        env_tensor = torch.tensor([[0.5, 0.6, 0.5, 0.2]], dtype=torch.float32, device=device)
+
+        # ---------------- 1. REAL GRAD-CAM FOR MOBILENETV3 ----------------
+        activations = []
+        gradients = []
+
+        def forward_hook(module, input, output):
+            activations.append(output)
+
+        def backward_hook(module, grad_in, grad_out):
+            gradients.append(grad_out[0])
+
+        target_layer = model.spatial_stream.backbone.features[-1]
+        h_fw = target_layer.register_forward_hook(forward_hook)
+        h_bw = target_layer.register_full_backward_hook(backward_hook)
+
+        model.zero_grad()
+        out = model(spec_tensor, spat_tensor, env_tensor)
+        logits = out["class_logits"][0]
+
+        if target_class_id is None:
+            target_class_id = int(torch.argmax(logits).item())
+
+        target_score = logits[target_class_id]
+
+        # Compute spectral gradients using autograd.grad
+        spec_grads = torch.autograd.grad(target_score, spec_tensor, retain_graph=True, allow_unused=True)[0]
+        
+        target_score.backward(retain_graph=True)
+
+        h_fw.remove()
+        h_bw.remove()
+
+        if activations and gradients:
+            act = activations[0].detach()
+            grad = gradients[0].detach()
+
+            weights = torch.mean(grad, dim=(2, 3), keepdim=True)
+            cam = torch.sum(weights * act, dim=1, keepdim=True)
+            cam = F.relu(cam)
+
+            cam_resized = F.interpolate(cam, size=(64, 64), mode="bilinear", align_corners=False)
+            cam_arr = cam_resized[0, 0].cpu().numpy()
+            
+            c_min, c_max = cam_arr.min(), cam_arr.max()
+            if c_max > c_min:
+                heatmap_normalized = (cam_arr - c_min) / (c_max - c_min)
+            else:
+                heatmap_normalized = np.zeros((64, 64), dtype=np.float32)
+        else:
+            heatmap_normalized = np.zeros((64, 64), dtype=np.float32)
+
+        # ---------------- 2. REAL INPUT x GRADIENT SPECTRAL ATTRIBUTION ----------------
+        if spec_grads is not None:
+            spec_g = spec_grads[0].cpu().numpy()
+        else:
+            spec_g = np.zeros(10)
+
+        attr_scores = np.abs(spec_arr * spec_g)
+        total_attr = attr_scores.sum()
+        if total_attr > 0:
+            importance_pcts = (attr_scores / total_attr) * 100.0
+        else:
+            importance_pcts = np.full(10, 10.0)
+
         wavelengths = [
             {"band": "F1 (415nm - Violet)", "nm": 415},
             {"band": "F2 (445nm - Blue)", "nm": 445},
@@ -25,49 +111,24 @@ class XAIService:
             {"band": "NIR (850nm - Near Infrared)", "nm": 850}
         ]
 
-        # Calculate empirical feature attribution weights per band based on condition
         band_importance = []
-        spec_arr = np.array(spectral_data if len(spectral_data) == 10 else [0.2]*10, dtype=float)
-
         for idx, item in enumerate(wavelengths):
-            val = spec_arr[idx]
-            nm = item["nm"]
-
-            if nm == 850: # NIR is highly weighted for canopy vigor/water stress
-                weight = 0.28 if condition_name in ["WATER_STRESS", "SEVERE_STRESS", "PRE_SYMPTOMATIC_STRESS"] else 0.15
-            elif nm == 730: # Red-edge is critical for early pre-symptomatic stress
-                weight = 0.25 if condition_name == "PRE_SYMPTOMATIC_STRESS" else 0.14
-            elif nm == 680: # Red absorption for Chlorophyll
-                weight = 0.18 if condition_name == "DISEASE" else 0.10
-            elif nm == 555: # Green reflectance peak
-                weight = 0.15
-            else:
-                weight = 0.05
-
             band_importance.append({
                 "band_name": item["band"],
-                "wavelength_nm": nm,
-                "reflectance_value": round(float(val), 4),
-                "attribution_weight": round(float(weight), 4),
-                "importance_pct": round(float(weight * 100.0), 1)
+                "wavelength_nm": item["nm"],
+                "reflectance_value": round(float(spec_arr[idx]), 4),
+                "attribution_weight": round(float(attr_scores[idx]), 6),
+                "importance_pct": round(float(importance_pcts[idx]), 1)
             })
 
-        # Generate synthetic 64x64 Grad-CAM activation heatmap grid centered on stress regions
-        grid_size = 64
-        y, x = np.ogrid[:grid_size, :grid_size]
-        center_y, center_x = 32, 32
-
-        # Create radial Gaussian activation spot
-        dist_from_center = np.sqrt((x - center_x)**2 + (y - center_y)**2)
-        heatmap = np.exp(-dist_from_center**2 / (2 * 12.0**2))
-        heatmap = np.clip(heatmap, 0.0, 1.0)
-        heatmap_list = heatmap.round(3).tolist()
+        top_band = max(band_importance, key=lambda x: x["importance_pct"])["band_name"]
 
         return {
             "spectral_band_importance": band_importance,
-            "gradcam_heatmap_grid": heatmap_list,
-            "top_attributing_band": "NIR (850nm)" if condition_name != "PRE_SYMPTOMATIC_STRESS" else "Clear (730nm - Red Edge)",
-            "xai_method": "Integrated Gradients + Grad-CAM (Target Layer: Conv2D_3)"
+            "gradcam_heatmap_grid": heatmap_normalized.round(3).tolist(),
+            "top_attributing_band": top_band,
+            "xai_method": "PyTorch Grad-CAM (MobileNetV3 Features[-1]) + Input × Gradient",
+            "target_class_id": target_class_id
         }
 
 xai_service = XAIService()

@@ -2,40 +2,23 @@ import math
 
 class MissionService:
     """
-    Autonomous UAV Mission Planner with MAVLink / ArduPilot Hardware Abstraction Layer.
+    Autonomous UAV Mission Planner.
     Modes:
-    - SIMULATION: Software-In-The-Loop flight path simulation
-    - REAL_HARDWARE: Serial/UDP MAVLink communication with Pixhawk / ArduPilot FCU
+    - MISSION_SIMULATION: Generates waypoint objects for software simulation & UI display.
+    - REAL_MAVLINK: Hardware serial/UDP connection to Pixhawk / ArduPilot FCU (requires pymavlink transport).
     """
 
-    def __init__(self, mode="SIMULATION"):
+    def __init__(self, mode="MISSION_SIMULATION"):
         self.mode = mode
-        self.active_mission = None
-        self.uav_status = {
-            "mode": mode,
-            "connected": True,
-            "armed": False,
-            "altitude_m": 0.0,
-            "battery_pct": 94.5,
-            "gps_fix": "3D_FIX",
-            "satellites": 14,
-            "latitude": 28.6139,
-            "longitude": 77.2090
-        }
+        self.mavlink_transport_active = False # Set to True only when PyMAVLink serial port is open
 
     def generate_lawnmower_pattern(self, boundary_coords, altitude_m=15.0, spacing_m=10.0):
         """
         Generates Lawnmower grid flight path over field boundary points.
-        - boundary_coords: list of dicts [{'lat': float, 'lng': float}]
+        Raises ValueError if boundary_coords is empty or missing.
         """
         if not boundary_coords or len(boundary_coords) < 3:
-            # Default boundary box near Delhi farm
-            boundary_coords = [
-                {"lat": 28.6135, "lng": 77.2085},
-                {"lat": 28.6145, "lng": 77.2085},
-                {"lat": 28.6145, "lng": 77.2095},
-                {"lat": 28.6135, "lng": 77.2095}
-            ]
+            raise ValueError("[MissionService] Field boundary coordinates are required for mission generation (minimum 3 GPS polygon vertices).")
 
         lats = [pt["lat"] for pt in boundary_coords]
         lngs = [pt["lng"] for pt in boundary_coords]
@@ -43,7 +26,6 @@ class MissionService:
         min_lng, max_lng = min(lngs), max(lngs)
 
         waypoints = []
-        # Takeoff waypoint
         waypoints.append({
             "seq": 0,
             "command": "NAV_TAKEOFF",
@@ -53,7 +35,6 @@ class MissionService:
             "action": "TAKEOFF"
         })
 
-        # Lawnmower parallel sweeps
         step_lat = (spacing_m / 111000.0)
         curr_lat = min_lat
         direction = 1
@@ -86,7 +67,6 @@ class MissionService:
             curr_lat += step_lat
             direction *= -1
 
-        # Return to Launch (RTL)
         waypoints.append({
             "seq": seq,
             "command": "NAV_RETURN_TO_LAUNCH",
@@ -97,43 +77,46 @@ class MissionService:
         })
 
         total_dist_km = (seq * spacing_m) / 1000.0
-        est_flight_time_min = round((total_dist_km / 0.3), 1) # ~5 m/s sweep speed
+        est_flight_time_min = round((total_dist_km / 0.3), 1)
 
-        self.active_mission = {
+        mission_status = "REAL_MAVLINK_HARDWARE" if self.mavlink_transport_active else "SIMULATED_WAYPOINTS"
+
+        return {
             "mission_id": "MISSION-GRID-01",
             "type": "LAWNMOWER_SURVEY",
+            "execution_mode": mission_status,
+            "mavlink_connection_status": "CONNECTED" if self.mavlink_transport_active else "NOT_CONNECTED (SIMULATION)",
             "altitude_m": altitude_m,
             "waypoint_count": len(waypoints),
             "waypoints": waypoints,
             "estimated_distance_km": round(total_dist_km, 2),
-            "estimated_duration_minutes": est_flight_time_min,
-            "mavlink_protocol": "MAVLink 2.0 / ArduPilot"
+            "estimated_duration_minutes": est_flight_time_min
         }
-
-        return self.active_mission
 
     def plan_targeted_revisit(self, hotspot_data, hover_time_sec=10):
         """
         Creates AI-driven targeted revisit mission for high-severity DBSCAN hotspots.
         """
+        centroid = hotspot_data.get("centroid")
+        if not centroid or "lat" not in centroid or "lng" not in centroid:
+            raise ValueError("[MissionService] Hotspot centroid coordinates (lat, lng) are required.")
+
         waypoints = []
         waypoints.append({
             "seq": 0,
             "command": "NAV_TAKEOFF",
-            "lat": hotspot_data.get("centroid", {}).get("lat", 28.6139),
-            "lng": hotspot_data.get("centroid", {}).get("lng", 77.2090),
+            "lat": centroid["lat"],
+            "lng": centroid["lng"],
             "alt_m": 8.0,
             "action": "TAKEOFF_REVISIT"
         })
-
-        centroid = hotspot_data.get("centroid", {"lat": 28.6139, "lng": 77.2090})
 
         waypoints.append({
             "seq": 1,
             "command": "NAV_LOITER_UNLIM",
             "lat": centroid["lat"],
             "lng": centroid["lng"],
-            "alt_m": 6.0, # Low-altitude close inspection
+            "alt_m": 6.0,
             "hover_seconds": hover_time_sec,
             "action": "SPECTRAL_MULTISPECTRAL_CAPTURE"
         })
@@ -147,17 +130,16 @@ class MissionService:
             "action": "RTL"
         })
 
-        revisit_mission = {
+        return {
             "mission_id": f"REVISIT-{hotspot_data.get('hotspot_id', 'HS-01')}",
             "type": "TARGETED_AI_REVISIT",
+            "execution_mode": "SIMULATED_WAYPOINTS",
+            "mavlink_connection_status": "NOT_CONNECTED (SIMULATION)",
             "target_hotspot": hotspot_data.get("hotspot_id", "HS-01"),
             "target_centroid": centroid,
             "altitude_m": 6.0,
             "hover_duration_sec": hover_time_sec,
-            "waypoints": waypoints,
-            "mavlink_protocol": "MAVLink 2.0 / ArduPilot"
+            "waypoints": waypoints
         }
-
-        return revisit_mission
 
 mission_service = MissionService()

@@ -457,8 +457,12 @@
                                     <p class="text-xs text-slate-500">PyTorch MM-SSNet • DBSCAN Spatial Clustering • Grad-CAM XAI • MAVLink Lawnmower UAV • Closed-Loop Relays</p>
                                 </div>
                             </div>
-                            <div class="flex items-center space-x-2">
-                                <span class="text-xs font-bold text-slate-400">SIL Digital Twin Scenario:</span>
+                            <div class="flex flex-wrap items-center gap-3">
+                                <div id="v2OperatingModeBadge" class="px-3 py-1 rounded-full text-xs font-black bg-purple-600 text-white">🧪 SIL SIMULATION MODE</div>
+                                <select id="v2OperatingModeSelect" class="bg-slate-100 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-agri-primary">
+                                    <option value="SIMULATION">🧪 SIMULATION Mode (Digital Twin)</option>
+                                    <option value="REAL_HARDWARE">🔴 REAL_HARDWARE Mode (ESP32 Ingest)</option>
+                                </select>
                                 <select id="silScenarioSelect" class="bg-slate-100 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-agri-primary">
                                     <option value="HEALTHY_FIELD">Healthy Field Baseline</option>
                                     <option value="WATER_STRESS_EPISODE">Soil Water Deficit Episode</option>

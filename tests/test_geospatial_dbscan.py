@@ -14,7 +14,7 @@ class TestGeospatialDBSCAN(unittest.TestCase):
 
         self.assertIn("hotspots", res)
         self.assertGreater(res["total_hotspots"], 0)
-        self.assertGreater(res["total_affected_area_m2"], 0.0)
+        self.assertGreater(res["estimated_bounding_area_m2"], 0.0)
 
 if __name__ == "__main__":
     unittest.main()
