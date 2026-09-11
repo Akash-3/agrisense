@@ -1,6 +1,14 @@
+import os
+import sys
 import unittest
+
+# Ensure app/backend directory is in sys.path for backend dependencies
+BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app", "backend"))
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
+
 from fastapi.testclient import TestClient
-from app.backend.main import app
+from main import app
 
 class TestTelemetryPipelineIngest(unittest.TestCase):
     def setUp(self):
