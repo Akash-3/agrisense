@@ -1,0 +1,24 @@
+# AgriSense 2.0 Synthetic Data Generator Configuration
+# Explicitly designated for SIL simulation, pipeline integration, and development testing ONLY.
+# real_world_validation is strictly false.
+
+dataset_type: "synthetic_development"
+real_world_validation: false
+
+generator:
+  num_samples: 1800
+  random_seed: 42
+  class_balance: "equal"
+  spectral_noise_std: 0.03
+  environment_noise_std: 0.05
+  image_noise_std: 0.05
+  class_overlap_probability: 0.15
+  missing_modality_probability: 0.10
+
+classes:
+  0: HEALTHY
+  1: PRE_SYMPTOMATIC_STRESS
+  2: WATER_STRESS
+  3: DISEASE
+  4: SEVERE_STRESS
+  5: UNKNOWN_ANOMALY

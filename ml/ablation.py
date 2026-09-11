@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, mean_squared_error, mean_absolute_error
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, mean_squared_error, mean_absolute_error, confusion_matrix
 
 from ml.dataset import get_dataloaders
 from ml.model import MMSSNet
@@ -31,7 +31,7 @@ def train_and_evaluate_variant(variant_cfg, train_loader, val_loader, epochs=3, 
         model.train()
         for batch in train_loader:
             spec = batch["spectral"].to(device) if use_spec else torch.zeros_like(batch["spectral"]).to(device)
-            spat = batch["spatial"].to(device) if use_spat else torch.zeros_like(batch["spatial"]).to(device)
+            spat = batch["spatial"].to(device) if use_spat else None
             env = batch["env"].to(device) if use_env else torch.zeros_like(batch["env"]).to(device)
 
             target_cls = batch["label"].to(device)
@@ -54,12 +54,12 @@ def train_and_evaluate_variant(variant_cfg, train_loader, val_loader, epochs=3, 
     all_preds, all_targets = [], []
     all_sev_preds, all_sev_targets = [], []
     all_lead_preds, all_lead_targets = [], []
-    dataset_type_label = "SYNTHETIC_DEVELOPMENT_DATASET"
+    dataset_type_label = "synthetic_development"
 
     with torch.no_grad():
         for batch in val_loader:
             spec = batch["spectral"].to(device) if use_spec else torch.zeros_like(batch["spectral"]).to(device)
-            spat = batch["spatial"].to(device) if use_spat else torch.zeros_like(batch["spatial"]).to(device)
+            spat = batch["spatial"].to(device) if use_spat else None
             env = batch["env"].to(device) if use_env else torch.zeros_like(batch["env"]).to(device)
 
             target_cls = batch["label"].to(device)
@@ -83,7 +83,10 @@ def train_and_evaluate_variant(variant_cfg, train_loader, val_loader, epochs=3, 
     acc = float(accuracy_score(all_targets, all_preds) * 100.0)
     prec = float(precision_score(all_targets, all_preds, average="macro", zero_division=0))
     rec = float(recall_score(all_targets, all_preds, average="macro", zero_division=0))
-    f1 = float(f1_score(all_targets, all_preds, average="macro", zero_division=0))
+    f1_macro = float(f1_score(all_targets, all_preds, average="macro", zero_division=0))
+    f1_weighted = float(f1_score(all_targets, all_preds, average="weighted", zero_division=0))
+
+    cm = confusion_matrix(all_targets, all_preds).tolist()
 
     sev_rmse = float(np.sqrt(mean_squared_error(all_sev_targets, all_sev_preds)))
     lead_mae = float(mean_absolute_error(all_lead_targets, all_lead_preds))
@@ -92,50 +95,63 @@ def train_and_evaluate_variant(variant_cfg, train_loader, val_loader, epochs=3, 
         "accuracy_pct": round(acc, 2),
         "precision_macro": round(prec, 4),
         "recall_macro": round(rec, 4),
-        "f1_score": round(f1, 4),
+        "f1_score_macro": round(f1_macro, 4),
+        "f1_score_weighted": round(f1_weighted, 4),
+        "confusion_matrix": cm,
         "severity_rmse": round(sev_rmse, 4),
         "lead_time_mae_hours": round(lead_mae, 4),
         "evaluation_dataset": dataset_type_label,
-        "is_synthetic_evaluation": dataset_type_label == "SYNTHETIC_DEVELOPMENT_DATASET",
+        "synthetic_development": True,
+        "real_world_validation": False,
         "spectral_stream": use_spec,
         "spatial_stream": use_spat,
         "env_stream": use_env
     }
 
 
-def run_ablation_study(epochs_per_variant=3, dataset_type="SYNTHETIC_DEVELOPMENT_DATASET", manifest_path=None):
+def run_ablation_study(epochs_per_variant=3, dataset_type="synthetic_development", manifest_path=None):
     """
-    Executes dynamic ablation benchmark comparison across modality combinations.
+    Executes dynamic ablation benchmark comparison across all 7 modality combinations.
     NO METRICS ARE HARDCODED. All values are calculated from PyTorch model forward passes and ground truth targets.
     """
     os.makedirs(RESULTS_DIR, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"=== Starting AgriSense 2.0 Dynamic Ablation Study ({dataset_type}) ===")
+    print(f"=== Starting AgriSense 2.0 Dynamic 7-Variant Ablation Study ({dataset_type}) ===")
 
     train_loader, val_loader = get_dataloaders(data_manifest=manifest_path, dataset_type=dataset_type, batch_size=32)
 
     ablation_configs = [
-        {"name": "RGB Spatial Stream Only", "use_spec": False, "use_spat": True, "use_env": False},
-        {"name": "Spectral Stream Only (AS7341)", "use_spec": True, "use_spat": False, "use_env": False},
-        {"name": "Environmental Telemetry Only", "use_spec": False, "use_spat": False, "use_env": True},
-        {"name": "Dual-Modal (Spectral + Spatial)", "use_spec": True, "use_spat": True, "use_env": False},
-        {"name": "Tri-Modal MM-SSNet (Proposed)", "use_spec": True, "use_spat": True, "use_env": True}
+        {"name": "Variant A: Spatial RGB Only", "use_spec": False, "use_spat": True, "use_env": False},
+        {"name": "Variant B: Spectral 1D Conv Only", "use_spec": True, "use_spat": False, "use_env": False},
+        {"name": "Variant C: Environmental MLP Only", "use_spec": False, "use_spat": False, "use_env": True},
+        {"name": "Variant D: Spatial RGB + Spectral 1D", "use_spec": True, "use_spat": True, "use_env": False},
+        {"name": "Variant E: Spatial RGB + Environmental", "use_spec": False, "use_spat": True, "use_env": True},
+        {"name": "Variant F: Spectral 1D + Environmental", "use_spec": True, "use_spat": False, "use_env": True},
+        {"name": "Variant G: Tri-Modal MM-SSNet (Proposed)", "use_spec": True, "use_spat": True, "use_env": True}
     ]
 
-    results = {}
+    results = {
+        "metadata": {
+            "num_variants": 7,
+            "dataset_type": "synthetic_development",
+            "real_world_validation": False,
+            "epochs_per_variant": epochs_per_variant
+        },
+        "variants": {}
+    }
 
     for cfg in ablation_configs:
         name = cfg["name"]
-        print(f"Training & Evaluating Variant: {name}...")
+        print(f"Training & Evaluating {name}...")
         metrics = train_and_evaluate_variant(cfg, train_loader, val_loader, epochs=epochs_per_variant, device=device)
-        results[name] = metrics
-        print(f"  -> {name} Calculated Acc: {metrics['accuracy_pct']}% | F1: {metrics['f1_score']} | Dataset: {metrics['evaluation_dataset']}")
+        results["variants"][name] = metrics
+        print(f"  -> {name} Acc: {metrics['accuracy_pct']}% | Macro F1: {metrics['f1_score_macro']} | Dataset: {metrics['evaluation_dataset']}")
 
     report_path = os.path.join(RESULTS_DIR, "ablation_report.json")
     with open(report_path, "w") as f:
         json.dump(results, f, indent=2)
 
-    print(f"=== Ablation Benchmark Completed! Dynamic results saved to {report_path} ===")
+    print(f"=== 7-Variant Ablation Benchmark Completed! Dynamic results saved to {report_path} ===")
     return results
 
 if __name__ == "__main__":

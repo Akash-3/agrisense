@@ -26,6 +26,7 @@ class SpectralEncoder1D(nn.Module):
         out = self.fc(x)             # (B, embed_dim)
         return out
 
+
 class SpatialEncoder2D(nn.Module):
     """
     Stream 2: PyTorch MobileNetV3-Small Backbone for RGB Crop Canopy Imagery
@@ -39,7 +40,6 @@ class SpatialEncoder2D(nn.Module):
         except Exception:
             self.backbone = tv_models.mobilenet_v3_small(weights=None)
 
-        # Access last classifier layer in_features
         in_features = self.backbone.classifier[0].in_features
         self.backbone.classifier = nn.Sequential(
             nn.Linear(in_features, 256),
@@ -51,6 +51,7 @@ class SpatialEncoder2D(nn.Module):
     def forward(self, x):
         # x: (B, 3, H, W)
         return self.backbone(x)
+
 
 class EnvironmentalEncoder(nn.Module):
     """
@@ -69,9 +70,11 @@ class EnvironmentalEncoder(nn.Module):
     def forward(self, x):
         return self.mlp(x)
 
+
 class CrossAttentionFusion(nn.Module):
     """
     Spectral-Spatial Cross-Attention + Environmental Concatenation Layer
+    Handles missing spatial/spectral streams seamlessly.
     """
     def __init__(self, embed_dim=128, env_dim=64, num_heads=4):
         super().__init__()
@@ -83,28 +86,36 @@ class CrossAttentionFusion(nn.Module):
             nn.Dropout(0.2)
         )
 
-    def forward(self, spec_emb, spat_emb, env_emb):
+    def forward(self, spec_emb, spat_emb, env_emb, spat_available=True):
         # spec_emb: (B, 128), spat_emb: (B, 128), env_emb: (B, 64)
-        q = spat_emb.unsqueeze(1)
-        k = spec_emb.unsqueeze(1)
-        v = spec_emb.unsqueeze(1)
+        if spat_available and spat_emb is not None:
+            q = spat_emb.unsqueeze(1)
+            k = spec_emb.unsqueeze(1)
+            v = spec_emb.unsqueeze(1)
 
-        attn_out, attn_weights = self.cross_attn(q, k, v)
-        attn_out = attn_out.squeeze(1)
+            attn_out, attn_weights = self.cross_attn(q, k, v)
+            attn_out = attn_out.squeeze(1)
+            spatial_spectral_fused = self.layer_norm(spat_emb + attn_out)
+        else:
+            # Missing spatial stream fallback: use spectral embedding directly
+            spatial_spectral_fused = spec_emb
+            attn_weights = torch.zeros((spec_emb.size(0), 1, 1), device=spec_emb.device)
 
-        spatial_spectral_fused = self.layer_norm(spat_emb + attn_out)
         concat_features = torch.cat([spatial_spectral_fused, env_emb], dim=-1) # (B, 192)
         fused_embedding = self.fusion_fc(concat_features)                      # (B, 128)
 
         return fused_embedding, attn_weights
 
+
 class MMSSNet(nn.Module):
     """
     Multi-Modal Spectral-Spatial Network (MM-SSNet)
     Backbone: MobileNetV3-Small (Spatial) + 1D Conv (Spectral) + MLP (Environmental)
+    Supports missing spatial modality inference without manufacturing fake images.
     """
     def __init__(self, num_classes=6, embed_dim=128, env_dim=64):
         super().__init__()
+        self.embed_dim = embed_dim
         self.spectral_stream = SpectralEncoder1D(in_channels=1, embed_dim=embed_dim)
         self.spatial_stream = SpatialEncoder2D(in_channels=3, embed_dim=embed_dim)
         self.env_stream = EnvironmentalEncoder(in_features=4, embed_dim=env_dim)
@@ -124,12 +135,24 @@ class MMSSNet(nn.Module):
             nn.ReLU()
         )
 
-    def forward(self, spectral, spatial, env):
+    def forward(self, spectral, spatial=None, env=None):
         spec_emb = self.spectral_stream(spectral)
-        spat_emb = self.spatial_stream(spatial)
+        
+        if env is None:
+            # Default zero env
+            env = torch.zeros((spectral.size(0), 4), device=spectral.device)
         env_emb = self.env_stream(env)
 
-        fused_emb, attn_weights = self.fusion(spec_emb, spat_emb, env_emb)
+        spat_available = False
+        spat_emb = None
+
+        if spatial is not None:
+            # Check if spatial tensor is valid non-zero image
+            if isinstance(spatial, torch.Tensor) and spatial.abs().sum() > 1e-4:
+                spat_emb = self.spatial_stream(spatial)
+                spat_available = True
+
+        fused_emb, attn_weights = self.fusion(spec_emb, spat_emb, env_emb, spat_available=spat_available)
 
         class_logits = self.class_head(fused_emb)
         severity = self.severity_head(fused_emb) * 100.0
@@ -140,5 +163,6 @@ class MMSSNet(nn.Module):
             "severity": severity.squeeze(-1),
             "lead_time": lead_time.squeeze(-1),
             "attn_weights": attn_weights,
-            "latent_features": fused_emb
+            "latent_features": fused_emb,
+            "spatial_modality_available": spat_available
         }

@@ -29,9 +29,8 @@ class AIService:
     def predict(self, spectral, env, spatial=None):
         """
         Runs MM-SSNet inference on spectral, environmental, and optional spatial inputs.
-        - spectral: list/array of 10 floats (AS7341 channels)
-        - env: list/array of 4 floats [temp, humidity, soil_moisture, gas]
-        - spatial: optional (3, 64, 64) array or None
+        When spatial is None, routes to reduced-modality inference and sets spatial_modality_available: false.
+        DO NOT manufacture fake green RGB images.
         """
         self.model.eval()
 
@@ -47,14 +46,13 @@ class AIService:
         env_tensor = torch.tensor([env_norm], dtype=torch.float32).to(self.device)
 
         if spatial is None:
-            # Generate default green canopy spatial tensor (3, 64, 64)
-            spat_arr = np.zeros((3, 64, 64), dtype=np.float32)
-            spat_arr[0] = 0.15
-            spat_arr[1] = 0.70
-            spat_arr[2] = 0.15
-            spat_tensor = torch.tensor([spat_arr], dtype=torch.float32).to(self.device)
+            spat_tensor = None
         else:
-            spat_tensor = torch.tensor([spatial], dtype=torch.float32).to(self.device)
+            spat_arr = np.array(spatial, dtype=np.float32)
+            if spat_arr.size == 0 or np.abs(spat_arr).sum() < 1e-4:
+                spat_tensor = None
+            else:
+                spat_tensor = torch.tensor([spat_arr], dtype=torch.float32).to(self.device)
 
         with torch.no_grad():
             out = self.model(spec_tensor, spat_tensor, env_tensor)
@@ -63,8 +61,10 @@ class AIService:
             pred_class_id = int(torch.argmax(logits).item())
             severity = float(out["severity"][0].item())
             lead_time = float(out["lead_time"][0].item())
-            attn_weights = out["attn_weights"][0].cpu().numpy().tolist() if "attn_weights" in out else []
+            
+            attn_weights = out["attn_weights"][0].cpu().numpy().tolist() if "attn_weights" in out and out["attn_weights"] is not None else []
             latent_features = out["latent_features"][0].cpu().numpy().tolist()
+            spat_avail = bool(out.get("spatial_modality_available", False))
 
         condition_name = CONDITION_LABELS.get(pred_class_id, "UNKNOWN")
 
@@ -81,7 +81,11 @@ class AIService:
             "probabilities": probabilities_dict,
             "attention_weights": attn_weights,
             "latent_features": latent_features,
-            "model_version": "MM-SSNet-v2.0-PyTorch"
+            "spatial_modality_available": spat_avail,
+            "model_name": "MM-SSNet",
+            "model_version": "0.2.0",
+            "dataset_type": "synthetic_development",
+            "real_world_validation": False
         }
 
 ai_service = AIService()

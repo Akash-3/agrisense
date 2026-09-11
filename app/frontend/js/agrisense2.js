@@ -2,6 +2,10 @@
  * AgriSense 2.0 Research Platform Frontend Controller
  * Connects frontend UI to PyTorch MM-SSNet (MobileNetV3), DBSCAN Spatial Clustering,
  * PyTorch Grad-CAM XAI, MAVLink Mission Planner, Closed-Loop Relays & SIL Digital Twin APIs.
+ *
+ * Explicitly displays scientific honesty disclaimers:
+ * - "Synthetic-data prototype — real-world validation pending"
+ * - "Lead-time estimate — synthetic simulation / not clinically or agriculturally validated"
  */
 
 const AgriSense2 = {
@@ -175,7 +179,7 @@ const AgriSense2 = {
 
         if (elConf && diag.confidence) elConf.innerText = `${(diag.confidence * 100).toFixed(1)}%`;
         if (elSev && diag.severity_score) elSev.innerText = `${diag.severity_score.toFixed(1)} / 100`;
-        if (elLead && diag.estimated_lead_time_hours) elLead.innerText = `${diag.estimated_lead_time_hours.toFixed(1)} Hours`;
+        if (elLead && diag.estimated_lead_time_hours) elLead.innerText = `${diag.estimated_lead_time_hours.toFixed(1)} Hours (Synthetic Lead Time)`;
 
         const traceBox = document.getElementById('fusionReasoningTrace');
         if (traceBox && diag.reasoning_trace) {
@@ -208,12 +212,25 @@ const AgriSense2 = {
 
         if (elConf) elConf.innerText = `${(fused.disambiguated_confidence * 100).toFixed(1)}%`;
         if (elSev) elSev.innerText = `${fused.severity_score.toFixed(1)} / 100`;
-        if (elLead) elLead.innerText = `${pred.estimated_lead_time_hours.toFixed(1)} Hours`;
+        if (elLead) elLead.innerText = `${pred.estimated_lead_time_hours.toFixed(1)} Hours (Synthetic Model)`;
         if (elOOD) {
             if (ood.is_calibrated) {
                 elOOD.innerText = `${ood.mahalanobis_distance.toFixed(2)} (Thresh: ${ood.anomaly_threshold})`;
             } else {
                 elOOD.innerText = "NOT CALIBRATED";
+            }
+        }
+
+        // Modality & Honesty Badges
+        const elModalityBadge = document.getElementById('mmssnetModalityBadge');
+        if (elModalityBadge) {
+            const hasSpatial = pred.spatial_modality_available;
+            if (hasSpatial) {
+                elModalityBadge.innerText = "📷 Tri-Modal (Spatial RGB + Spectral + Env)";
+                elModalityBadge.className = "px-3 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300";
+            } else {
+                elModalityBadge.innerText = "📷 RGB Image: Unavailable (Reduced-Modality Spectral + Env)";
+                elModalityBadge.className = "px-3 py-1 rounded-full text-[10px] font-extrabold bg-purple-100 text-purple-800 border border-purple-300";
             }
         }
 
@@ -280,20 +297,32 @@ const AgriSense2 = {
         }
 
         const canvas = document.getElementById('gradcamCanvas');
-        if (canvas && xai.gradcam_heatmap_grid) {
-            const ctx = canvas.getContext('2d');
-            const grid = xai.gradcam_heatmap_grid;
-            const size = 64;
-            const cellW = canvas.width / size;
-            const cellH = canvas.height / size;
+        const gradcamMsgBox = document.getElementById('gradcamMsgBox');
 
-            for (let r = 0; r < size; r++) {
-                for (let c = 0; c < size; c++) {
-                    const val = grid[r][c];
-                    const red = Math.floor(val * 255);
-                    const green = Math.floor((1 - val) * 180);
-                    ctx.fillStyle = `rgba(${red}, ${green}, 40, ${val * 0.75})`;
-                    ctx.fillRect(c * cellW, r * cellH, cellW, cellH);
+        if (canvas) {
+            if (xai.xai_status === "UNAVAILABLE_MISSING_RGB" || !xai.gradcam_heatmap_grid) {
+                canvas.style.display = 'none';
+                if (gradcamMsgBox) {
+                    gradcamMsgBox.style.display = 'flex';
+                    gradcamMsgBox.innerHTML = `<i class="fa-solid fa-camera text-purple-500 text-xl"></i><span class="text-xs font-bold text-slate-600">RGB Image: Unavailable (No spatial camera payload in telemetry — Grad-CAM skipped)</span>`;
+                }
+            } else {
+                canvas.style.display = 'block';
+                if (gradcamMsgBox) gradcamMsgBox.style.display = 'none';
+                const ctx = canvas.getContext('2d');
+                const grid = xai.gradcam_heatmap_grid;
+                const size = 64;
+                const cellW = canvas.width / size;
+                const cellH = canvas.height / size;
+
+                for (let r = 0; r < size; r++) {
+                    for (let c = 0; c < size; c++) {
+                        const val = grid[r][c];
+                        const red = Math.floor(val * 255);
+                        const green = Math.floor((1 - val) * 180);
+                        ctx.fillStyle = `rgba(${red}, ${green}, 40, ${val * 0.75})`;
+                        ctx.fillRect(c * cellW, r * cellH, cellW, cellH);
+                    }
                 }
             }
         }

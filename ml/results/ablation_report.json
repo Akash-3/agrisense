@@ -1,67 +1,465 @@
 {
-  "RGB Spatial Stream Only": {
-    "accuracy_pct": 14.17,
-    "precision_macro": 0.0368,
-    "recall_macro": 0.125,
-    "f1_score": 0.0569,
-    "severity_rmse": 41.8329,
-    "lead_time_mae_hours": 13.6586,
-    "evaluation_dataset": "SYNTHETIC_DEVELOPMENT_DATASET",
-    "is_synthetic_evaluation": true,
-    "spectral_stream": false,
-    "spatial_stream": true,
-    "env_stream": false
+  "metadata": {
+    "num_variants": 7,
+    "dataset_type": "synthetic_development",
+    "real_world_validation": false,
+    "epochs_per_variant": 1
   },
-  "Spectral Stream Only (AS7341)": {
-    "accuracy_pct": 34.44,
-    "precision_macro": 0.1329,
-    "recall_macro": 0.3309,
-    "f1_score": 0.1854,
-    "severity_rmse": 13.6638,
-    "lead_time_mae_hours": 14.2467,
-    "evaluation_dataset": "SYNTHETIC_DEVELOPMENT_DATASET",
-    "is_synthetic_evaluation": true,
-    "spectral_stream": true,
-    "spatial_stream": false,
-    "env_stream": false
-  },
-  "Environmental Telemetry Only": {
-    "accuracy_pct": 84.17,
-    "precision_macro": 0.7218,
-    "recall_macro": 0.8123,
-    "f1_score": 0.7571,
-    "severity_rmse": 15.5092,
-    "lead_time_mae_hours": 14.4921,
-    "evaluation_dataset": "SYNTHETIC_DEVELOPMENT_DATASET",
-    "is_synthetic_evaluation": true,
-    "spectral_stream": false,
-    "spatial_stream": false,
-    "env_stream": true
-  },
-  "Dual-Modal (Spectral + Spatial)": {
-    "accuracy_pct": 33.61,
-    "precision_macro": 0.2033,
-    "recall_macro": 0.3015,
-    "f1_score": 0.2092,
-    "severity_rmse": 34.8242,
-    "lead_time_mae_hours": 13.7975,
-    "evaluation_dataset": "SYNTHETIC_DEVELOPMENT_DATASET",
-    "is_synthetic_evaluation": true,
-    "spectral_stream": true,
-    "spatial_stream": true,
-    "env_stream": false
-  },
-  "Tri-Modal MM-SSNet (Proposed)": {
-    "accuracy_pct": 41.94,
-    "precision_macro": 0.312,
-    "recall_macro": 0.3849,
-    "f1_score": 0.288,
-    "severity_rmse": 29.4644,
-    "lead_time_mae_hours": 13.5006,
-    "evaluation_dataset": "SYNTHETIC_DEVELOPMENT_DATASET",
-    "is_synthetic_evaluation": true,
-    "spectral_stream": true,
-    "spatial_stream": true,
-    "env_stream": true
+  "variants": {
+    "Variant A: Spatial RGB Only": {
+      "accuracy_pct": 22.5,
+      "precision_macro": 0.2328,
+      "recall_macro": 0.2052,
+      "f1_score_macro": 0.1236,
+      "f1_score_weighted": 0.1284,
+      "confusion_matrix": [
+        [
+          6,
+          23,
+          0,
+          0,
+          0,
+          28
+        ],
+        [
+          1,
+          0,
+          0,
+          0,
+          0,
+          48
+        ],
+        [
+          0,
+          0,
+          0,
+          10,
+          0,
+          53
+        ],
+        [
+          0,
+          0,
+          0,
+          8,
+          0,
+          49
+        ],
+        [
+          0,
+          0,
+          0,
+          6,
+          0,
+          60
+        ],
+        [
+          0,
+          0,
+          0,
+          1,
+          0,
+          67
+        ]
+      ],
+      "severity_rmse": 25.6913,
+      "lead_time_mae_hours": 13.9375,
+      "evaluation_dataset": "synthetic_development",
+      "synthetic_development": true,
+      "real_world_validation": false,
+      "spectral_stream": false,
+      "spatial_stream": true,
+      "env_stream": false
+    },
+    "Variant B: Spectral 1D Conv Only": {
+      "accuracy_pct": 53.06,
+      "precision_macro": 0.319,
+      "recall_macro": 0.5,
+      "f1_score_macro": 0.373,
+      "f1_score_weighted": 0.3977,
+      "confusion_matrix": [
+        [
+          57,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          43,
+          0,
+          0,
+          0,
+          6,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          63,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          57,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          66,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          68
+        ]
+      ],
+      "severity_rmse": 13.8629,
+      "lead_time_mae_hours": 13.6975,
+      "evaluation_dataset": "synthetic_development",
+      "synthetic_development": true,
+      "real_world_validation": false,
+      "spectral_stream": true,
+      "spatial_stream": false,
+      "env_stream": false
+    },
+    "Variant C: Environmental MLP Only": {
+      "accuracy_pct": 96.11,
+      "precision_macro": 0.9629,
+      "recall_macro": 0.9557,
+      "f1_score_macro": 0.957,
+      "f1_score_weighted": 0.9612,
+      "confusion_matrix": [
+        [
+          57,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          6,
+          42,
+          1,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          63,
+          0,
+          0,
+          0
+        ],
+        [
+          5,
+          2,
+          0,
+          50,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          66,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          68
+        ]
+      ],
+      "severity_rmse": 14.8838,
+      "lead_time_mae_hours": 13.9951,
+      "evaluation_dataset": "synthetic_development",
+      "synthetic_development": true,
+      "real_world_validation": false,
+      "spectral_stream": false,
+      "spatial_stream": false,
+      "env_stream": true
+    },
+    "Variant D: Spatial RGB + Spectral 1D": {
+      "accuracy_pct": 56.11,
+      "precision_macro": 0.6312,
+      "recall_macro": 0.5394,
+      "f1_score_macro": 0.4385,
+      "f1_score_weighted": 0.4593,
+      "confusion_matrix": [
+        [
+          57,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          46,
+          1,
+          2,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          59,
+          0,
+          4,
+          0
+        ],
+        [
+          0,
+          0,
+          6,
+          0,
+          51,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          66,
+          0
+        ],
+        [
+          17,
+          0,
+          0,
+          0,
+          32,
+          19
+        ]
+      ],
+      "severity_rmse": 16.7993,
+      "lead_time_mae_hours": 13.6975,
+      "evaluation_dataset": "synthetic_development",
+      "synthetic_development": true,
+      "real_world_validation": false,
+      "spectral_stream": true,
+      "spatial_stream": true,
+      "env_stream": false
+    },
+    "Variant E: Spatial RGB + Environmental": {
+      "accuracy_pct": 64.17,
+      "precision_macro": 0.5521,
+      "recall_macro": 0.6406,
+      "f1_score_macro": 0.5412,
+      "f1_score_weighted": 0.5576,
+      "confusion_matrix": [
+        [
+          0,
+          52,
+          0,
+          5,
+          0,
+          0
+        ],
+        [
+          0,
+          48,
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          12,
+          3,
+          48,
+          0,
+          0
+        ],
+        [
+          0,
+          7,
+          0,
+          50,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          4,
+          0,
+          62,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          68
+        ]
+      ],
+      "severity_rmse": 15.9922,
+      "lead_time_mae_hours": 13.6037,
+      "evaluation_dataset": "synthetic_development",
+      "synthetic_development": true,
+      "real_world_validation": false,
+      "spectral_stream": false,
+      "spatial_stream": true,
+      "env_stream": true
+    },
+    "Variant F: Spectral 1D + Environmental": {
+      "accuracy_pct": 69.72,
+      "precision_macro": 0.8267,
+      "recall_macro": 0.6754,
+      "f1_score_macro": 0.575,
+      "f1_score_weighted": 0.5942,
+      "confusion_matrix": [
+        [
+          57,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          39,
+          1,
+          0,
+          9,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          2,
+          2,
+          59,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          57,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          66,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          68
+        ]
+      ],
+      "severity_rmse": 14.2189,
+      "lead_time_mae_hours": 15.0489,
+      "evaluation_dataset": "synthetic_development",
+      "synthetic_development": true,
+      "real_world_validation": false,
+      "spectral_stream": true,
+      "spatial_stream": false,
+      "env_stream": true
+    },
+    "Variant G: Tri-Modal MM-SSNet (Proposed)": {
+      "accuracy_pct": 70.83,
+      "precision_macro": 0.6532,
+      "recall_macro": 0.7086,
+      "f1_score_macro": 0.6443,
+      "f1_score_weighted": 0.6438,
+      "confusion_matrix": [
+        [
+          22,
+          35,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          2,
+          44,
+          0,
+          1,
+          2,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          63,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          56,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          66,
+          0
+        ],
+        [
+          1,
+          0,
+          0,
+          0,
+          0,
+          67
+        ]
+      ],
+      "severity_rmse": 13.0637,
+      "lead_time_mae_hours": 14.6016,
+      "evaluation_dataset": "synthetic_development",
+      "synthetic_development": true,
+      "real_world_validation": false,
+      "spectral_stream": true,
+      "spatial_stream": true,
+      "env_stream": true
+    }
   }
 }
