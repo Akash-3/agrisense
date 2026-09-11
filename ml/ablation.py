@@ -109,16 +109,15 @@ def train_and_evaluate_variant(variant_cfg, train_loader, val_loader, epochs=3, 
     }
 
 
-def run_ablation_study(epochs_per_variant=3, dataset_type="synthetic_development", manifest_path=None):
+def run_ablation_study(epochs_per_variant=2, seeds=(42, 43, 44), dataset_type="synthetic_development", manifest_path=None):
     """
-    Executes dynamic ablation benchmark comparison across all 7 modality combinations.
+    Executes dynamic multi-seed ablation benchmark comparison across all 7 modality combinations.
     NO METRICS ARE HARDCODED. All values are calculated from PyTorch model forward passes and ground truth targets.
+    Calculates mean ± std across 3 random seeds.
     """
     os.makedirs(RESULTS_DIR, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"=== Starting AgriSense 2.0 Dynamic 7-Variant Ablation Study ({dataset_type}) ===")
-
-    train_loader, val_loader = get_dataloaders(data_manifest=manifest_path, dataset_type=dataset_type, batch_size=32)
+    print(f"=== Starting AgriSense 2.0 Dynamic 7-Variant Multi-Seed Ablation Study ({dataset_type}) ===")
 
     ablation_configs = [
         {"name": "Variant A: Spatial RGB Only", "use_spec": False, "use_spat": True, "use_env": False},
@@ -133,6 +132,8 @@ def run_ablation_study(epochs_per_variant=3, dataset_type="synthetic_development
     results = {
         "metadata": {
             "num_variants": 7,
+            "seeds_evaluated": list(seeds),
+            "num_seeds": len(seeds),
             "dataset_type": "synthetic_development",
             "real_world_validation": False,
             "epochs_per_variant": epochs_per_variant
@@ -142,16 +143,47 @@ def run_ablation_study(epochs_per_variant=3, dataset_type="synthetic_development
 
     for cfg in ablation_configs:
         name = cfg["name"]
-        print(f"Training & Evaluating {name}...")
-        metrics = train_and_evaluate_variant(cfg, train_loader, val_loader, epochs=epochs_per_variant, device=device)
-        results["variants"][name] = metrics
-        print(f"  -> {name} Acc: {metrics['accuracy_pct']}% | Macro F1: {metrics['f1_score_macro']} | Dataset: {metrics['evaluation_dataset']}")
+        seed_metrics = []
+        print(f"\nTraining & Evaluating {name} across seeds {seeds}...")
+
+        for seed in seeds:
+            train_loader, val_loader = get_dataloaders(data_manifest=manifest_path, dataset_type=dataset_type, batch_size=32, seed=seed)
+            m = train_and_evaluate_variant(cfg, train_loader, val_loader, epochs=epochs_per_variant, device=device)
+            seed_metrics.append(m)
+
+        # Aggregate metrics across seeds
+        accs = [m["accuracy_pct"] for m in seed_metrics]
+        f1_macros = [m["f1_score_macro"] for m in seed_metrics]
+        f1_weighteds = [m["f1_score_weighted"] for m in seed_metrics]
+        sev_rmses = [m["severity_rmse"] for m in seed_metrics]
+        lead_maes = [m["lead_time_mae_hours"] for m in seed_metrics]
+
+        last_m = seed_metrics[-1]
+        results["variants"][name] = {
+            "accuracy_pct_mean": round(float(np.mean(accs)), 2),
+            "accuracy_pct_std": round(float(np.std(accs)), 2),
+            "f1_score_macro_mean": round(float(np.mean(f1_macros)), 4),
+            "f1_score_macro_std": round(float(np.std(f1_macros)), 4),
+            "f1_score_weighted_mean": round(float(np.mean(f1_weighteds)), 4),
+            "severity_rmse_mean": round(float(np.mean(sev_rmses)), 4),
+            "lead_time_mae_mean": round(float(np.mean(lead_maes)), 4),
+            "seed_runs": seed_metrics,
+            "confusion_matrix": last_m["confusion_matrix"],
+            "evaluation_dataset": last_m["evaluation_dataset"],
+            "synthetic_development": True,
+            "real_world_validation": False,
+            "spectral_stream": cfg["use_spec"],
+            "spatial_stream": cfg["use_spat"],
+            "env_stream": cfg["use_env"]
+        }
+
+        print(f"  -> {name} Mean Acc: {results['variants'][name]['accuracy_pct_mean']}±{results['variants'][name]['accuracy_pct_std']}% | Mean Macro F1: {results['variants'][name]['f1_score_macro_mean']}±{results['variants'][name]['f1_score_macro_std']}")
 
     report_path = os.path.join(RESULTS_DIR, "ablation_report.json")
     with open(report_path, "w") as f:
         json.dump(results, f, indent=2)
 
-    print(f"=== 7-Variant Ablation Benchmark Completed! Dynamic results saved to {report_path} ===")
+    print(f"\n=== 7-Variant Multi-Seed Ablation Benchmark Completed! Dynamic results saved to {report_path} ===")
     return results
 
 if __name__ == "__main__":

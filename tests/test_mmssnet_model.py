@@ -1,5 +1,6 @@
 import unittest
 import torch
+import torchvision.models as tv_models
 import numpy as np
 from ml.model import MMSSNet
 from ml.dataset import generate_synthetic_multimodal_data
@@ -7,6 +8,14 @@ from ml.dataset import generate_synthetic_multimodal_data
 class TestMMSSNetModel(unittest.TestCase):
     def setUp(self):
         self.model = MMSSNet(num_classes=6)
+
+    def test_mobilenetv3_backbone_instantiated(self):
+        """
+        REQ-1 Verification: Prove that torchvision MobileNetV3 architecture is actually instantiated.
+        """
+        self.assertIsInstance(self.model.spatial_stream.backbone, tv_models.MobileNetV3)
+        self.assertTrue(hasattr(self.model.spatial_stream.backbone, "features"))
+        self.assertTrue(hasattr(self.model.spatial_stream.backbone, "classifier"))
 
     def test_forward_pass_shapes(self):
         spec = torch.randn(4, 10)
