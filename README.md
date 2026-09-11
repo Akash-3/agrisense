@@ -9,7 +9,7 @@ AgriSense is an AI-powered enterprise smart agriculture platform for real-time s
 - **Real Browser-Autofilled Google & Microsoft SSO**: Interactive provider-branded SSO modal dialog supporting native browser email autofill (`autocomplete="email"` and `autocomplete="name"`) for instant real account registration and sign-in.
 - **100% Purged Fake Data & Real Hardware Telemetry**: All artificial `Math.random()` data generators purged. Operates strictly on physical ESP32 multi-sensor payloads (Soil Moisture, DHT22 Temp/Humidity, MQ-135 Air Quality).
 - **User Address Details & Dynamic International Dial Codes**: Country dropdown selector (`#profCountry`) automatically formatting and prefixing mobile phone dial codes (US `+1`, India `+91`, UK `+44`, etc.) with PostgreSQL & SQLite schema auto-migrations.
-- **Remote ESP32 Multi-Sensor IoT Firmware (1,200 km WAN Ready)**: Production C++/Arduino firmware (`esp32/multi_sensor_esp32.ino`) with TCP socket clean-up (`http.setReuse(false);` & `Connection: close`), Google DNS fallback (`8.8.8.8`), and real hardware disconnection detection (`SENSOR_DISCONNECTED`).
+- **Remote ESP32 Multi-Sensor IoT Firmware (1,200 km WAN Ready)**: Production C++/Arduino firmware (`esp32/multi_sensor_esp32/multi_sensor_esp32.ino`) with TCP socket clean-up (`http.setReuse(false);` & `Connection: close`), Google DNS fallback (`8.8.8.8`), and real hardware disconnection detection (`SENSOR_DISCONNECTED`).
 - **Virtual User E2E QA Automated Testing System**: Playwright browser automation test suite (`python run_qa_tests.py`) validating 9 critical end-to-end user workflows with 100% test pass guarantee.
 - **Live Crop Health AI Scanner**: Leaf photo analysis for computer vision disease diagnosis, health index calculation, and actionable treatment recommendations.
 - **Automated In-App OTA Software Updates**: Direct background check, download, and installation of signed APK updates (`/api/v1/update/check`).
@@ -22,25 +22,30 @@ AgriSense is an AI-powered enterprise smart agriculture platform for real-time s
 ### 📋 Prerequisites
 
 1. **Python 3.10+**: Ensure Python is installed (`python --version`).
-2. **Playwright for E2E QA**: Installed automatically via `requirements.txt`.
+2. **Flutter SDK 3.x+**: (Optional) For running/compiling the cross-platform mobile application.
 
 ---
 
-### 1️⃣ Clone the Repository
+### 1️⃣ Clone the Repository & Install Dependencies
 
 ```bash
 git clone https://github.com/Akash-3/agrisense.git
 cd agrisense
+
+# Install Python requirements
+pip install -r requirements.txt
+
+# Install Playwright browser binaries for Virtual User E2E QA testing
+playwright install chromium
 ```
 
 ---
 
 ### 2️⃣ Start the Python FastAPI Server
 
-Install dependencies and launch the server:
+Launch the web backend server:
 
 ```bash
-pip install -r requirements.txt
 python app/run_app.py
 ```
 
@@ -58,9 +63,33 @@ Run the 9-point Playwright end-to-end acceptance suite:
 python run_qa_tests.py
 ```
 
+To test virtual hardware telemetry transmission across local/public networks:
+
+```bash
+python tests/simulate_esp32_hardware.py
+```
+
 ---
 
-### 4️⃣ Flash ESP32 Multi-Sensor IoT Node
+### 4️⃣ Run or Build the Flutter Mobile Application
+
+Navigate into the mobile app folder:
+
+```bash
+cd mobile_app
+flutter pub get
+flutter run
+```
+
+To build a production release APK:
+
+```bash
+flutter build apk --release
+```
+
+---
+
+### 5️⃣ Flash ESP32 Multi-Sensor IoT Node
 
 1. Open `esp32/multi_sensor_esp32/multi_sensor_esp32.ino` in Arduino IDE or VS Code.
 2. Update Wi-Fi SSID and Password (`WIFI_SSID`, `WIFI_PASSWORD`).
@@ -90,7 +119,7 @@ agrisense/
 │   ├── e2e/              # Playwright E2E Browser Acceptance Tests
 │   └── simulate_esp32_hardware.py # Virtual ESP32 Hardware Simulator Client
 ├── run_qa_tests.py       # E2E Test Suite Runner
-├── requirements.txt      # Root Python Dependencies
+├── requirements.txt      # Root Python Dependencies (FastAPI, Playwright, esptool, pyngrok)
 └── README.md             # Platform Setup & Architecture Guide
 ```
 
