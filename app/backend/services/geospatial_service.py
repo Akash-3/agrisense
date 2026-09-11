@@ -15,6 +15,7 @@ class GeospatialService:
         """
         if not telemetry_points:
             return {
+                "status": "INSUFFICIENT_SPATIAL_DATA",
                 "hotspots": [],
                 "estimated_bounding_area_m2": 0.0,
                 "total_hotspots": 0,
@@ -29,12 +30,13 @@ class GeospatialService:
                 coords.append([pt["lat"], pt["lng"]])
                 high_stress_indices.append(idx)
 
-        if not coords:
+        if not coords or len(coords) < min_samples:
             return {
+                "status": "INSUFFICIENT_SPATIAL_DATA",
                 "hotspots": [],
                 "estimated_bounding_area_m2": 0.0,
                 "total_hotspots": 0,
-                "message": "No nodes exceeded stress threshold (severity >= 25.0)."
+                "message": f"Insufficient telemetry nodes exceeding stress threshold (min {min_samples} required)."
             }
 
         coords_arr = np.array(coords)
@@ -87,7 +89,17 @@ class GeospatialService:
                 ]
             })
 
+        if not hotspots:
+            return {
+                "status": "INSUFFICIENT_SPATIAL_DATA",
+                "hotspots": [],
+                "estimated_bounding_area_m2": 0.0,
+                "total_hotspots": 0,
+                "message": "No dense clusters formed by DBSCAN algorithm."
+            }
+
         return {
+            "status": "SUCCESS",
             "hotspots": hotspots,
             "estimated_bounding_area_m2": round(total_area, 2),
             "total_hotspots": len(hotspots),

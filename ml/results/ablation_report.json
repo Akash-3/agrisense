@@ -7,63 +7,63 @@
   },
   "variants": {
     "Variant A: Spatial RGB Only": {
-      "accuracy_pct": 22.5,
-      "precision_macro": 0.2328,
-      "recall_macro": 0.2052,
-      "f1_score_macro": 0.1236,
-      "f1_score_weighted": 0.1284,
+      "accuracy_pct": 35.0,
+      "precision_macro": 0.3032,
+      "recall_macro": 0.3563,
+      "f1_score_macro": 0.2539,
+      "f1_score_weighted": 0.2384,
       "confusion_matrix": [
         [
-          6,
-          23,
+          16,
+          32,
           0,
           0,
           0,
-          28
-        ],
-        [
-          1,
-          0,
-          0,
-          0,
-          0,
-          48
+          9
         ],
         [
           0,
+          42,
           0,
           0,
-          10,
           0,
-          53
+          7
         ],
         [
           0,
           0,
           0,
-          8,
           0,
-          49
+          0,
+          63
         ],
         [
           0,
           0,
           0,
-          6,
           0,
-          60
+          0,
+          57
         ],
         [
           0,
           0,
           0,
-          1,
           0,
-          67
+          0,
+          66
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          68
         ]
       ],
-      "severity_rmse": 25.6913,
-      "lead_time_mae_hours": 13.9375,
+      "severity_rmse": 19.9785,
+      "lead_time_mae_hours": 14.4114,
       "evaluation_dataset": "synthetic_development",
       "synthetic_development": true,
       "real_world_validation": false,
@@ -72,11 +72,11 @@
       "env_stream": false
     },
     "Variant B: Spectral 1D Conv Only": {
-      "accuracy_pct": 53.06,
-      "precision_macro": 0.319,
-      "recall_macro": 0.5,
-      "f1_score_macro": 0.373,
-      "f1_score_weighted": 0.3977,
+      "accuracy_pct": 52.22,
+      "precision_macro": 0.4882,
+      "recall_macro": 0.4936,
+      "f1_score_macro": 0.3776,
+      "f1_score_weighted": 0.4008,
       "confusion_matrix": [
         [
           57,
@@ -87,19 +87,19 @@
           0
         ],
         [
-          43,
+          42,
+          1,
           0,
-          0,
-          0,
-          6,
+          4,
+          2,
           0
         ],
         [
           0,
           0,
           0,
-          0,
-          63,
+          9,
+          54,
           0
         ],
         [
@@ -119,15 +119,15 @@
           0
         ],
         [
+          2,
           0,
           0,
           0,
-          0,
-          0,
-          68
+          2,
+          64
         ]
       ],
-      "severity_rmse": 13.8629,
+      "severity_rmse": 13.9161,
       "lead_time_mae_hours": 13.6975,
       "evaluation_dataset": "synthetic_development",
       "synthetic_development": true,
@@ -137,42 +137,42 @@
       "env_stream": false
     },
     "Variant C: Environmental MLP Only": {
-      "accuracy_pct": 96.11,
-      "precision_macro": 0.9629,
-      "recall_macro": 0.9557,
-      "f1_score_macro": 0.957,
-      "f1_score_weighted": 0.9612,
+      "accuracy_pct": 89.17,
+      "precision_macro": 0.9235,
+      "recall_macro": 0.8939,
+      "f1_score_macro": 0.8911,
+      "f1_score_weighted": 0.8864,
       "confusion_matrix": [
         [
-          57,
-          0,
-          0,
-          0,
-          0,
-          0
-        ],
-        [
-          6,
-          42,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          0,
-          0,
-          63,
-          0,
-          0,
-          0
-        ],
-        [
-          5,
+          54,
           2,
           0,
-          50,
+          1,
           0,
+          0
+        ],
+        [
+          0,
+          47,
+          2,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          31,
+          0,
+          32,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          55,
+          2,
           0
         ],
         [
@@ -192,8 +192,8 @@
           68
         ]
       ],
-      "severity_rmse": 14.8838,
-      "lead_time_mae_hours": 13.9951,
+      "severity_rmse": 14.7887,
+      "lead_time_mae_hours": 13.6975,
       "evaluation_dataset": "synthetic_development",
       "synthetic_development": true,
       "real_world_validation": false,
@@ -202,11 +202,11 @@
       "env_stream": true
     },
     "Variant D: Spatial RGB + Spectral 1D": {
-      "accuracy_pct": 56.11,
-      "precision_macro": 0.6312,
-      "recall_macro": 0.5394,
-      "f1_score_macro": 0.4385,
-      "f1_score_weighted": 0.4593,
+      "accuracy_pct": 59.44,
+      "precision_macro": 0.5729,
+      "recall_macro": 0.5929,
+      "f1_score_macro": 0.5537,
+      "f1_score_weighted": 0.5479,
       "confusion_matrix": [
         [
           57,
@@ -217,27 +217,27 @@
           0
         ],
         [
-          46,
+          8,
+          34,
           1,
           2,
-          0,
-          0,
-          0
-        ],
-        [
-          0,
-          0,
-          59,
-          0,
           4,
           0
         ],
         [
           0,
           0,
-          6,
           0,
-          51,
+          35,
+          28,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          9,
+          48,
           0
         ],
         [
@@ -249,16 +249,16 @@
           0
         ],
         [
-          17,
           0,
+          1,
           0,
-          0,
-          32,
-          19
+          5,
+          14,
+          48
         ]
       ],
-      "severity_rmse": 16.7993,
-      "lead_time_mae_hours": 13.6975,
+      "severity_rmse": 15.42,
+      "lead_time_mae_hours": 14.1101,
       "evaluation_dataset": "synthetic_development",
       "synthetic_development": true,
       "real_world_validation": false,
@@ -267,63 +267,63 @@
       "env_stream": false
     },
     "Variant E: Spatial RGB + Environmental": {
-      "accuracy_pct": 64.17,
-      "precision_macro": 0.5521,
-      "recall_macro": 0.6406,
-      "f1_score_macro": 0.5412,
-      "f1_score_weighted": 0.5576,
+      "accuracy_pct": 68.33,
+      "precision_macro": 0.6148,
+      "recall_macro": 0.6988,
+      "f1_score_macro": 0.6349,
+      "f1_score_weighted": 0.6204,
       "confusion_matrix": [
         [
+          45,
+          10,
           0,
-          52,
-          0,
-          5,
+          2,
           0,
           0
         ],
         [
-          0,
-          48,
-          0,
+          4,
+          44,
           1,
           0,
-          0
-        ],
-        [
-          0,
-          12,
-          3,
-          48,
           0,
           0
         ],
         [
           0,
           7,
+          56,
           0,
-          50,
           0,
           0
         ],
         [
           0,
+          21,
           0,
-          4,
+          36,
           0,
-          62,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          0,
+          65,
           0
         ],
         [
           0,
           0,
-          0,
-          0,
-          0,
-          68
+          8,
+          5,
+          55,
+          0
         ]
       ],
-      "severity_rmse": 15.9922,
-      "lead_time_mae_hours": 13.6037,
+      "severity_rmse": 19.6829,
+      "lead_time_mae_hours": 14.4676,
       "evaluation_dataset": "synthetic_development",
       "synthetic_development": true,
       "real_world_validation": false,
@@ -332,11 +332,11 @@
       "env_stream": true
     },
     "Variant F: Spectral 1D + Environmental": {
-      "accuracy_pct": 69.72,
-      "precision_macro": 0.8267,
-      "recall_macro": 0.6754,
-      "f1_score_macro": 0.575,
-      "f1_score_weighted": 0.5942,
+      "accuracy_pct": 80.28,
+      "precision_macro": 0.7425,
+      "recall_macro": 0.8061,
+      "f1_score_macro": 0.7584,
+      "f1_score_weighted": 0.7472,
       "confusion_matrix": [
         [
           57,
@@ -347,76 +347,11 @@
           0
         ],
         [
-          39,
-          1,
           0,
-          9,
-          0,
-          0
-        ],
-        [
-          0,
+          41,
           0,
           2,
-          2,
-          59,
-          0
-        ],
-        [
-          0,
-          0,
-          0,
-          57,
-          0,
-          0
-        ],
-        [
-          0,
-          0,
-          0,
-          0,
-          66,
-          0
-        ],
-        [
-          0,
-          0,
-          0,
-          0,
-          0,
-          68
-        ]
-      ],
-      "severity_rmse": 14.2189,
-      "lead_time_mae_hours": 15.0489,
-      "evaluation_dataset": "synthetic_development",
-      "synthetic_development": true,
-      "real_world_validation": false,
-      "spectral_stream": true,
-      "spatial_stream": false,
-      "env_stream": true
-    },
-    "Variant G: Tri-Modal MM-SSNet (Proposed)": {
-      "accuracy_pct": 70.83,
-      "precision_macro": 0.6532,
-      "recall_macro": 0.7086,
-      "f1_score_macro": 0.6443,
-      "f1_score_weighted": 0.6438,
-      "confusion_matrix": [
-        [
-          22,
-          35,
-          0,
-          0,
-          0,
-          0
-        ],
-        [
-          2,
-          44,
-          0,
-          1,
-          2,
+          6,
           0
         ],
         [
@@ -431,8 +366,8 @@
           0,
           0,
           0,
-          56,
-          1,
+          57,
+          0,
           0
         ],
         [
@@ -444,16 +379,81 @@
           0
         ],
         [
-          1,
           0,
           0,
           0,
           0,
-          67
+          0,
+          68
         ]
       ],
-      "severity_rmse": 13.0637,
-      "lead_time_mae_hours": 14.6016,
+      "severity_rmse": 16.6531,
+      "lead_time_mae_hours": 14.2505,
+      "evaluation_dataset": "synthetic_development",
+      "synthetic_development": true,
+      "real_world_validation": false,
+      "spectral_stream": true,
+      "spatial_stream": false,
+      "env_stream": true
+    },
+    "Variant G: Tri-Modal MM-SSNet (Proposed)": {
+      "accuracy_pct": 84.72,
+      "precision_macro": 0.864,
+      "recall_macro": 0.8505,
+      "f1_score_macro": 0.8448,
+      "f1_score_weighted": 0.844,
+      "confusion_matrix": [
+        [
+          57,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          41,
+          6,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          29,
+          34,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          57,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          6,
+          0,
+          60,
+          0
+        ],
+        [
+          0,
+          2,
+          1,
+          0,
+          4,
+          61
+        ]
+      ],
+      "severity_rmse": 12.9905,
+      "lead_time_mae_hours": 14.3721,
       "evaluation_dataset": "synthetic_development",
       "synthetic_development": true,
       "real_world_validation": false,

@@ -12,9 +12,15 @@ class TestGeospatialDBSCAN(unittest.TestCase):
 
         res = geospatial_service.cluster_hotspots(sample_nodes, eps_meters=25.0, min_samples=2)
 
+        self.assertEqual(res["status"], "SUCCESS")
         self.assertIn("hotspots", res)
         self.assertGreater(res["total_hotspots"], 0)
         self.assertGreater(res["estimated_bounding_area_m2"], 0.0)
+
+    def test_insufficient_spatial_data(self):
+        res = geospatial_service.cluster_hotspots([], eps_meters=25.0, min_samples=2)
+        self.assertEqual(res["status"], "INSUFFICIENT_SPATIAL_DATA")
+        self.assertEqual(res["total_hotspots"], 0)
 
 if __name__ == "__main__":
     unittest.main()
