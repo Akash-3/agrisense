@@ -1,6 +1,6 @@
 import unittest
 from fastapi.testclient import TestClient
-from app.main import app
+from app.backend.main import app
 
 class TestTelemetryPipelineIngest(unittest.TestCase):
     def setUp(self):
