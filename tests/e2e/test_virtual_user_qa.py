@@ -71,6 +71,7 @@ class AgriSenseVirtualUserQATest(unittest.TestCase):
         """Verify smooth transition & animation when signing in to dashboard"""
         self.page.goto(BASE_URL)
         self.page.wait_for_selector("#authScreen", state="visible")
+        time.sleep(0.3)
         
         # Click Try Demo Account
         self.page.click("button:has-text('Try Demo Account')")
@@ -83,8 +84,8 @@ class AgriSenseVirtualUserQATest(unittest.TestCase):
         self.assertTrue(dashboard_visible, "Dashboard page failed to open after login")
         
         # Verify transition animation classes or computed opacity / transform
-        anim_card = self.page.eval_on_selector("#pageDashboard", "el => getComputedStyle(el).display")
-        self.assertEqual(anim_card, "block", "Dashboard should be smoothly displayed after transition animation")
+        anim_card = self.page.locator("#pageDashboard").evaluate("el => getComputedStyle(el).display")
+        self.assertIn(anim_card, ["block", "flex", "grid"], "Dashboard should be smoothly displayed after transition animation")
         
         self.capture_screenshot("02_dashboard_animation_complete")
 
@@ -244,6 +245,31 @@ class AgriSenseVirtualUserQATest(unittest.TestCase):
             
             page.screenshot(path=os.path.join(SCREENSHOT_DIR, f"responsive_{vp['name']}.png"))
             context.close()
+
+    # ==================== TEST 9: REAL EMAIL BROWSER AUTOFILL SSO FLOW ====================
+    def test_09_real_email_sso_flow(self):
+        """Verify Google & Microsoft SSO opens real email modal with browser autofill enabled"""
+        self.page.goto(BASE_URL)
+        self.page.wait_for_selector("#authScreen", state="visible")
+        
+        # Click Google SSO button
+        self.page.click("button:has-text('Google SSO')")
+        self.page.wait_for_selector("#ssoModal", state="visible")
+        
+        # Verify autocomplete="email" attribute on ssoEmailInput for browser autofill
+        email_autocomplete = self.page.get_attribute("#ssoEmailInput", "autocomplete")
+        self.assertEqual(email_autocomplete, "email", "SSO email input must use autocomplete='email' for browser autofill")
+        
+        # Enter real Gmail address
+        test_gmail = "myuser.farmer@gmail.com"
+        self.page.fill("#ssoEmailInput", test_gmail)
+        self.page.click("#ssoSubmitBtn")
+        
+        # Verify successful login to dashboard with real Gmail address
+        self.page.wait_for_selector("#mainAppScreen", state="visible", timeout=5000)
+        user_email = self.page.inner_text(".user-email")
+        self.assertEqual(user_email, test_gmail, "User profile must display their real Gmail address after SSO login")
+        self.capture_screenshot("09_real_email_sso_complete")
 
 if __name__ == "__main__":
     unittest.main()

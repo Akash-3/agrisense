@@ -106,6 +106,12 @@ const UI = {
                 name: farmer.full_name || idInput,
                 email: farmer.phone_or_email || idInput,
                 phone: farmer.phone || "+1 (555) 019-2834",
+                country: farmer.country || "United States",
+                country_code: farmer.country_code || "+1",
+                address: farmer.address || "",
+                city: farmer.city || "",
+                state: farmer.state || "",
+                postal_code: farmer.postal_code || "",
                 farmName: farmer.farm_name || "Green Valley Field Plot",
                 farmSize: farmer.farm_acres || 15.0,
                 location: "Lat: 20.2961, Lon: 85.8245",
@@ -132,6 +138,12 @@ const UI = {
                 name: farmer.full_name || "Alex Vance",
                 email: farmer.phone_or_email || "demo.farmer@agrisense.io",
                 phone: "+1 (555) 019-2834",
+                country: farmer.country || "United States",
+                country_code: farmer.country_code || "+1",
+                address: farmer.address || "",
+                city: farmer.city || "",
+                state: farmer.state || "",
+                postal_code: farmer.postal_code || "",
                 farmName: farmer.farm_name || "Green Valley Field Plot",
                 farmSize: farmer.farm_acres || 15.0,
                 location: "Lat: 20.2961, Lon: 85.8245",
@@ -176,29 +188,113 @@ const UI = {
         }
     },
 
-    async submitSSO(provider) {
-        this.showToast(`Connecting to ${provider.toUpperCase()} SSO...`, false);
-        const data = await window.AuthService.sso(provider);
+    currentSSOProvider: "google",
+
+    submitSSO(provider) {
+        this.openSSOModal(provider);
+    },
+
+    openSSOModal(provider = "google") {
+        this.currentSSOProvider = provider;
+        const modal = document.getElementById('ssoModal');
+        const icon = document.getElementById('ssoProviderIcon');
+        const title = document.getElementById('ssoModalTitle');
+        const subtitle = document.getElementById('ssoModalSubtitle');
+        const btnText = document.getElementById('ssoBtnText');
+        const emailInput = document.getElementById('ssoEmailInput');
+        const nameInput = document.getElementById('ssoNameInput');
+
+        const isGoogle = provider.toLowerCase() === 'google';
+        if (icon) {
+            icon.className = isGoogle ? "fa-brands fa-google text-red-500" : "fa-brands fa-microsoft text-blue-500";
+        }
+        if (title) title.innerText = isGoogle ? "Sign in with Google" : "Sign in with Microsoft";
+        if (subtitle) subtitle.innerText = isGoogle ? "Select or enter your Gmail address to register or sign in" : "Select or enter your Microsoft / Outlook email address";
+        if (btnText) btnText.innerText = isGoogle ? "Continue with Google" : "Continue with Microsoft";
+
+        const loginVal = document.getElementById('loginIdInput') ? document.getElementById('loginIdInput').value.trim() : "";
+        const regEmailVal = document.getElementById('regEmail') ? document.getElementById('regEmail').value.trim() : "";
+        
+        if (emailInput) {
+            emailInput.value = loginVal || regEmailVal || "";
+            if (isGoogle && !emailInput.value.includes('@')) {
+                emailInput.placeholder = "user@gmail.com";
+            } else if (!isGoogle && !emailInput.value.includes('@')) {
+                emailInput.placeholder = "user@outlook.com";
+            }
+        }
+        if (nameInput) {
+            const regNameVal = document.getElementById('regName') ? document.getElementById('regName').value.trim() : "";
+            nameInput.value = regNameVal || "";
+        }
+
+        if (modal) modal.classList.remove('hidden');
+        if (emailInput) setTimeout(() => emailInput.focus(), 100);
+    },
+
+    closeSSOModal() {
+        const modal = document.getElementById('ssoModal');
+        if (modal) modal.classList.add('hidden');
+    },
+
+    async submitSSOModal() {
+        const email = document.getElementById('ssoEmailInput').value.trim();
+        const fullName = document.getElementById('ssoNameInput').value.trim();
+        const provider = this.currentSSOProvider || "google";
+
+        if (!email || !email.includes('@')) {
+            this.showToast('Please enter a valid email address e.g. user@gmail.com', true);
+            return;
+        }
+
+        this.showToast(`Connecting to ${provider.toUpperCase()} SSO as ${email}...`, false);
+        const data = await window.AuthService.sso(provider, email, fullName);
 
         if (data.status === 'success') {
             const farmer = data.farmer || {};
             window.AgriState.currentUser = {
                 id: farmer.id || 1,
                 isDemoMode: false,
-                name: farmer.full_name || `${provider.toUpperCase()} Farmer`,
-                email: farmer.phone_or_email || `${provider}.farmer@agrisense.io`,
-                phone: "+1 (555) 019-2834",
+                name: farmer.full_name || (fullName || email.split('@')[0].toUpperCase()),
+                email: farmer.phone_or_email || email,
+                phone: farmer.phone || "+1 (555) 019-2834",
+                country: farmer.country || "United States",
+                country_code: farmer.country_code || "+1",
+                address: farmer.address || "",
+                city: farmer.city || "",
+                state: farmer.state || "",
+                postal_code: farmer.postal_code || "",
                 farmName: farmer.farm_name || "Green Valley Field Plot",
                 farmSize: farmer.farm_acres || 10.0,
                 location: "Lat: 20.2961, Lon: 85.8245",
                 avatar: farmer.full_name ? farmer.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : "AV"
             };
 
+            this.closeSSOModal();
             this.renderUser();
             this.switchView('dashboard');
-            this.showToast(`✅ Authenticated via ${provider.toUpperCase()} SSO!`, false);
+            this.showToast(`✅ Authenticated as ${email} via ${provider.toUpperCase()} SSO!`, false);
         } else {
-            this.switchView('dashboard');
+            this.showToast(data.detail || data.message || 'SSO authentication failed.', true);
+        }
+    },
+
+    updatePhoneCountryCode() {
+        const countrySelect = document.getElementById('profCountry');
+        const phoneInput = document.getElementById('profPhone');
+        if (!countrySelect || !phoneInput) return;
+
+        const selectedOption = countrySelect.options[countrySelect.selectedIndex];
+        const dialCode = selectedOption ? selectedOption.getAttribute('data-code') || '+1' : '+1';
+
+        let currentPhone = phoneInput.value.trim();
+        // Strip out existing dial code if present (e.g. +1, +91, +44, etc.)
+        currentPhone = currentPhone.replace(/^\+\d{1,4}\s*/, '');
+
+        if (currentPhone) {
+            phoneInput.value = `${dialCode} ${currentPhone}`;
+        } else {
+            phoneInput.value = `${dialCode} `;
         }
     },
 
@@ -207,6 +303,17 @@ const UI = {
         const name = document.getElementById('profName').value.trim();
         const email = document.getElementById('profEmail').value.trim();
         const phone = document.getElementById('profPhone').value.trim();
+
+        const countrySelect = document.getElementById('profCountry');
+        const country = countrySelect ? countrySelect.value : "United States";
+        const selectedOpt = countrySelect ? countrySelect.options[countrySelect.selectedIndex] : null;
+        const countryCode = selectedOpt ? (selectedOpt.getAttribute('data-code') || "+1") : "+1";
+
+        const address = document.getElementById('profAddress') ? document.getElementById('profAddress').value.trim() : "";
+        const city = document.getElementById('profCity') ? document.getElementById('profCity').value.trim() : "";
+        const state = document.getElementById('profState') ? document.getElementById('profState').value.trim() : "";
+        const postalCode = document.getElementById('profPostalCode') ? document.getElementById('profPostalCode').value.trim() : "";
+
         const farmName = document.getElementById('profFarmName').value.trim();
         const farmAcres = parseFloat(document.getElementById('profFarmAcres').value) || 15.0;
         const cropType = document.getElementById('profCropType').value.trim();
@@ -227,6 +334,12 @@ const UI = {
                     full_name: name,
                     phone_or_email: email,
                     phone: phone,
+                    country: country,
+                    country_code: countryCode,
+                    address: address,
+                    city: city,
+                    state: state,
+                    postal_code: postalCode,
                     farm_name: farmName,
                     farm_acres: farmAcres,
                     crop_type: cropType,
@@ -240,6 +353,12 @@ const UI = {
                 window.AgriState.currentUser.name = name;
                 window.AgriState.currentUser.email = email;
                 window.AgriState.currentUser.phone = phone;
+                window.AgriState.currentUser.country = country;
+                window.AgriState.currentUser.country_code = countryCode;
+                window.AgriState.currentUser.address = address;
+                window.AgriState.currentUser.city = city;
+                window.AgriState.currentUser.state = state;
+                window.AgriState.currentUser.postal_code = postalCode;
                 window.AgriState.currentUser.farmName = farmName;
                 window.AgriState.currentUser.farmSize = farmAcres;
                 window.AgriState.currentUser.location = location;
@@ -255,7 +374,7 @@ const UI = {
 
                 this.renderUser();
                 this.renderFarmsList();
-                this.showToast('✅ Profile & Farm details updated in database!', false);
+                this.showToast('✅ Profile & Address details updated in database!', false);
             } else {
                 this.showToast(data.detail || data.message || 'Profile update failed.', true);
             }
@@ -264,6 +383,12 @@ const UI = {
             window.AgriState.currentUser.name = name;
             window.AgriState.currentUser.email = email;
             window.AgriState.currentUser.phone = phone;
+            window.AgriState.currentUser.country = country;
+            window.AgriState.currentUser.country_code = countryCode;
+            window.AgriState.currentUser.address = address;
+            window.AgriState.currentUser.city = city;
+            window.AgriState.currentUser.state = state;
+            window.AgriState.currentUser.postal_code = postalCode;
             window.AgriState.currentUser.farmName = farmName;
             window.AgriState.currentUser.farmSize = farmAcres;
             this.renderUser();
@@ -374,13 +499,18 @@ const UI = {
 
     populateProfileForm() {
         const u = window.AgriState.currentUser;
-        if (document.getElementById('profName')) document.getElementById('profName').value = u.name;
-        if (document.getElementById('profEmail')) document.getElementById('profEmail').value = u.email;
-        if (document.getElementById('profPhone')) document.getElementById('profPhone').value = u.phone;
-        if (document.getElementById('profFarmName')) document.getElementById('profFarmName').value = u.farmName;
-        if (document.getElementById('profFarmAcres')) document.getElementById('profFarmAcres').value = u.farmSize;
+        if (document.getElementById('profName')) document.getElementById('profName').value = u.name || "Alex Vance";
+        if (document.getElementById('profEmail')) document.getElementById('profEmail').value = u.email || "farmer@agrisense.io";
+        if (document.getElementById('profPhone')) document.getElementById('profPhone').value = u.phone || "+1 (555) 019-2834";
+        if (document.getElementById('profCountry') && u.country) document.getElementById('profCountry').value = u.country;
+        if (document.getElementById('profAddress')) document.getElementById('profAddress').value = u.address || "";
+        if (document.getElementById('profCity')) document.getElementById('profCity').value = u.city || "";
+        if (document.getElementById('profState')) document.getElementById('profState').value = u.state || "";
+        if (document.getElementById('profPostalCode')) document.getElementById('profPostalCode').value = u.postal_code || "";
+        if (document.getElementById('profFarmName')) document.getElementById('profFarmName').value = u.farmName || "Green Valley Field Plot";
+        if (document.getElementById('profFarmAcres')) document.getElementById('profFarmAcres').value = u.farmSize || 15.0;
         if (document.getElementById('profCropType')) document.getElementById('profCropType').value = "Wheat & Paddy";
-        if (document.getElementById('profLocation')) document.getElementById('profLocation').value = u.location;
+        if (document.getElementById('profLocation')) document.getElementById('profLocation').value = u.location || "Sector A-14, Odisha (Lat: 20.2961, Lon: 85.8245)";
 
         const lastChangedEl = document.getElementById('profLastChangedText');
         if (lastChangedEl) {

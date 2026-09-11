@@ -62,11 +62,15 @@ const AuthService = {
     },
 
     // Single Sign-On (SSO)
-    async sso(provider) {
+    async sso(provider, email, fullName) {
+        const payload = {};
+        if (email) payload.email = email;
+        if (fullName) payload.full_name = fullName;
+
         const res = await fetch(`/api/v1/auth/sso/${provider}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ full_name: `${provider.toUpperCase()} Farmer` })
+            body: JSON.stringify(payload)
         });
         const data = await res.json();
         if (res.ok && data.status === 'success') {

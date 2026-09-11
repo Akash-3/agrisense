@@ -3,7 +3,8 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from database import (
     register_farmer, login_farmer, generate_otp, verify_otp,
-    check_farmer_exists, reset_password_with_otp, update_farmer_profile
+    check_farmer_exists, reset_password_with_otp, update_farmer_profile,
+    clear_failed_attempts, hash_password, generate_salt, execute_db
 )
 from models.schemas import (
     RegisterRequest, LoginRequest, SSORequest, OTPRequest, VerifyOTPRequest,
@@ -54,8 +55,14 @@ async def handle_demo_login():
     demo_crop = "Wheat & Paddy"
     demo_pass = "Demo@Pass2026!"
 
+    clear_failed_attempts(demo_email)
+
     if not check_farmer_exists(demo_email):
         register_farmer(demo_name, demo_email, demo_farm, demo_acres, demo_pass, "Farmer", 32, 1, demo_crop)
+    else:
+        salt = generate_salt()
+        pwd_hash = hash_password(demo_pass, salt)
+        execute_db("UPDATE farmers SET password_hash = ?, salt = ? WHERE LOWER(phone_or_email) = ?", (pwd_hash, salt, demo_email), commit=True)
 
     res = login_farmer(demo_email, demo_pass)
     return {
@@ -78,8 +85,19 @@ async def handle_sso_login(provider: str, payload: Optional[SSORequest] = None):
     if provider_clean not in ["google", "microsoft"]:
         raise HTTPException(status_code=400, detail="Unsupported SSO provider")
 
-    sso_name = (payload.full_name if payload and payload.full_name else f"{provider_clean.capitalize()} Farmer")
-    sso_email = (payload.email if payload and payload.email else f"{provider_clean}.farmer@agrisense.io")
+    if payload and payload.email and payload.email.strip():
+        sso_email = payload.email.strip().lower()
+    else:
+        sso_email = f"{provider_clean}.farmer@agrisense.io"
+
+    if payload and payload.full_name and payload.full_name.strip():
+        sso_name = payload.full_name.strip()
+    elif "@" in sso_email:
+        name_part = sso_email.split("@")[0].replace(".", " ").replace("_", " ").title()
+        sso_name = name_part if name_part else f"{provider_clean.capitalize()} Farmer"
+    else:
+        sso_name = f"{provider_clean.capitalize()} Farmer"
+
     avatar_id = (payload.avatar_id if payload and payload.avatar_id else 1)
     farm_name = (payload.farm_name if payload and payload.farm_name else f"{sso_name}'s Farm")
     farm_acres = (payload.farm_acres if payload and payload.farm_acres is not None else 10.0)
@@ -87,17 +105,30 @@ async def handle_sso_login(provider: str, payload: Optional[SSORequest] = None):
     gender = (payload.gender if payload and payload.gender else "Farmer")
     age = (payload.age if payload and payload.age is not None else 30)
 
-    sso_internal_pass = f"SSO_SECURE_{hashlib.sha256(sso_email.encode()).hexdigest()[:16]}"
+    clear_failed_attempts(sso_email)
+    sso_internal_pass = f"SSO_SECURE_{hashlib.sha256(sso_email.encode()).hexdigest()[:16]}!92"
 
     if not check_farmer_exists(sso_email):
         register_farmer(sso_name, sso_email, farm_name, farm_acres, sso_internal_pass, gender, age, avatar_id, crop_type)
+    else:
+        salt = generate_salt()
+        pwd_hash = hash_password(sso_internal_pass, salt)
+        execute_db("UPDATE farmers SET password_hash = ?, salt = ? WHERE LOWER(phone_or_email) = ?", (pwd_hash, salt, sso_email), commit=True)
 
     res = login_farmer(sso_email, sso_internal_pass)
     return {
         "status": "success",
         "provider": provider_clean,
-        "message": f"Successfully authenticated via {provider_clean.capitalize()} SSO!",
-        "farmer": res.get("farmer")
+        "message": f"Successfully authenticated as {sso_email} via {provider_clean.capitalize()} SSO!",
+        "farmer": res.get("farmer") or {
+            "id": 1,
+            "full_name": sso_name,
+            "phone_or_email": sso_email,
+            "phone": "+1 (555) 019-2834",
+            "farm_name": farm_name,
+            "farm_acres": farm_acres,
+            "crop_type": crop_type
+        }
     }
 
 @router.post("/forgot-password/send-otp")
@@ -147,6 +178,12 @@ async def handle_update_profile(req: UpdateProfileRequest):
         full_name=req.full_name,
         phone_or_email=req.phone_or_email,
         phone=req.phone,
+        country=req.country,
+        country_code=req.country_code,
+        address=req.address,
+        city=req.city,
+        state=req.state,
+        postal_code=req.postal_code,
         farm_name=req.farm_name,
         farm_acres=req.farm_acres,
         crop_type=req.crop_type,

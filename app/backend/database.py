@@ -79,6 +79,12 @@ def init_db():
             full_name VARCHAR(255) NOT NULL,
             phone_or_email VARCHAR(255) UNIQUE NOT NULL,
             phone VARCHAR(100) DEFAULT '+1 (555) 019-2834',
+            country VARCHAR(100) DEFAULT 'United States',
+            country_code VARCHAR(20) DEFAULT '+1',
+            address TEXT DEFAULT '',
+            city VARCHAR(100) DEFAULT '',
+            state VARCHAR(100) DEFAULT '',
+            postal_code VARCHAR(50) DEFAULT '',
             password_hash TEXT NOT NULL,
             salt TEXT DEFAULT '',
             farm_name VARCHAR(255) DEFAULT 'Main Farm',
@@ -114,10 +120,19 @@ def init_db():
             expires_at DOUBLE PRECISION NOT NULL
         );
         """)
-        try:
-            cursor.execute("ALTER TABLE farmers ADD COLUMN IF NOT EXISTS phone VARCHAR(100) DEFAULT '+1 (555) 019-2834';")
-        except Exception:
-            pass
+        for col, col_def in [
+            ("phone", "VARCHAR(100) DEFAULT '+1 (555) 019-2834'"),
+            ("country", "VARCHAR(100) DEFAULT 'United States'"),
+            ("country_code", "VARCHAR(20) DEFAULT '+1'"),
+            ("address", "TEXT DEFAULT ''"),
+            ("city", "VARCHAR(100) DEFAULT ''"),
+            ("state", "VARCHAR(100) DEFAULT ''"),
+            ("postal_code", "VARCHAR(50) DEFAULT ''")
+        ]:
+            try:
+                cursor.execute(f"ALTER TABLE farmers ADD COLUMN IF NOT EXISTS {col} {col_def};")
+            except Exception:
+                pass
     else:
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS farmers (
@@ -125,6 +140,12 @@ def init_db():
             full_name TEXT NOT NULL,
             phone_or_email TEXT UNIQUE NOT NULL,
             phone TEXT DEFAULT '+1 (555) 019-2834',
+            country TEXT DEFAULT 'United States',
+            country_code TEXT DEFAULT '+1',
+            address TEXT DEFAULT '',
+            city TEXT DEFAULT '',
+            state TEXT DEFAULT '',
+            postal_code TEXT DEFAULT '',
             password_hash TEXT NOT NULL,
             salt TEXT DEFAULT '',
             farm_name TEXT DEFAULT 'Main Farm',
@@ -136,41 +157,26 @@ def init_db():
         """)
         cursor.execute("PRAGMA table_info(farmers)")
         columns = [col[1] for col in cursor.fetchall()]
-        if 'phone' not in columns:
-            try:
-                cursor.execute("ALTER TABLE farmers ADD COLUMN phone TEXT DEFAULT '+1 (555) 019-2834'")
-            except Exception:
-                pass
-        if 'salt' not in columns:
-            try:
-                cursor.execute("ALTER TABLE farmers ADD COLUMN salt TEXT DEFAULT ''")
-            except Exception:
-                pass
-        if 'farm_name' not in columns:
-            try:
-                cursor.execute("ALTER TABLE farmers ADD COLUMN farm_name TEXT DEFAULT 'Main Farm'")
-            except Exception:
-                pass
-        if 'gender' not in columns:
-            try:
-                cursor.execute("ALTER TABLE farmers ADD COLUMN gender TEXT DEFAULT 'Farmer'")
-            except Exception:
-                pass
-        if 'age' not in columns:
-            try:
-                cursor.execute("ALTER TABLE farmers ADD COLUMN age INTEGER DEFAULT 32")
-            except Exception:
-                pass
-        if 'avatar_id' not in columns:
-            try:
-                cursor.execute("ALTER TABLE farmers ADD COLUMN avatar_id INTEGER DEFAULT 1")
-            except Exception:
-                pass
-        if 'password_updated_at' not in columns:
-            try:
-                cursor.execute("ALTER TABLE farmers ADD COLUMN password_updated_at REAL DEFAULT NULL")
-            except Exception:
-                pass
+        for col, col_def in [
+            ('phone', "TEXT DEFAULT '+1 (555) 019-2834'"),
+            ('country', "TEXT DEFAULT 'United States'"),
+            ('country_code', "TEXT DEFAULT '+1'"),
+            ('address', "TEXT DEFAULT ''"),
+            ('city', "TEXT DEFAULT ''"),
+            ('state', "TEXT DEFAULT ''"),
+            ('postal_code', "TEXT DEFAULT ''"),
+            ('salt', "TEXT DEFAULT ''"),
+            ('farm_name', "TEXT DEFAULT 'Main Farm'"),
+            ('gender', "TEXT DEFAULT 'Farmer'"),
+            ('age', "INTEGER DEFAULT 32"),
+            ('avatar_id', "INTEGER DEFAULT 1"),
+            ('password_updated_at', "REAL DEFAULT NULL")
+        ]:
+            if col not in columns:
+                try:
+                    cursor.execute(f"ALTER TABLE farmers ADD COLUMN {col} {col_def}")
+                except Exception:
+                    pass
 
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS farms (
@@ -417,7 +423,7 @@ def login_farmer(phone_or_email: str, password: str):
         }
 
     row = execute_db(
-        "SELECT id, full_name, password_hash, salt, gender, age, avatar_id, password_updated_at, phone FROM farmers WHERE LOWER(phone_or_email) = ?",
+        "SELECT id, full_name, password_hash, salt, gender, age, avatar_id, password_updated_at, phone, country, country_code, address, city, state, postal_code FROM farmers WHERE LOWER(phone_or_email) = ?",
         (clean_id,),
         fetchone=True
     )
@@ -432,6 +438,12 @@ def login_farmer(phone_or_email: str, password: str):
         avatar_id = row[6] if len(row) > 6 and row[6] else 1
         password_updated_at = row[7] if len(row) > 7 else None
         phone = row[8] if len(row) > 8 and row[8] else "+1 (555) 019-2834"
+        country = row[9] if len(row) > 9 and row[9] else "United States"
+        country_code = row[10] if len(row) > 10 and row[10] else "+1"
+        address = row[11] if len(row) > 11 and row[11] else ""
+        city = row[12] if len(row) > 12 and row[12] else ""
+        state = row[13] if len(row) > 13 and row[13] else ""
+        postal_code = row[14] if len(row) > 14 and row[14] else ""
         
         computed_hash = hash_password(password, salt) if salt else hash_password(password)
         salt_bytes = salt.encode('utf-8') if salt else b''
@@ -451,6 +463,12 @@ def login_farmer(phone_or_email: str, password: str):
                     "full_name": full_name,
                     "phone_or_email": clean_id,
                     "phone": phone,
+                    "country": country,
+                    "country_code": country_code,
+                    "address": address,
+                    "city": city,
+                    "state": state,
+                    "postal_code": postal_code,
                     "gender": gender,
                     "age": age,
                     "avatar_id": avatar_id,
@@ -502,7 +520,7 @@ def add_farm(farmer_id: int, farm_name: str, farm_acres: float, crop_type: str):
     )
     return {"status": "success", "farm_id": farm_id}
 
-def update_farmer_profile(farmer_id: int, full_name: str, phone_or_email: str = None, farm_name: str = None, farm_acres: float = None, crop_type: str = None, new_password: str = None, gender: str = "Farmer", age: int = 32, avatar_id: int = 1, location: str = None, phone: str = None):
+def update_farmer_profile(farmer_id: int, full_name: str, phone_or_email: str = None, farm_name: str = None, farm_acres: float = None, crop_type: str = None, new_password: str = None, gender: str = "Farmer", age: int = 32, avatar_id: int = 1, location: str = None, phone: str = None, country: str = None, country_code: str = None, address: str = None, city: str = None, state: str = None, postal_code: str = None):
     fields = ["full_name = ?", "gender = ?", "age = ?", "avatar_id = ?"]
     params = [full_name, gender, age, avatar_id]
     updated_at_val = None
@@ -510,6 +528,30 @@ def update_farmer_profile(farmer_id: int, full_name: str, phone_or_email: str = 
     if phone:
         fields.append("phone = ?")
         params.append(phone.strip())
+
+    if country:
+        fields.append("country = ?")
+        params.append(country.strip())
+
+    if country_code:
+        fields.append("country_code = ?")
+        params.append(country_code.strip())
+
+    if address is not None:
+        fields.append("address = ?")
+        params.append(address.strip())
+
+    if city is not None:
+        fields.append("city = ?")
+        params.append(city.strip())
+
+    if state is not None:
+        fields.append("state = ?")
+        params.append(state.strip())
+
+    if postal_code is not None:
+        fields.append("postal_code = ?")
+        params.append(postal_code.strip())
 
     if phone_or_email:
         fields.append("phone_or_email = ?")
@@ -535,9 +577,15 @@ def update_farmer_profile(farmer_id: int, full_name: str, phone_or_email: str = 
     if farm_name or farm_acres or crop_type:
         execute_db("UPDATE farms SET farm_name = COALESCE(?, farm_name), farm_acres = COALESCE(?, farm_acres), crop_type = COALESCE(?, crop_type) WHERE farmer_id = ?", (farm_name, farm_acres, crop_type, farmer_id), commit=True)
 
-    row = execute_db("SELECT phone_or_email, phone FROM farmers WHERE id = ?", (farmer_id,), fetchone=True)
+    row = execute_db("SELECT phone_or_email, phone, country, country_code, address, city, state, postal_code FROM farmers WHERE id = ?", (farmer_id,), fetchone=True)
     stored_email = row[0] if row else phone_or_email
     stored_phone = row[1] if row and len(row) > 1 and row[1] else (phone or "+1 (555) 019-2834")
+    stored_country = row[2] if row and len(row) > 2 and row[2] else (country or "United States")
+    stored_country_code = row[3] if row and len(row) > 3 and row[3] else (country_code or "+1")
+    stored_address = row[4] if row and len(row) > 4 and row[4] else (address or "")
+    stored_city = row[5] if row and len(row) > 5 and row[5] else (city or "")
+    stored_state = row[6] if row and len(row) > 6 and row[6] else (state or "")
+    stored_postal_code = row[7] if row and len(row) > 7 and row[7] else (postal_code or "")
 
     return {
         "status": "success",
@@ -547,6 +595,12 @@ def update_farmer_profile(farmer_id: int, full_name: str, phone_or_email: str = 
             "full_name": full_name,
             "phone_or_email": stored_email,
             "phone": stored_phone,
+            "country": stored_country,
+            "country_code": stored_country_code,
+            "address": stored_address,
+            "city": stored_city,
+            "state": stored_state,
+            "postal_code": stored_postal_code,
             "farm_name": farm_name,
             "farm_acres": farm_acres,
             "crop_type": crop_type,
