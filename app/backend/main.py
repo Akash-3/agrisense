@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from database import init_db
-from routers import auth, telemetry, ai
+from routers import auth, telemetry, ai, v2
 
 init_db()
 
@@ -82,6 +82,7 @@ async def serve_web_dashboard():
 app.include_router(auth.router)
 app.include_router(telemetry.router)
 app.include_router(ai.router)
+app.include_router(v2.router)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

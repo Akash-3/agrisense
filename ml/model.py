@@ -1,0 +1,148 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class SpectralEncoder1D(nn.Module):
+    """
+    Stream 1: 1D Convolutional Encoder for 10-Channel AS7341 Spectral Band Input (415nm - 850nm)
+    """
+    def __init__(self, in_channels=1, embed_dim=128):
+        super().__init__()
+        self.conv1 = nn.Conv1d(in_channels, 32, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm1d(32)
+        self.conv2 = nn.Conv1d(32, 64, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm1d(64)
+        self.pool = nn.AdaptiveAvgPool1d(1)
+        self.fc = nn.Linear(64, embed_dim)
+
+    def forward(self, x):
+        # x: (B, 10) -> reshape to (B, 1, 10)
+        x = x.unsqueeze(1)
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = self.pool(x).squeeze(-1) # (B, 64)
+        out = self.fc(x)             # (B, embed_dim)
+        return out
+
+class SpatialEncoder2D(nn.Module):
+    """
+    Stream 2: 2D Convolutional Encoder for (3, 64, 64) RGB Crop Canopy Imagery
+    """
+    def __init__(self, in_channels=3, embed_dim=128):
+        super().__init__()
+        self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=3, stride=2, padding=1)
+        self.bn1 = nn.BatchNorm2d(32)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1)
+        self.bn2 = nn.BatchNorm2d(64)
+        self.conv3 = nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1)
+        self.bn3 = nn.BatchNorm2d(128)
+        self.pool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc = nn.Linear(128, embed_dim)
+
+    def forward(self, x):
+        # x: (B, 3, 64, 64)
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = F.relu(self.bn3(self.conv3(x)))
+        x = self.pool(x).squeeze(-1).squeeze(-1) # (B, 128)
+        out = self.fc(x)                         # (B, embed_dim)
+        return out
+
+class EnvironmentalEncoder(nn.Module):
+    """
+    Stream 3: MLP Encoder for 4-Channel Environmental Metrics [Temp, Humidity, Soil Moisture, Gas]
+    """
+    def __init__(self, in_features=4, embed_dim=64):
+        super().__init__()
+        self.mlp = nn.Sequential(
+            nn.Linear(in_features, 32),
+            nn.ReLU(),
+            nn.BatchNorm1d(32),
+            nn.Linear(32, embed_dim),
+            nn.ReLU()
+        )
+
+    def forward(self, x):
+        return self.mlp(x)
+
+class CrossAttentionFusion(nn.Module):
+    """
+    Spectral-Spatial Cross-Attention + Environmental Concatenation Layer
+    """
+    def __init__(self, embed_dim=128, env_dim=64, num_heads=4):
+        super().__init__()
+        self.cross_attn = nn.MultiheadAttention(embed_dim=embed_dim, num_heads=num_heads, batch_first=True)
+        self.layer_norm = nn.LayerNorm(embed_dim)
+        self.fusion_fc = nn.Sequential(
+            nn.Linear(embed_dim + env_dim, 128),
+            nn.ReLU(),
+            nn.Dropout(0.2)
+        )
+
+    def forward(self, spec_emb, spat_emb, env_emb):
+        # spec_emb: (B, 128), spat_emb: (B, 128), env_emb: (B, 64)
+        # Reshape for multi-head attention: (B, 1, 128)
+        q = spat_emb.unsqueeze(1)
+        k = spec_emb.unsqueeze(1)
+        v = spec_emb.unsqueeze(1)
+
+        attn_out, attn_weights = self.cross_attn(q, k, v) # (B, 1, 128)
+        attn_out = attn_out.squeeze(1)
+        
+        # Residual connection + norm
+        spatial_spectral_fused = self.layer_norm(spat_emb + attn_out)
+
+        # Concatenate with environmental features
+        concat_features = torch.cat([spatial_spectral_fused, env_emb], dim=-1) # (B, 192)
+        fused_embedding = self.fusion_fc(concat_features)                      # (B, 128)
+
+        return fused_embedding, attn_weights
+
+class MMSSNet(nn.Module):
+    """
+    Multi-Modal Spectral-Spatial Network (MM-SSNet) for Agricultural Stress Classification & Severity Estimation.
+    Outputs:
+    - Condition Classification Logits (6 classes)
+    - Continuous Severity Score (0 to 100)
+    - Empirical Lead-Time Estimate (hours to symptomatic manifestation)
+    """
+    def __init__(self, num_classes=6, embed_dim=128, env_dim=64):
+        super().__init__()
+        self.spectral_stream = SpectralEncoder1D(in_channels=1, embed_dim=embed_dim)
+        self.spatial_stream = SpatialEncoder2D(in_channels=3, embed_dim=embed_dim)
+        self.env_stream = EnvironmentalEncoder(in_features=4, embed_dim=env_dim)
+        self.fusion = CrossAttentionFusion(embed_dim=embed_dim, env_dim=env_dim)
+
+        # Multi-task heads
+        self.class_head = nn.Linear(embed_dim, num_classes)
+        self.severity_head = nn.Sequential(
+            nn.Linear(embed_dim, 64),
+            nn.ReLU(),
+            nn.Linear(64, 1),
+            nn.Sigmoid()
+        )
+        self.lead_time_head = nn.Sequential(
+            nn.Linear(embed_dim, 64),
+            nn.ReLU(),
+            nn.Linear(64, 1),
+            nn.ReLU()
+        )
+
+    def forward(self, spectral, spatial, env):
+        spec_emb = self.spectral_stream(spectral)
+        spat_emb = self.spatial_stream(spatial)
+        env_emb = self.env_stream(env)
+
+        fused_emb, attn_weights = self.fusion(spec_emb, spat_emb, env_emb)
+
+        class_logits = self.class_head(fused_emb)
+        severity = self.severity_head(fused_emb) * 100.0 # Scale to 0-100
+        lead_time = self.lead_time_head(fused_emb)
+
+        return {
+            "class_logits": class_logits,
+            "severity": severity.squeeze(-1),
+            "lead_time": lead_time.squeeze(-1),
+            "attn_weights": attn_weights,
+            "latent_features": fused_emb
+        }

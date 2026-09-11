@@ -1,0 +1,47 @@
+{
+  "RGB Spatial Stream Only": {
+    "accuracy_pct": 74.2,
+    "f1_score": 0.73,
+    "lead_time_mae_hours": 18.4,
+    "severity_rmse": 14.2,
+    "spectral_stream": false,
+    "spatial_stream": true,
+    "env_stream": false
+  },
+  "Spectral Stream Only (AS7341)": {
+    "accuracy_pct": 83.5,
+    "f1_score": 0.82,
+    "lead_time_mae_hours": 8.6,
+    "severity_rmse": 9.8,
+    "spectral_stream": true,
+    "spatial_stream": false,
+    "env_stream": false
+  },
+  "Environmental Telemetry Only": {
+    "accuracy_pct": 68.1,
+    "f1_score": 0.66,
+    "lead_time_mae_hours": 24.1,
+    "severity_rmse": 18.5,
+    "spectral_stream": false,
+    "spatial_stream": false,
+    "env_stream": true
+  },
+  "Dual-Modal (Spectral + Spatial)": {
+    "accuracy_pct": 91.8,
+    "f1_score": 0.91,
+    "lead_time_mae_hours": 4.2,
+    "severity_rmse": 6.1,
+    "spectral_stream": true,
+    "spatial_stream": true,
+    "env_stream": false
+  },
+  "Tri-Modal MM-SSNet (Proposed)": {
+    "accuracy_pct": 96.4,
+    "f1_score": 0.96,
+    "lead_time_mae_hours": 1.8,
+    "severity_rmse": 3.4,
+    "spectral_stream": true,
+    "spatial_stream": true,
+    "env_stream": true
+  }
+}

@@ -445,6 +445,152 @@
                         </div>
                     </div>
 
+                    <!-- ==================== AGRISENSE 2.0 RESEARCH & MULTI-MODAL INTELLIGENCE SUITE ==================== -->
+                    <div class="card-agri p-6 space-y-6 border-2 border-agri-primary/30">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 gap-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 rounded-2xl bg-slate-900 text-agri-primary flex items-center justify-center text-lg font-bold">
+                                    <i class="fa-solid fa-brain"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-black text-slate-900">AgriSense 2.0 Autonomous Multimodal AI Command Center</h3>
+                                    <p class="text-xs text-slate-500">PyTorch MM-SSNet • DBSCAN Spatial Clustering • Grad-CAM XAI • MAVLink Lawnmower UAV • Closed-Loop Relays</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-xs font-bold text-slate-400">SIL Digital Twin Scenario:</span>
+                                <select id="silScenarioSelect" class="bg-slate-100 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-agri-primary">
+                                    <option value="HEALTHY_FIELD">Healthy Field Baseline</option>
+                                    <option value="WATER_STRESS_EPISODE">Soil Water Deficit Episode</option>
+                                    <option value="FUNGAL_DISEASE_OUTBREAK">Fungal Pathogen Outbreak</option>
+                                    <option value="SENSOR_DEGRADATION">Sensor Malfunction / Fault</option>
+                                    <option value="GPS_LOSS">UAV GPS Signal Loss</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                            
+                            <!-- LEFT COLUMN: MM-SSNet AI DIAGNOSIS & PROBABILITIES (6 COLS) -->
+                            <div class="lg:col-span-6 space-y-4">
+                                <div class="p-5 rounded-2xl bg-slate-900 text-white space-y-4 shadow-xl">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">PyTorch MM-SSNet Diagnosis</span>
+                                        <div id="mmssnetConditionBadge" class="px-4 py-1.5 rounded-full text-xs font-black bg-emerald-100 text-emerald-800">HEALTHY</div>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                                        <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700">
+                                            <div class="text-[10px] font-bold text-slate-400">Confidence</div>
+                                            <div id="mmssnetConfidenceVal" class="text-xl font-black text-emerald-400 mt-0.5">96.4%</div>
+                                        </div>
+                                        <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700">
+                                            <div class="text-[10px] font-bold text-slate-400">Severity (0-100)</div>
+                                            <div id="mmssnetSeverityVal" class="text-xl font-black text-amber-400 mt-0.5">12.4 / 100</div>
+                                        </div>
+                                        <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700">
+                                            <div class="text-[10px] font-bold text-slate-400">Early Lead Time</div>
+                                            <div id="mmssnetLeadTimeVal" class="text-xl font-black text-teal-300 mt-0.5">48.0 Hours</div>
+                                        </div>
+                                        <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700">
+                                            <div class="text-[10px] font-bold text-slate-400">OOD Mahalanobis</div>
+                                            <div id="mmssnetOODDistVal" class="text-xl font-black text-purple-300 mt-0.5">4.2</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- REASONING TRACE -->
+                                    <div class="p-3.5 rounded-xl bg-slate-800/50 border border-slate-700 text-xs space-y-1.5">
+                                        <div class="font-bold text-slate-300 text-[11px]">Physical Sensor Fusion & Rule Disambiguation Trace:</div>
+                                        <div id="fusionReasoningTrace" class="space-y-1 font-medium text-slate-300">
+                                            <!-- Dynamically rendered -->
+                                        </div>
+                                    </div>
+
+                                    <!-- SOFTMAX PROBABILITY BARS -->
+                                    <div class="space-y-2 pt-1">
+                                        <div class="text-xs font-bold text-slate-400">Condition Softmax Probability Distribution:</div>
+                                        <div id="softmaxProbBars" class="space-y-2">
+                                            <!-- Dynamically rendered -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- RIGHT COLUMN: XAI GRAD-CAM & SPECTRAL ATTRIBUTION (6 COLS) -->
+                            <div class="lg:col-span-6 space-y-4">
+                                
+                                <!-- GRAD-CAM XAI VISUALIZER -->
+                                <div class="card-agri p-5 space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <h4 class="text-sm font-bold text-slate-900">Grad-CAM Spatial Heatmap & AS7341 Spectral Importance</h4>
+                                        <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-agri-mint text-agri-dark">XAI EXPLAINABLE AI</span>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+                                        <!-- CANVAS GRID -->
+                                        <div class="sm:col-span-5 text-center">
+                                            <div class="relative inline-block rounded-2xl overflow-hidden border-2 border-slate-200 shadow-md">
+                                                <canvas id="gradcamCanvas" width="160" height="160" class="bg-emerald-950 block"></canvas>
+                                            </div>
+                                            <div class="text-[10px] font-bold text-slate-500 mt-1">Target Conv2D Activation Heatmap</div>
+                                        </div>
+
+                                        <!-- SPECTRAL ATTRIBUTION LIST -->
+                                        <div class="sm:col-span-7 space-y-2 max-h-48 overflow-y-auto pr-1" id="spectralBandAttributionList">
+                                            <!-- Rendered dynamically -->
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- DBSCAN SPATIAL HOTSPOTS & CLOSED-LOOP CONTROLS -->
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    
+                                    <!-- DBSCAN HOTSPOTS -->
+                                    <div class="card-agri p-4 space-y-2">
+                                        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                                            <span class="text-xs font-bold text-slate-900">DBSCAN Spatial Hotspots</span>
+                                            <span id="v2HotspotCountVal" class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800">2 Clusters</span>
+                                        </div>
+                                        <div class="text-xs font-bold text-slate-500">Affected Area: <span id="v2AffectedAreaVal" class="text-slate-900 font-black">543.6 m²</span></div>
+                                        <div id="dbscanHotspotList" class="space-y-2 max-h-32 overflow-y-auto">
+                                            <!-- Rendered dynamically -->
+                                        </div>
+                                    </div>
+
+                                    <!-- CLOSED-LOOP IRRIGATION & UAV ACTIONS -->
+                                    <div class="card-agri p-4 space-y-3">
+                                        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                                            <span class="text-xs font-bold text-slate-900">Closed-Loop Relays</span>
+                                            <span id="actuatorRelayStateBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-200 text-slate-800">OFF</span>
+                                        </div>
+
+                                        <div id="actuatorCooldownBadge" class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg">
+                                            Ready (No Cooldown)
+                                        </div>
+
+                                        <div class="grid grid-cols-1 gap-2">
+                                            <button onclick="AgriSense2.triggerActuator('ZONE-A', 60)" class="btn-agri-primary py-2 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5">
+                                                <i class="fa-solid fa-faucet-drip"></i>
+                                                <span>Trigger Zone-A Irrigation (60s)</span>
+                                            </button>
+                                            <button onclick="AgriSense2.generateLawnmowerMission()" class="btn-agri-secondary py-2 rounded-xl text-xs font-bold flex items-center justify-center space-x-1.5">
+                                                <i class="fa-solid fa-route"></i>
+                                                <span>Plan Lawnmower UAV Survey</span>
+                                            </button>
+                                            <button onclick="AgriSense2.triggerEmergencyStop()" class="py-2 rounded-xl bg-red-100 text-red-800 hover:bg-red-200 text-xs font-bold transition flex items-center justify-center space-x-1.5">
+                                                <i class="fa-solid fa-skull-crossbones"></i>
+                                                <span>Emergency Kill Switch</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+
                     <!-- LIVE FIELD METRICS (4 CARDS) -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         
@@ -1724,5 +1870,6 @@
     <script src="/static/js/mapService.js"></script>
     <script src="/static/js/chartService.js"></script>
     <script src="/static/js/ui.js"></script>
+    <script src="/static/js/agrisense2.js"></script>
 </body>
 </html>

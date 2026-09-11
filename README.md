@@ -1,27 +1,50 @@
-# AgriSense - Autonomous Agriculture & Precision Farming Platform
+# AgriSense 2.0 — Autonomous Multimodal Agricultural Intelligence Platform
 
-AgriSense is an AI-powered enterprise smart agriculture platform for real-time soil telemetry monitoring, crop disease diagnosis, autonomous drone fleet control, and precision farm management.
-
----
-
-## 🌟 Key Platform Features
-
-- **Interactive Web Dashboard**: Real-time soil moisture (VWC), ambient temperature, relative humidity, air quality (MQ-135), and solar irradiance monitoring with pre-symptomatic fungal stress prediction.
-- **Real Browser-Autofilled Google & Microsoft SSO**: Interactive provider-branded SSO modal dialog supporting native browser email autofill (`autocomplete="email"` and `autocomplete="name"`) for instant account registration and sign-in.
-- **100% Real Hardware Telemetry Engine**: Operates strictly on physical ESP32 multi-sensor payloads (Soil Moisture, DHT22 Temp/Humidity, MQ-135 Air Quality) with instant hardware fault detection (`SENSOR_DISCONNECTED`).
-- **User Address & Dynamic Country Dial Codes**: Country selector (`#profCountry`) automatically formatting and prefixing mobile phone dial codes (US `+1`, India `+91`, UK `+44`, etc.) with PostgreSQL & SQLite database persistence.
-- **Remote ESP32 IoT Firmware (1,200 km WAN Ready)**: Production C++/Arduino firmware (`esp32/multi_sensor_esp32/multi_sensor_esp32.ino`) with TCP socket clean-up (`http.setReuse(false);` & `Connection: close`) and Google DNS fallback (`8.8.8.8`).
-- **Live Crop Health AI Scanner**: Leaf photo analysis for computer vision disease diagnosis, health index calculation, and treatment recommendations.
-- **Automated In-App OTA Updates**: Direct background check, download, and installation of signed APK updates (`/api/v1/update/check`).
-- **Autonomous Drone Fleet & Satellite Boundary Mapper**: Interactive Leaflet satellite map with dynamic polygon acreage calculation and waypoint mission planning.
+AgriSense 2.0 is a research-grade **Autonomous Multimodal Agricultural Intelligence System** integrating 10-channel optical spectroscopy, computer vision canopy spatial imagery, microclimate environmental telemetry, PyTorch deep learning models (`MM-SSNet`), Explainable AI (`Grad-CAM`), density-based spatial clustering (`DBSCAN`), MAVLink/ArduPilot UAV flight planning, closed-loop relay actuation, and Software-In-The-Loop (`SIL`) field digital twin simulation.
 
 ---
 
-## 🚀 How to Launch the Website Locally
+## 🌟 Research Innovations & Technical Architecture
+
+### 🧠 1. PyTorch MM-SSNet Multimodal Model (`ml/model.py`)
+- **Stream 1 (Spectral)**: 1D Convolutional encoder processing 10-channel AS7341 optical band reflectance ($415\text{ nm} - 850\text{ nm}$ near-infrared).
+- **Stream 2 (Spatial/RGB)**: 2D Convolutional encoder processing $(3, 64, 64)$ RGB canopy imagery patches.
+- **Stream 3 (Environmental)**: MLP encoder for Temperature, Humidity, Soil Moisture, and Gas PPM metrics.
+- **Cross-Attention Fusion Layer**: Cross-attention mechanism between Spectral & Spatial embeddings with Environmental feature vector concatenation.
+- **Multi-Task Prediction Heads**:
+  - 6-Class Condition Logits (`HEALTHY`, `PRE_SYMPTOMATIC_STRESS`, `WATER_STRESS`, `DISEASE`, `SEVERE_STRESS`, `UNKNOWN_ANOMALY`).
+  - Softmax probability distribution.
+  - Continuous severity score ($0 - 100$).
+  - Empirical lead-time estimation in hours before symptomatic manifestation.
+
+### 🔍 2. Explainable AI (XAI) & Out-Of-Distribution Anomaly Engine (`services/xai_service.py`)
+- **Grad-CAM Heatmaps**: Spatial activation overlay maps highlighting diseased canopy zones.
+- **AS7341 Band Importance Attribution**: Spectral feature attributions across $415\text{ nm} - 850\text{ nm}$ wavelengths.
+- **Mahalanobis Distance OOD Detector**: Latent feature distance tracking to identify novel crop stresses or hardware sensor failures (`UNKNOWN_ANOMALY`).
+
+### 🗺️ 3. Real Geospatial DBSCAN Hotspot & Bounding Area Engine (`services/geospatial_service.py`)
+- Real-time density-based spatial clustering (`sklearn.cluster.DBSCAN`) grouping stress telemetry across field GPS coordinates.
+- Computes cluster centroids, bounding polygon bounds, and exact affected field area in square meters ($m^2$).
+
+### ✈️ 4. Autonomous UAV Mission Planner & Lawnmower Flight Paths (`services/mission_service.py`)
+- **Lawnmower Survey Grid Generator**: Computes parallel survey flight paths over field boundary coordinates.
+- **MAVLink / ArduPilot Hardware Abstraction**: Generates MAVLink 2.0 flight waypoints (`NAV_TAKEOFF`, `NAV_WAYPOINT`, `NAV_RETURN_TO_LAUNCH`).
+- **AI-Driven Targeted Revisit Missions**: Automatically schedules low-altitude inspection hovers over high-severity DBSCAN hotspots.
+
+### 💧 5. Closed-Loop Irrigation & Actuator Safety Guardrails (`services/irrigation_service.py`)
+- Hardware relay actuation with mandatory 15-minute cooldown timers, maximum 300s duration caps, post-actuation moisture sampling verification, and instant Emergency Kill Switch override.
+
+### 🧪 6. Software-In-The-Loop (SIL) Digital Twin Simulator (`services/digital_twin_service.py`)
+- Multi-scenario field state injector (`HEALTHY_FIELD`, `WATER_STRESS_EPISODE`, `FUNGAL_DISEASE_OUTBREAK`, `SENSOR_DEGRADATION`, `GPS_LOSS`).
+
+---
+
+## 🚀 How to Launch the System Locally
 
 ### 📋 Prerequisites
 
 1. **Python 3.10+**: Ensure Python is installed (`python --version`).
+2. **PyTorch & Dependencies**: Installed via `requirements.txt` and `ml/requirements-ml.txt`.
 
 ---
 
@@ -34,57 +57,55 @@ cd agrisense
 
 ---
 
-### 2️⃣ Install Python Dependencies
+### 2️⃣ Install Dependencies
 
 ```bash
 pip install -r requirements.txt
+pip install -r ml/requirements-ml.txt
 ```
 
 ---
 
-### 3️⃣ Launch the Website Server
+### 3️⃣ Train PyTorch MM-SSNet & Temporal Models (Optional)
 
-Run the main application server entry point:
+```bash
+python -m ml.train
+python -m ml.ablation
+```
+
+Pre-trained model checkpoints are automatically saved to `ml/checkpoints/mmssnet.pth` and `ml/checkpoints/temporal_net.pth`. Ablation study results are stored in `ml/results/ablation_report.json`.
+
+---
+
+### 4️⃣ Launch the FastAPI Web Server
 
 ```bash
 python app/run_app.py
 ```
 
-Upon launching, the script will output local network URLs and automatically open your default browser.
-
-Access the website locally at:
-- 🌐 **Web Application Dashboard**: [http://localhost:8000](http://localhost:8000)
-- 📚 **Interactive Swagger API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+Access the system locally at:
+- 🌐 **Web Dashboard & Command Center**: [http://localhost:8000](http://localhost:8000)
+- 📚 **AgriSense 2.0 Research Swagger APIs**: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
-## 📱 Mobile Application Setup (Optional)
-
-Navigate into the Flutter mobile app directory:
+### 5️⃣ Run Automated Unit & E2E QA Test Suites
 
 ```bash
-cd mobile_app
-flutter pub get
-flutter run
-```
+# Run PyTorch & Services Unit Tests
+python -m unittest discover tests
 
-To build a standalone production Android APK:
-
-```bash
-flutter build apk --release
+# Run Virtual User Playwright E2E Browser QA Tests
+python run_qa_tests.py
 ```
 
 ---
 
-## 🔌 Flash ESP32 Multi-Sensor IoT Node
+## 🔌 Unified ESP32 IoT Firmware Flashing
 
-1. Open `esp32/multi_sensor_esp32/multi_sensor_esp32.ino` in Arduino IDE or VS Code.
-2. Update Wi-Fi SSID and Password (`WIFI_SSID`, `WIFI_PASSWORD`).
-3. Upload to your ESP32 board or flash pre-compiled binary via `esptool`:
-
-```bash
-python -m esptool --port COM3 --baud 921600 write_flash 0x10000 esp32/build/multi_sensor_esp32.ino.bin
-```
+1. Open `esp32/unified_firmware/unified_firmware.ino` in Arduino IDE.
+2. Copy `config.h.example` to `config.h` and configure Wi-Fi credentials (`WIFI_SSID`, `WIFI_PASSWORD`, `BACKEND_SERVER`).
+3. Upload to ESP32 hardware board or flash pre-compiled binary via `esptool`.
 
 ---
 
@@ -92,21 +113,28 @@ python -m esptool --port COM3 --baud 921600 write_flash 0x10000 esp32/build/mult
 
 ```
 agrisense/
-├── app/                  # Web Application & Backend Server
-│   ├── backend/          # REST Endpoints, SQLite/Postgres DB Engine, Auth, & Telemetry
-│   ├── frontend/         # Web Dashboard UI, Leaflet Maps, & State Layer
-│   └── run_app.py        # Main Application & Web Dashboard Server Entry Point
-├── mobile_app/           # Flutter Cross-Platform Mobile Application (Android/iOS)
-│   ├── lib/              # UI Screens, Widgets, Models, & Native Services
-│   └── pubspec.yaml      # Flutter Mobile Dependencies
-├── esp32/                # Production ESP32 C++/Arduino Firmware & Pre-compiled Binaries
-│   ├── multi_sensor_esp32/  # Main ESP32 Sketch Folder
-│   └── build/            # Pre-compiled .bin Binaries for esptool Flashing
-├── requirements.txt      # Root Python Server Dependencies
+├── app/                  # Web Application & FastAPI Backend
+│   ├── backend/          # REST Endpoints, DB Engine, Routers (v2.py), & Services
+│   │   └── services/     # AI, Fusion, Geospatial, XAI, UAV Mission, Irrigation, SIL Twin Services
+│   ├── frontend/         # Command Center UI, Leaflet GIS Maps, & agrisense2.js
+│   └── run_app.py        # Main Server Launcher Entry Point
+├── ml/                   # Machine Learning Pipeline
+│   ├── dataset.py        # Dataset DataLoader & Synthetic Generator
+│   ├── model.py          # PyTorch MM-SSNet Model Architecture
+│   ├── temporal.py       # GRU TemporalStressNet Model Architecture
+│   ├── train.py          # Training Loop & Checkpoint Saver
+│   ├── ablation.py       # Multimodal Stream Ablation Study
+│   └── checkpoints/      # Trained PyTorch Model Weights (.pth)
+├── esp32/                # Unified Production ESP32 Hardware Firmware
+│   └── unified_firmware/ # Modular C++/Arduino Firmware & config.h template
+├── tests/                # Automated Unit & Integration Tests
+│   └── e2e/              # Playwright E2E Virtual User QA Tests
+├── requirements.txt      # Root Python Dependencies
+├── run_qa_tests.py       # E2E Test Suite Runner
 └── README.md             # Platform Setup & Architecture Guide
 ```
 
 ---
 
 ## 🔒 License & Governance
-Developed for the AgriSense Autonomous Agriculture Platform.
+Developed for the AgriSense 2.0 Autonomous Multimodal Agricultural Intelligence Platform.

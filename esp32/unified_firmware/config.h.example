@@ -1,0 +1,31 @@
+/*
+ * AgriSense 2.0 Unified ESP32 Firmware Configuration Template
+ * Rename this file to 'config.h' and fill in your WiFi and Server details.
+ */
+
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// --- Wi-Fi Credentials ---
+#define WIFI_SSID       "YOUR_WIFI_SSID"
+#define WIFI_PASSWORD   "YOUR_WIFI_PASSWORD"
+
+// --- AgriSense Backend Server ---
+// E.g. "http://192.168.1.100:8000" or Cloudflare Tunnel "http://adapters-allows-publicity-sagem.trycloudflare.com"
+#define BACKEND_SERVER  "http://192.168.1.100:8000"
+
+// --- Hardware Node Configuration ---
+#define DEVICE_ID       "ESP32_NODE_FARM_01"
+#define TELEMETRY_INTERVAL_MS 10000 // 10 seconds
+
+// --- Pin Definitions ---
+#define DHT_PIN         4
+#define SOIL_ANALOG_PIN 34
+#define GAS_ANALOG_PIN  35
+#define RELAY_PUMP_PIN  16
+
+// I2C Pins for AS7341 Spectral Sensor (SDA: 21, SCL: 22)
+#define I2C_SDA_PIN     21
+#define I2C_SCL_PIN     22
+
+#endif // CONFIG_H

@@ -1,4 +1,4 @@
-# AgriSense Platform Python Dependencies
+# AgriSense 2.0 Autonomous Multimodal Platform Python Dependencies
 
 # Core FastAPI Backend Server & WebSockets
 fastapi>=0.100.0
@@ -8,6 +8,12 @@ requests>=2.28.0
 websockets>=11.0
 Pillow>=10.0.0
 psycopg2-binary>=2.9.0
+
+# PyTorch Deep Learning & Machine Learning
+torch>=2.0.0
+torchvision>=0.15.0
+scikit-learn>=1.2.0
+matplotlib>=3.7.0
 
 # Virtual User E2E Automated QA Testing Suite
 playwright>=1.40.0
