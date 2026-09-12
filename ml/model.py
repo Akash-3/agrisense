@@ -17,13 +17,24 @@ class SpectralEncoder1D(nn.Module):
         self.fc = nn.Linear(64, embed_dim)
 
     def forward(self, x):
+        # AS7341 contract: exactly 10 spectral bands
+        if x.dim() != 2:
+            raise ValueError(
+                f"Spectral input must have shape (B, 10), got {tuple(x.shape)}"
+            )
+
+        if x.size(1) != 10:
+            raise ValueError(
+                f"Spectral input must contain exactly 10 AS7341 bands, got {x.size(1)}"
+            )
+
         # x: (B, 10) -> reshape to (B, 1, 10)
-        if x.dim() == 2:
-            x = x.unsqueeze(1)
+        x = x.unsqueeze(1)
+
         x = F.relu(self.bn1(self.conv1(x)))
         x = F.relu(self.bn2(self.conv2(x)))
-        x = self.pool(x).squeeze(-1) # (B, 64)
-        out = self.fc(x)             # (B, embed_dim)
+        x = self.pool(x).squeeze(-1)
+        out = self.fc(x)
         return out
 
 

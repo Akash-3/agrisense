@@ -57,6 +57,15 @@ class IrrigationService:
     def trigger_actuator(self, zone_id, duration_sec=60, trigger_source="AI_CLOSED_LOOP"):
         current_time = time.time()
 
+        if duration_sec <= 0:
+            return {
+            "success": False,
+            "status": "INVALID_DURATION",
+            "message": "Actuation duration must be greater than 0 seconds.",
+            "relay_state": "OFF",
+            "relay_mode": self.adapter.MODE
+            }
+
         if self.emergency_stop_active:
             return {
                 "success": False,
@@ -82,7 +91,22 @@ class IrrigationService:
             }
 
         # Dispatch through hardware adapter
-        dispatch_res = self.adapter.send_relay_command(zone_id, "ON", duration_sec)
+        dispatch_res = self.adapter.send_relay_command(
+            zone_id, "ON", duration_sec
+        )
+        
+        if not dispatch_res.get("success", False):
+            return {
+                "success": False,
+                "status": "ACTUATION_FAILED",
+                "message": "Relay actuation failed: hardware adapter did not confirm dispatch.",
+                "duration_sec": duration_sec,
+                "zone_id": zone_id,
+                "relay_state": "OFF",
+                "relay_mode": self.adapter.MODE,
+                "hardware_dispatched": False,
+                "error": dispatch_res.get("error", "Unknown relay adapter error")
+            }
         self.software_relay_state = "ON"
         self.last_actuation_time = current_time
 
@@ -92,6 +116,8 @@ class IrrigationService:
             "duration_sec": duration_sec,
             "trigger_source": trigger_source,
             "relay_mode": self.adapter.MODE,
+            "hardware_dispatched": True,
+            "status": "DISPATCHED",
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(current_time))
         }
         self.actuation_history.append(record)
@@ -108,14 +134,26 @@ class IrrigationService:
         }
 
     def emergency_stop(self):
+        dispatch_res = self.adapter.send_relay_command(
+            "ALL_ZONES", "OFF", 0
+        )
+
         self.emergency_stop_active = True
         self.software_relay_state = "OFF"
-        self.adapter.send_relay_command("ALL_ZONES", "OFF", 0)
+
         return {
             "emergency_stop": True,
             "relay_state": "OFF",
             "relay_mode": self.adapter.MODE,
-            "message": "EMERGENCY STOP ACTIVATED. All relays powered OFF."
+            "hardware_dispatched": dispatch_res.get(
+                "hardware_dispatched",
+                False
+            ),
+            "hardware_command_success": dispatch_res.get(
+                "success",
+                False
+            ),
+            "message": "EMERGENCY STOP ACTIVATED. All relays commanded OFF."
         }
 
     def reset_emergency_stop(self):

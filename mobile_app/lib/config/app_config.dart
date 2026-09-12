@@ -2,73 +2,104 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 
 class AppConfig {
-  static String activeHost = 'https://agrisense.tail0d103f.ts.net';
+  /// Single public AgriSense backend.
+  ///
+  /// Tailscale Funnel exposes the local FastAPI server on port 8000
+  /// through HTTPS, so clients must NOT append :8000.
+  static const String productionHost =
+      'https://admin.tail4fe027.ts.net';
+
+  /// Optional user-specified backend.
+  ///
+  /// Kept only if the application intentionally supports custom
+  /// backend hosts.
   static String? userCustomHost;
 
-  static String get backendHttpUrl {
-    String host = userCustomHost ?? activeHost;
-    if (host.startsWith('http://') || host.startsWith('https://')) return host;
-    if (host.contains('agrisense.tail0d103f.ts.net') && !host.contains(':8000')) {
-      return 'https://$host';
-    }
-    return 'http://$host';
-  }
+  /// Currently active backend.
+  static String activeHost = productionHost;
 
-  static String get backendWsUrl {
-    String host = userCustomHost ?? activeHost;
-    if (host.startsWith('ws://') || host.startsWith('wss://')) {
+  /// HTTP/HTTPS backend URL.
+  static String get backendHttpUrl {
+    final host = userCustomHost?.trim();
+
+    if (host == null || host.isEmpty) {
+      return productionHost;
+    }
+
+    if (host.startsWith('http://') ||
+        host.startsWith('https://')) {
       return host;
     }
-    if (host.startsWith('http://')) {
-      return host.replaceFirst('http://', 'ws://');
-    }
-    if (host.startsWith('https://')) {
-      return host.replaceFirst('https://', 'wss://');
-    }
-    if (host.contains('agrisense.tail0d103f.ts.net') && !host.contains(':8000')) {
-      return 'wss://$host';
-    }
-    return 'ws://$host';
+
+    return 'https://$host';
   }
 
+  /// WebSocket backend URL.
+  static String get backendWsUrl {
+    final host = userCustomHost?.trim();
+
+    if (host == null || host.isEmpty) {
+      return 'wss://admin.tail4fe027.ts.net';
+    }
+
+    if (host.startsWith('ws://') ||
+        host.startsWith('wss://')) {
+      return host;
+    }
+
+    if (host.startsWith('http://')) {
+      return host.replaceFirst(
+        'http://',
+        'ws://',
+      );
+    }
+
+    if (host.startsWith('https://')) {
+      return host.replaceFirst(
+        'https://',
+        'wss://',
+      );
+    }
+
+    return 'wss://$host';
+  }
+
+  /// Resolve the active backend.
+  ///
+  /// Production uses the single public Funnel endpoint.
+  /// No LAN, Tailscale-IP, or legacy-host fallback is attempted.
   static Future<String> resolveActiveHost() async {
-    if (userCustomHost != null && userCustomHost!.isNotEmpty) {
-      activeHost = userCustomHost!;
+    if (userCustomHost != null &&
+        userCustomHost!.trim().isNotEmpty) {
+      activeHost = userCustomHost!.trim();
       return activeHost;
     }
 
-    // EXCLUSIVE TAILNET DOMAIN & TAILNET IP CANDIDATES (NO CLOUDFLARE)
-    List<String> candidates = [
-      'https://agrisense.tail0d103f.ts.net',
-      'http://100.126.23.88:8000',
-      'http://agrisense.tail0d103f.ts.net:8000',
-      'http://172.19.17.125:8000',
-    ];
+    activeHost = productionHost;
 
-    Completer<String> completer = Completer<String>();
-    int pending = candidates.length;
+    try {
+      final uri = Uri.parse(
+        '$productionHost/api/v1/health',
+      );
 
-    for (String url in candidates) {
-      final uri = Uri.parse('$url/api/v1/health');
-      http.get(uri).timeout(const Duration(milliseconds: 3500)).then((res) {
-        if (res.statusCode == 200 && !completer.isCompleted) {
-          activeHost = url;
-          completer.complete(url);
-        } else {
-          pending--;
-          if (pending <= 0 && !completer.isCompleted) {
-            completer.complete(activeHost);
-          }
-        }
-      }).catchError((_) {
-        pending--;
-        if (pending <= 0 && !completer.isCompleted) {
-          completer.complete(activeHost);
-        }
-      });
+      final response = await http
+          .get(uri)
+          .timeout(
+            const Duration(seconds: 8),
+          );
+
+      if (response.statusCode == 200) {
+        return activeHost;
+      }
+
+      return activeHost;
+    } catch (_) {
+      // Keep the production endpoint as the active host.
+      //
+      // The individual API call can report the actual connectivity
+      // error to the application instead of silently switching to
+      // an obsolete LAN/Tailscale endpoint.
+      return activeHost;
     }
-
-    return completer.future;
   }
 }
-

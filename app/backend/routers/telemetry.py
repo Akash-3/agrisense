@@ -161,6 +161,8 @@ async def ingest_esp32_telemetry(payload: ESP32TelemetryIngest):
         "estimated_lead_time_hours": ai_pred["estimated_lead_time_hours"],
         "probabilities": ai_pred["probabilities"],
         "reasoning_trace": fused_diag["reasoning_trace"],
+        "recommended_action": fused_diag["recommended_action"],
+        "rule_type": fused_diag["rule_type"],
         "is_anomaly": ood_eval.get("is_anomaly", False),
         "is_real_ai": True,
         "pipeline": "REAL_ESP32 -> PYTORCH_MMSSNET -> FUSION -> OOD -> WEBSOCKET",

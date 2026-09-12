@@ -1,6 +1,7 @@
 import os
 import sys
 import unittest
+from unittest.mock import patch
 
 # Ensure app/backend directory is in sys.path for backend dependencies
 BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app", "backend"))
@@ -27,8 +28,13 @@ class TestTelemetryPipelineIngest(unittest.TestCase):
             "smoke_ppm": 85.0,
             "spectral": [0.15, 0.18, 0.20, 0.35, 0.65, 0.40, 0.25, 0.15, 0.70, 0.90]
         }
-
-        res = self.client.post("/api/v1/telemetry/ingest", json=payload)
+        with patch(
+            "routers.telemetry.simulator.compute_mm_ssnet_inference",
+            side_effect=AssertionError(
+            "Hardware telemetry incorrectly invoked simulator inference"
+            ),
+            ):
+                res = self.client.post("/api/v1/telemetry/ingest", json=payload)
         self.assertEqual(res.status_code, 200)
 
         data = res.json()
@@ -38,8 +44,25 @@ class TestTelemetryPipelineIngest(unittest.TestCase):
 
         diag = data["ai_diagnosis"]
         self.assertTrue(diag["is_real_ai"])
-        self.assertEqual(diag["pipeline"], "REAL_ESP32 -> PYTORCH_MMSSNET -> FUSION -> OOD -> WEBSOCKET")
+        self.assertEqual(
+            diag["pipeline"],
+            "REAL_ESP32 -> PYTORCH_MMSSNET -> FUSION -> OOD -> WEBSOCKET"
+        )
         self.assertEqual(diag["model_version"], "MM-SSNet-v2.0-PyTorch")
+
+        # Verify the fusion result is actually propagated to the API response
+        self.assertIn("recommended_action", diag)
+        self.assertIn(
+            diag["recommended_action"],
+            [
+                "NO_ACTION",
+                "MONITOR",
+                "REVISIT",
+                "IRRIGATE",
+                "MANUAL_INSPECTION",
+            ],
+        )
+        self.assertEqual(diag["rule_type"], "EXPERT_RULE_WEIGHTS")
 
 if __name__ == "__main__":
     unittest.main()

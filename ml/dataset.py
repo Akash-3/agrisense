@@ -197,7 +197,13 @@ def generate_synthetic_multimodal_data(num_samples=1800, seed=42, config_path=No
     labels_list, severities_list, lead_times_list = [], [], []
     spatial_mask_list = []
 
-    samples_per_class = num_samples // 6
+    base_samples = num_samples // 6
+    remainder = num_samples % 6
+
+    samples_per_class = [
+        base_samples + (1 if class_id < remainder else 0)
+        for class_id in range(6)
+    ]
 
     # Class feature prototypes
     class_prototypes = {
@@ -248,7 +254,7 @@ def generate_synthetic_multimodal_data(num_samples=1800, seed=42, config_path=No
     for class_id in range(6):
         proto = class_prototypes[class_id]
         
-        for _ in range(samples_per_class):
+        for _ in range(samples_per_class[class_id]):
             # Check for controlled class feature overlap
             is_overlap = (np.random.rand() < overlap_prob) and (class_id in [1, 2, 3])
             

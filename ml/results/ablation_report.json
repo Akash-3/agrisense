@@ -3,42 +3,584 @@
     "num_variants": 7,
     "seeds_evaluated": [
       42,
-      43
+      43,
+      44
     ],
-    "num_seeds": 2,
+    "num_seeds": 3,
     "dataset_type": "synthetic_development",
     "real_world_validation": false,
-    "epochs_per_variant": 1
+    "epochs_per_variant": 2,
+    "deterministic_training": true
   },
   "variants": {
     "Variant A: Spatial RGB Only": {
-      "accuracy_pct_mean": 23.33,
-      "accuracy_pct_std": 7.5,
-      "f1_score_macro_mean": 0.119,
-      "f1_score_macro_std": 0.0532,
-      "f1_score_weighted_mean": 0.1147,
-      "severity_rmse_mean": 29.6559,
-      "lead_time_mae_mean": 14.7179,
+      "accuracy_pct_mean": 26.48,
+      "accuracy_pct_std": 9.9,
+      "f1_score_macro_mean": 0.2057,
+      "f1_score_macro_std": 0.1033,
+      "f1_score_weighted_mean": 0.1982,
+      "f1_score_weighted_std": 0.1021,
+      "severity_rmse_mean": 30.9492,
+      "severity_rmse_std": 6.9887,
+      "lead_time_mae_mean": 14.7889,
+      "lead_time_mae_std": 0.8945,
       "seed_runs": [
         {
-          "accuracy_pct": 30.83,
-          "precision_macro": 0.1279,
-          "recall_macro": 0.307,
-          "f1_score_macro": 0.1721,
-          "f1_score_weighted": 0.1698,
+          "seed": 42,
+          "accuracy_pct": 39.17,
+          "precision_macro": 0.4114,
+          "recall_macro": 0.3877,
+          "f1_score_macro": 0.3218,
+          "f1_score_weighted": 0.3149,
           "confusion_matrix": [
             [
-              48,
+              43,
+              1,
               0,
-              9,
+              0,
+              0,
+              13
+            ],
+            [
+              2,
+              3,
+              0,
+              0,
+              0,
+              44
+            ],
+            [
+              0,
+              0,
+              0,
+              10,
+              0,
+              53
+            ],
+            [
+              0,
+              0,
+              1,
+              40,
+              0,
+              16
+            ],
+            [
+              0,
+              0,
+              0,
+              27,
+              0,
+              39
+            ],
+            [
+              0,
+              0,
+              1,
+              1,
+              11,
+              55
+            ]
+          ],
+          "severity_rmse": 22.2109,
+          "lead_time_mae_hours": 13.5371,
+          "evaluation_dataset": "synthetic_development",
+          "synthetic_development": true,
+          "real_world_validation": false,
+          "spectral_stream": false,
+          "spatial_stream": true,
+          "env_stream": false
+        },
+        {
+          "seed": 43,
+          "accuracy_pct": 25.28,
+          "precision_macro": 0.3838,
+          "recall_macro": 0.2685,
+          "f1_score_macro": 0.2245,
+          "f1_score_weighted": 0.2134,
+          "confusion_matrix": [
+            [
+              5,
+              59,
+              0,
               0,
               0,
               0
             ],
             [
-              42,
+              22,
+              33,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              68,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              62,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
               0,
               7,
+              0,
+              0,
+              50,
+              0
+            ],
+            [
+              0,
+              51,
+              0,
+              0,
+              0,
+              3
+            ]
+          ],
+          "severity_rmse": 31.3192,
+          "lead_time_mae_hours": 15.2565,
+          "evaluation_dataset": "synthetic_development",
+          "synthetic_development": true,
+          "real_world_validation": false,
+          "spectral_stream": false,
+          "spatial_stream": true,
+          "env_stream": false
+        },
+        {
+          "seed": 44,
+          "accuracy_pct": 15.0,
+          "precision_macro": 0.1892,
+          "recall_macro": 0.1838,
+          "f1_score_macro": 0.0708,
+          "f1_score_weighted": 0.0663,
+          "confusion_matrix": [
+            [
+              47,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              75,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              56,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              63,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              51,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              56,
+              0,
+              0,
+              0,
+              5,
+              7
+            ]
+          ],
+          "severity_rmse": 39.3176,
+          "lead_time_mae_hours": 15.5731,
+          "evaluation_dataset": "synthetic_development",
+          "synthetic_development": true,
+          "real_world_validation": false,
+          "spectral_stream": false,
+          "spatial_stream": true,
+          "env_stream": false
+        }
+      ],
+      "confusion_matrix": [
+        [
+          47,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          75,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          56,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          63,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          51,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          56,
+          0,
+          0,
+          0,
+          5,
+          7
+        ]
+      ],
+      "evaluation_dataset": "synthetic_development",
+      "synthetic_development": true,
+      "real_world_validation": false,
+      "spectral_stream": false,
+      "spatial_stream": true,
+      "env_stream": false
+    },
+    "Variant B: Spectral 1D Conv Only": {
+      "accuracy_pct_mean": 63.61,
+      "accuracy_pct_std": 7.03,
+      "f1_score_macro_mean": 0.5564,
+      "f1_score_macro_std": 0.0968,
+      "f1_score_weighted_mean": 0.561,
+      "f1_score_weighted_std": 0.0836,
+      "severity_rmse_mean": 11.7506,
+      "severity_rmse_std": 0.4777,
+      "lead_time_mae_mean": 13.8361,
+      "lead_time_mae_std": 0.215,
+      "seed_runs": [
+        {
+          "seed": 42,
+          "accuracy_pct": 55.0,
+          "precision_macro": 0.5744,
+          "recall_macro": 0.52,
+          "f1_score_macro": 0.4218,
+          "f1_score_weighted": 0.4463,
+          "confusion_matrix": [
+            [
+              57,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              41,
+              2,
+              6,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              5,
+              20,
+              38,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              57,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              66,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              68
+            ]
+          ],
+          "severity_rmse": 12.4079,
+          "lead_time_mae_hours": 13.6975,
+          "evaluation_dataset": "synthetic_development",
+          "synthetic_development": true,
+          "real_world_validation": false,
+          "spectral_stream": true,
+          "spatial_stream": false,
+          "env_stream": false
+        },
+        {
+          "seed": 43,
+          "accuracy_pct": 72.22,
+          "precision_macro": 0.6616,
+          "recall_macro": 0.7193,
+          "f1_score_macro": 0.6453,
+          "f1_score_weighted": 0.6432,
+          "confusion_matrix": [
+            [
+              64,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              35,
+              19,
+              1,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              66,
+              0,
+              2,
+              0
+            ],
+            [
+              0,
+              0,
+              20,
+              0,
+              42,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              57,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              54
+            ]
+          ],
+          "severity_rmse": 11.287,
+          "lead_time_mae_hours": 13.6711,
+          "evaluation_dataset": "synthetic_development",
+          "synthetic_development": true,
+          "real_world_validation": false,
+          "spectral_stream": true,
+          "spatial_stream": false,
+          "env_stream": false
+        },
+        {
+          "seed": 44,
+          "accuracy_pct": 63.61,
+          "precision_macro": 0.6892,
+          "recall_macro": 0.6716,
+          "f1_score_macro": 0.602,
+          "f1_score_weighted": 0.5935,
+          "confusion_matrix": [
+            [
+              47,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              46,
+              17,
+              12,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              36,
+              16,
+              4,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              11,
+              52,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              51,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              1,
+              67
+            ]
+          ],
+          "severity_rmse": 11.557,
+          "lead_time_mae_hours": 14.1398,
+          "evaluation_dataset": "synthetic_development",
+          "synthetic_development": true,
+          "real_world_validation": false,
+          "spectral_stream": true,
+          "spatial_stream": false,
+          "env_stream": false
+        }
+      ],
+      "confusion_matrix": [
+        [
+          47,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          46,
+          17,
+          12,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          36,
+          16,
+          4,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          11,
+          52,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          51,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          1,
+          67
+        ]
+      ],
+      "evaluation_dataset": "synthetic_development",
+      "synthetic_development": true,
+      "real_world_validation": false,
+      "spectral_stream": true,
+      "spatial_stream": false,
+      "env_stream": false
+    },
+    "Variant C: Environmental MLP Only": {
+      "accuracy_pct_mean": 60.65,
+      "accuracy_pct_std": 21.5,
+      "f1_score_macro_mean": 0.556,
+      "f1_score_macro_std": 0.2236,
+      "f1_score_weighted_mean": 0.5568,
+      "f1_score_weighted_std": 0.2163,
+      "severity_rmse_mean": 20.303,
+      "severity_rmse_std": 2.2336,
+      "lead_time_mae_mean": 22.462,
+      "lead_time_mae_std": 7.5897,
+      "seed_runs": [
+        {
+          "seed": 42,
+          "accuracy_pct": 31.11,
+          "precision_macro": 0.37,
+          "recall_macro": 0.2953,
+          "f1_score_macro": 0.2445,
+          "f1_score_weighted": 0.2575,
+          "confusion_matrix": [
+            [
+              0,
+              24,
+              33,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              49,
               0,
               0,
               0
@@ -54,15 +596,57 @@
             [
               0,
               0,
-              57,
+              39,
+              18,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              66,
               0,
               0,
               0
             ],
             [
               0,
+              0,
+              36,
+              0,
               1,
-              65,
+              31
+            ]
+          ],
+          "severity_rmse": 23.2381,
+          "lead_time_mae_hours": 13.6975,
+          "evaluation_dataset": "synthetic_development",
+          "synthetic_development": true,
+          "real_world_validation": false,
+          "spectral_stream": false,
+          "spatial_stream": false,
+          "env_stream": true
+        },
+        {
+          "seed": 43,
+          "accuracy_pct": 81.67,
+          "precision_macro": 0.7335,
+          "recall_macro": 0.8098,
+          "f1_score_macro": 0.759,
+          "f1_score_weighted": 0.7609,
+          "confusion_matrix": [
+            [
+              56,
+              7,
+              0,
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              55,
+              0,
               0,
               0,
               0
@@ -74,63 +658,22 @@
               0,
               0,
               0
-            ]
-          ],
-          "severity_rmse": 23.1055,
-          "lead_time_mae_hours": 15.0173,
-          "evaluation_dataset": "synthetic_development",
-          "synthetic_development": true,
-          "real_world_validation": false,
-          "spectral_stream": false,
-          "spatial_stream": true,
-          "env_stream": false
-        },
-        {
-          "accuracy_pct": 15.83,
-          "precision_macro": 0.041,
-          "recall_macro": 0.1754,
-          "f1_score_macro": 0.0658,
-          "f1_score_weighted": 0.0596,
-          "confusion_matrix": [
-            [
-              0,
-              0,
-              0,
-              0,
-              0,
-              64
             ],
             [
-              0,
-              0,
-              0,
               0,
               1,
-              54
+              0,
+              61,
+              0,
+              0
             ],
             [
               0,
               0,
+              57,
               0,
               0,
-              60,
-              8
-            ],
-            [
-              0,
-              0,
-              0,
-              0,
-              50,
-              12
-            ],
-            [
-              0,
-              0,
-              0,
-              0,
-              3,
-              54
+              0
             ],
             [
               0,
@@ -141,119 +684,189 @@
               54
             ]
           ],
-          "severity_rmse": 36.2062,
-          "lead_time_mae_hours": 14.4185,
+          "severity_rmse": 17.8244,
+          "lead_time_mae_hours": 32.2101,
           "evaluation_dataset": "synthetic_development",
           "synthetic_development": true,
           "real_world_validation": false,
           "spectral_stream": false,
-          "spatial_stream": true,
-          "env_stream": false
+          "spatial_stream": false,
+          "env_stream": true
+        },
+        {
+          "seed": 44,
+          "accuracy_pct": 69.17,
+          "precision_macro": 0.7993,
+          "recall_macro": 0.7218,
+          "f1_score_macro": 0.6646,
+          "f1_score_weighted": 0.652,
+          "confusion_matrix": [
+            [
+              47,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              72,
+              3,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              1,
+              54,
+              0,
+              0,
+              0
+            ],
+            [
+              10,
+              0,
+              0,
+              53,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              24,
+              0,
+              27,
+              0
+            ],
+            [
+              3,
+              0,
+              0,
+              0,
+              0,
+              65
+            ]
+          ],
+          "severity_rmse": 19.8466,
+          "lead_time_mae_hours": 21.4783,
+          "evaluation_dataset": "synthetic_development",
+          "synthetic_development": true,
+          "real_world_validation": false,
+          "spectral_stream": false,
+          "spatial_stream": false,
+          "env_stream": true
         }
       ],
       "confusion_matrix": [
         [
+          47,
           0,
           0,
           0,
           0,
-          0,
-          64
+          0
         ],
         [
-          0,
-          0,
-          0,
-          0,
-          1,
-          54
-        ],
-        [
-          0,
-          0,
-          0,
-          0,
-          60,
-          8
-        ],
-        [
-          0,
-          0,
-          0,
-          0,
-          50,
-          12
-        ],
-        [
-          0,
-          0,
-          0,
-          0,
+          72,
           3,
-          54
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          1,
+          54,
+          0,
+          0,
+          0
+        ],
+        [
+          10,
+          0,
+          0,
+          53,
+          0,
+          0
         ],
         [
           0,
           0,
+          24,
+          0,
+          27,
+          0
+        ],
+        [
+          3,
           0,
           0,
           0,
-          54
+          0,
+          65
         ]
       ],
       "evaluation_dataset": "synthetic_development",
       "synthetic_development": true,
       "real_world_validation": false,
       "spectral_stream": false,
-      "spatial_stream": true,
-      "env_stream": false
+      "spatial_stream": false,
+      "env_stream": true
     },
-    "Variant B: Spectral 1D Conv Only": {
-      "accuracy_pct_mean": 55.7,
-      "accuracy_pct_std": 2.37,
-      "f1_score_macro_mean": 0.4627,
-      "f1_score_macro_std": 0.0655,
-      "f1_score_weighted_mean": 0.4657,
-      "severity_rmse_mean": 15.37,
-      "lead_time_mae_mean": 14.7461,
+    "Variant D: Spatial RGB + Spectral 1D": {
+      "accuracy_pct_mean": 77.5,
+      "accuracy_pct_std": 8.96,
+      "f1_score_macro_mean": 0.7447,
+      "f1_score_macro_std": 0.1062,
+      "f1_score_weighted_mean": 0.7521,
+      "f1_score_weighted_std": 0.1052,
+      "severity_rmse_mean": 12.6364,
+      "severity_rmse_std": 0.7505,
+      "lead_time_mae_mean": 9.9726,
+      "lead_time_mae_std": 0.3156,
       "seed_runs": [
         {
-          "accuracy_pct": 53.33,
-          "precision_macro": 0.3935,
-          "recall_macro": 0.5026,
-          "f1_score_macro": 0.3971,
-          "f1_score_weighted": 0.4237,
+          "seed": 42,
+          "accuracy_pct": 88.61,
+          "precision_macro": 0.8869,
+          "recall_macro": 0.8778,
+          "f1_score_macro": 0.8759,
+          "f1_score_weighted": 0.8854,
           "confusion_matrix": [
             [
-              57,
-              0,
-              0,
-              0,
-              0,
-              0
-            ],
-            [
-              41,
-              0,
-              2,
-              6,
-              0,
-              0
-            ],
-            [
-              0,
-              0,
-              1,
               37,
-              25,
+              20,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              5,
+              42,
+              2,
+              0,
+              0,
               0
             ],
             [
               0,
               0,
+              61,
+              2,
+              0,
+              0
+            ],
+            [
               0,
               0,
-              57,
+              11,
+              46,
+              0,
               0
             ],
             [
@@ -268,26 +881,27 @@
               0,
               0,
               0,
+              1,
               0,
-              0,
-              68
+              67
             ]
           ],
-          "severity_rmse": 14.9891,
-          "lead_time_mae_hours": 14.4966,
+          "severity_rmse": 11.9397,
+          "lead_time_mae_hours": 9.9202,
           "evaluation_dataset": "synthetic_development",
           "synthetic_development": true,
           "real_world_validation": false,
           "spectral_stream": true,
-          "spatial_stream": false,
+          "spatial_stream": true,
           "env_stream": false
         },
         {
-          "accuracy_pct": 58.06,
-          "precision_macro": 0.5318,
-          "recall_macro": 0.6029,
-          "f1_score_macro": 0.5282,
-          "f1_score_weighted": 0.5077,
+          "seed": 43,
+          "accuracy_pct": 77.22,
+          "precision_macro": 0.8464,
+          "recall_macro": 0.7661,
+          "f1_score_macro": 0.7423,
+          "f1_score_weighted": 0.7429,
           "confusion_matrix": [
             [
               64,
@@ -299,10 +913,34 @@
             ],
             [
               7,
-              36,
-              4,
+              48,
               0,
-              8,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              65,
+              3,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              22,
+              40,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              50,
+              7,
               0
             ],
             [
@@ -310,139 +948,453 @@
               0,
               0,
               0,
-              68,
-              0
-            ],
-            [
               0,
-              0,
-              0,
-              0,
-              62,
-              0
-            ],
-            [
-              0,
-              0,
-              0,
-              0,
-              57,
-              0
-            ],
-            [
-              0,
-              0,
-              0,
-              0,
-              2,
-              52
+              54
             ]
           ],
-          "severity_rmse": 15.7509,
-          "lead_time_mae_hours": 14.9955,
+          "severity_rmse": 13.6781,
+          "lead_time_mae_hours": 9.6149,
           "evaluation_dataset": "synthetic_development",
           "synthetic_development": true,
           "real_world_validation": false,
           "spectral_stream": true,
-          "spatial_stream": false,
+          "spatial_stream": true,
+          "env_stream": false
+        },
+        {
+          "seed": 44,
+          "accuracy_pct": 66.67,
+          "precision_macro": 0.6368,
+          "recall_macro": 0.6474,
+          "f1_score_macro": 0.6159,
+          "f1_score_weighted": 0.6281,
+          "confusion_matrix": [
+            [
+              18,
+              29,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              5,
+              56,
+              14,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              56,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              63,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              2,
+              49,
+              0
+            ],
+            [
+              2,
+              0,
+              0,
+              10,
+              2,
+              54
+            ]
+          ],
+          "severity_rmse": 12.2914,
+          "lead_time_mae_hours": 10.3826,
+          "evaluation_dataset": "synthetic_development",
+          "synthetic_development": true,
+          "real_world_validation": false,
+          "spectral_stream": true,
+          "spatial_stream": true,
           "env_stream": false
         }
       ],
       "confusion_matrix": [
         [
-          64,
-          0,
+          18,
+          29,
           0,
           0,
           0,
           0
         ],
         [
-          7,
-          36,
-          4,
+          5,
+          56,
+          14,
           0,
-          8,
+          0,
           0
         ],
         [
           0,
           0,
           0,
+          56,
           0,
-          68,
           0
         ],
         [
           0,
           0,
           0,
+          63,
           0,
-          62,
           0
         ],
         [
-          0,
-          0,
-          0,
-          0,
-          57,
-          0
-        ],
-        [
-          0,
           0,
           0,
           0,
           2,
-          52
+          49,
+          0
+        ],
+        [
+          2,
+          0,
+          0,
+          10,
+          2,
+          54
         ]
       ],
       "evaluation_dataset": "synthetic_development",
       "synthetic_development": true,
       "real_world_validation": false,
       "spectral_stream": true,
-      "spatial_stream": false,
+      "spatial_stream": true,
       "env_stream": false
     },
-    "Variant C: Environmental MLP Only": {
-      "accuracy_pct_mean": 71.11,
-      "accuracy_pct_std": 5.28,
-      "f1_score_macro_mean": 0.6506,
-      "f1_score_macro_std": 0.0571,
-      "f1_score_weighted_mean": 0.6668,
-      "severity_rmse_mean": 16.8721,
-      "lead_time_mae_mean": 14.505,
+    "Variant E: Spatial RGB + Environmental": {
+      "accuracy_pct_mean": 61.39,
+      "accuracy_pct_std": 10.02,
+      "f1_score_macro_mean": 0.5536,
+      "f1_score_macro_std": 0.1394,
+      "f1_score_weighted_mean": 0.5419,
+      "f1_score_weighted_std": 0.1377,
+      "severity_rmse_mean": 17.3755,
+      "severity_rmse_std": 3.5945,
+      "lead_time_mae_mean": 14.4823,
+      "lead_time_mae_std": 0.6401,
       "seed_runs": [
         {
-          "accuracy_pct": 76.39,
-          "precision_macro": 0.8022,
-          "recall_macro": 0.7385,
-          "f1_score_macro": 0.7077,
-          "f1_score_weighted": 0.7306,
+          "seed": 42,
+          "accuracy_pct": 50.56,
+          "precision_macro": 0.7439,
+          "recall_macro": 0.5261,
+          "f1_score_macro": 0.3851,
+          "f1_score_weighted": 0.3751,
           "confusion_matrix": [
             [
-              4,
+              5,
+              52,
               0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              49,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              11,
+              1,
+              51,
+              0,
+              0
+            ],
+            [
+              0,
+              2,
+              0,
+              55,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              66,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              1,
+              61,
+              6
+            ]
+          ],
+          "severity_rmse": 13.5643,
+          "lead_time_mae_hours": 15.138,
+          "evaluation_dataset": "synthetic_development",
+          "synthetic_development": true,
+          "real_world_validation": false,
+          "spectral_stream": false,
+          "spatial_stream": true,
+          "env_stream": true
+        },
+        {
+          "seed": 43,
+          "accuracy_pct": 58.89,
+          "precision_macro": 0.7233,
+          "recall_macro": 0.6096,
+          "f1_score_macro": 0.5492,
+          "f1_score_weighted": 0.5382,
+          "confusion_matrix": [
+            [
+              60,
+              1,
+              0,
+              3,
+              0,
+              0
+            ],
+            [
               0,
               53,
+              2,
+              0,
               0,
               0
             ],
             [
-              5,
-              20,
+              0,
+              60,
+              8,
+              0,
+              0,
+              0
+            ],
+            [
+              11,
+              45,
+              0,
+              6,
+              0,
+              0
+            ],
+            [
+              0,
+              2,
+              0,
+              0,
+              33,
+              22
+            ],
+            [
+              0,
+              2,
+              0,
+              0,
+              0,
+              52
+            ]
+          ],
+          "severity_rmse": 22.1943,
+          "lead_time_mae_hours": 13.6139,
+          "evaluation_dataset": "synthetic_development",
+          "synthetic_development": true,
+          "real_world_validation": false,
+          "spectral_stream": false,
+          "spatial_stream": true,
+          "env_stream": true
+        },
+        {
+          "seed": 44,
+          "accuracy_pct": 74.72,
+          "precision_macro": 0.8241,
+          "recall_macro": 0.7792,
+          "f1_score_macro": 0.7264,
+          "f1_score_weighted": 0.7123,
+          "confusion_matrix": [
+            [
+              47,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              24,
+              51,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              4,
+              51,
+              0,
               1,
-              23,
-              0,
               0
             ],
             [
+              3,
               0,
               0,
               60,
               0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              51,
+              0
+            ],
+            [
+              0,
               3,
+              54,
+              0,
+              2,
+              9
+            ]
+          ],
+          "severity_rmse": 16.3678,
+          "lead_time_mae_hours": 14.695,
+          "evaluation_dataset": "synthetic_development",
+          "synthetic_development": true,
+          "real_world_validation": false,
+          "spectral_stream": false,
+          "spatial_stream": true,
+          "env_stream": true
+        }
+      ],
+      "confusion_matrix": [
+        [
+          47,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          24,
+          51,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          4,
+          51,
+          0,
+          1,
+          0
+        ],
+        [
+          3,
+          0,
+          0,
+          60,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          51,
+          0
+        ],
+        [
+          0,
+          3,
+          54,
+          0,
+          2,
+          9
+        ]
+      ],
+      "evaluation_dataset": "synthetic_development",
+      "synthetic_development": true,
+      "real_world_validation": false,
+      "spectral_stream": false,
+      "spatial_stream": true,
+      "env_stream": true
+    },
+    "Variant F: Spectral 1D + Environmental": {
+      "accuracy_pct_mean": 94.54,
+      "accuracy_pct_std": 5.17,
+      "f1_score_macro_mean": 0.9218,
+      "f1_score_macro_std": 0.0854,
+      "f1_score_weighted_mean": 0.9313,
+      "f1_score_weighted_std": 0.0714,
+      "severity_rmse_mean": 10.5277,
+      "severity_rmse_std": 0.849,
+      "lead_time_mae_mean": 12.5608,
+      "lead_time_mae_std": 0.8398,
+      "seed_runs": [
+        {
+          "seed": 42,
+          "accuracy_pct": 87.22,
+          "precision_macro": 0.9152,
+          "recall_macro": 0.8435,
+          "f1_score_macro": 0.801,
+          "f1_score_weighted": 0.8304,
+          "confusion_matrix": [
+            [
+              57,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              40,
+              3,
+              2,
+              4,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              63,
+              0,
+              0,
               0
             ],
             [
@@ -470,53 +1422,54 @@
               68
             ]
           ],
-          "severity_rmse": 17.4278,
+          "severity_rmse": 11.7187,
           "lead_time_mae_hours": 13.6975,
           "evaluation_dataset": "synthetic_development",
           "synthetic_development": true,
           "real_world_validation": false,
-          "spectral_stream": false,
+          "spectral_stream": true,
           "spatial_stream": false,
           "env_stream": true
         },
         {
-          "accuracy_pct": 65.83,
-          "precision_macro": 0.5624,
-          "recall_macro": 0.6529,
-          "f1_score_macro": 0.5935,
-          "f1_score_weighted": 0.6031,
+          "seed": 43,
+          "accuracy_pct": 98.33,
+          "precision_macro": 0.9854,
+          "recall_macro": 0.9818,
+          "f1_score_macro": 0.9829,
+          "f1_score_weighted": 0.9831,
           "confusion_matrix": [
             [
-              41,
+              64,
               0,
               0,
-              23,
+              0,
               0,
               0
             ],
             [
+              4,
               49,
-              0,
-              0,
-              6,
-              0,
-              0
-            ],
-            [
-              0,
-              0,
-              66,
-              0,
               2,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              68,
+              0,
+              0,
               0
             ],
             [
               0,
               0,
               0,
-              19,
+              62,
               0,
-              43
+              0
             ],
             [
               0,
@@ -535,55 +1488,113 @@
               54
             ]
           ],
-          "severity_rmse": 16.3163,
-          "lead_time_mae_hours": 15.3125,
+          "severity_rmse": 9.8004,
+          "lead_time_mae_hours": 11.6942,
           "evaluation_dataset": "synthetic_development",
           "synthetic_development": true,
           "real_world_validation": false,
-          "spectral_stream": false,
+          "spectral_stream": true,
+          "spatial_stream": false,
+          "env_stream": true
+        },
+        {
+          "seed": 44,
+          "accuracy_pct": 98.06,
+          "precision_macro": 0.9804,
+          "recall_macro": 0.9844,
+          "f1_score_macro": 0.9816,
+          "f1_score_weighted": 0.9805,
+          "confusion_matrix": [
+            [
+              47,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              1,
+              68,
+              6,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              56,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              63,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              51,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              68
+            ]
+          ],
+          "severity_rmse": 10.064,
+          "lead_time_mae_hours": 12.2907,
+          "evaluation_dataset": "synthetic_development",
+          "synthetic_development": true,
+          "real_world_validation": false,
+          "spectral_stream": true,
           "spatial_stream": false,
           "env_stream": true
         }
       ],
       "confusion_matrix": [
         [
-          41,
+          47,
           0,
           0,
-          23,
+          0,
           0,
           0
         ],
         [
-          49,
-          0,
-          0,
+          1,
+          68,
           6,
           0,
+          0,
           0
         ],
         [
           0,
           0,
-          66,
+          56,
           0,
-          2,
+          0,
           0
         ],
         [
           0,
           0,
           0,
-          19,
+          63,
           0,
-          43
-        ],
-        [
-          0,
-          0,
-          0,
-          0,
-          57,
           0
         ],
         [
@@ -591,32 +1602,44 @@
           0,
           0,
           0,
+          51,
+          0
+        ],
+        [
           0,
-          54
+          0,
+          0,
+          0,
+          0,
+          68
         ]
       ],
       "evaluation_dataset": "synthetic_development",
       "synthetic_development": true,
       "real_world_validation": false,
-      "spectral_stream": false,
+      "spectral_stream": true,
       "spatial_stream": false,
       "env_stream": true
     },
-    "Variant D: Spatial RGB + Spectral 1D": {
-      "accuracy_pct_mean": 54.45,
-      "accuracy_pct_std": 0.27,
-      "f1_score_macro_mean": 0.451,
-      "f1_score_macro_std": 0.0319,
-      "f1_score_weighted_mean": 0.4498,
-      "severity_rmse_mean": 15.2356,
-      "lead_time_mae_mean": 14.7805,
+    "Variant G: Tri-Modal MM-SSNet (Proposed)": {
+      "accuracy_pct_mean": 86.48,
+      "accuracy_pct_std": 6.55,
+      "f1_score_macro_mean": 0.8447,
+      "f1_score_macro_std": 0.0737,
+      "f1_score_weighted_mean": 0.8434,
+      "f1_score_weighted_std": 0.0857,
+      "severity_rmse_mean": 14.096,
+      "severity_rmse_std": 2.3861,
+      "lead_time_mae_mean": 10.7335,
+      "lead_time_mae_std": 1.1393,
       "seed_runs": [
         {
-          "accuracy_pct": 54.72,
-          "precision_macro": 0.5033,
-          "recall_macro": 0.5199,
-          "f1_score_macro": 0.4191,
-          "f1_score_weighted": 0.4389,
+          "seed": 42,
+          "accuracy_pct": 91.11,
+          "precision_macro": 0.931,
+          "recall_macro": 0.897,
+          "f1_score_macro": 0.8944,
+          "f1_score_weighted": 0.9055,
           "confusion_matrix": [
             [
               57,
@@ -627,19 +1650,93 @@
               0
             ],
             [
-              42,
-              5,
+              25,
+              24,
               0,
-              1,
-              1,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              59,
+              4,
+              0,
               0
             ],
             [
               0,
               0,
               0,
-              22,
-              41,
+              57,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              66,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              3,
+              65
+            ]
+          ],
+          "severity_rmse": 13.1743,
+          "lead_time_mae_hours": 9.2802,
+          "evaluation_dataset": "synthetic_development",
+          "synthetic_development": true,
+          "real_world_validation": false,
+          "spectral_stream": true,
+          "spatial_stream": true,
+          "env_stream": true
+        },
+        {
+          "seed": 43,
+          "accuracy_pct": 91.11,
+          "precision_macro": 0.943,
+          "recall_macro": 0.9031,
+          "f1_score_macro": 0.8993,
+          "f1_score_weighted": 0.9026,
+          "confusion_matrix": [
+            [
+              64,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              31,
+              24,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              68,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              62,
+              0,
               0
             ],
             [
@@ -655,732 +1752,134 @@
               0,
               0,
               0,
-              66,
-              0
-            ],
-            [
               0,
-              0,
-              0,
-              0,
-              0,
-              68
+              54
             ]
           ],
-          "severity_rmse": 15.5243,
-          "lead_time_mae_hours": 14.2485,
+          "severity_rmse": 11.7456,
+          "lead_time_mae_hours": 10.8576,
           "evaluation_dataset": "synthetic_development",
           "synthetic_development": true,
           "real_world_validation": false,
           "spectral_stream": true,
           "spatial_stream": true,
-          "env_stream": false
+          "env_stream": true
         },
         {
-          "accuracy_pct": 54.17,
-          "precision_macro": 0.4656,
-          "recall_macro": 0.5692,
-          "f1_score_macro": 0.4829,
-          "f1_score_weighted": 0.4608,
+          "seed": 44,
+          "accuracy_pct": 77.22,
+          "precision_macro": 0.8421,
+          "recall_macro": 0.809,
+          "f1_score_macro": 0.7405,
+          "f1_score_weighted": 0.7222,
           "confusion_matrix": [
             [
-              43,
-              21,
+              47,
+              0,
               0,
               0,
               0,
               0
             ],
             [
-              6,
-              48,
-              1,
-              0,
-              0,
-              0
-            ],
-            [
-              0,
-              0,
-              0,
-              0,
-              68,
-              0
-            ],
-            [
-              0,
-              0,
-              0,
-              0,
-              62,
-              0
-            ],
-            [
-              0,
-              0,
-              0,
-              0,
               57,
-              0
-            ],
-            [
-              5,
-              0,
-              0,
-              0,
-              2,
-              47
-            ]
-          ],
-          "severity_rmse": 14.9469,
-          "lead_time_mae_hours": 15.3125,
-          "evaluation_dataset": "synthetic_development",
-          "synthetic_development": true,
-          "real_world_validation": false,
-          "spectral_stream": true,
-          "spatial_stream": true,
-          "env_stream": false
-        }
-      ],
-      "confusion_matrix": [
-        [
-          43,
-          21,
-          0,
-          0,
-          0,
-          0
-        ],
-        [
-          6,
-          48,
-          1,
-          0,
-          0,
-          0
-        ],
-        [
-          0,
-          0,
-          0,
-          0,
-          68,
-          0
-        ],
-        [
-          0,
-          0,
-          0,
-          0,
-          62,
-          0
-        ],
-        [
-          0,
-          0,
-          0,
-          0,
-          57,
-          0
-        ],
-        [
-          5,
-          0,
-          0,
-          0,
-          2,
-          47
-        ]
-      ],
-      "evaluation_dataset": "synthetic_development",
-      "synthetic_development": true,
-      "real_world_validation": false,
-      "spectral_stream": true,
-      "spatial_stream": true,
-      "env_stream": false
-    },
-    "Variant E: Spatial RGB + Environmental": {
-      "accuracy_pct_mean": 47.91,
-      "accuracy_pct_std": 10.7,
-      "f1_score_macro_mean": 0.4474,
-      "f1_score_macro_std": 0.0888,
-      "f1_score_weighted_mean": 0.4516,
-      "severity_rmse_mean": 22.622,
-      "lead_time_mae_mean": 15.2838,
-      "seed_runs": [
-        {
-          "accuracy_pct": 37.22,
-          "precision_macro": 0.5704,
-          "recall_macro": 0.3569,
-          "f1_score_macro": 0.3586,
-          "f1_score_weighted": 0.3766,
-          "confusion_matrix": [
-            [
-              48,
-              0,
-              0,
-              9,
+              6,
+              6,
+              6,
               0,
               0
             ],
             [
-              42,
               0,
-              5,
-              2,
+              0,
+              45,
+              1,
+              10,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              63,
               0,
               0
             ],
             [
+              0,
+              0,
+              0,
               0,
               51,
-              12,
-              0,
-              0,
               0
             ],
             [
-              0,
-              50,
-              0,
-              7,
-              0,
-              0
-            ],
-            [
-              0,
-              60,
-              4,
-              0,
-              2,
-              0
-            ],
-            [
-              0,
-              0,
-              3,
-              0,
-              0,
-              65
-            ]
-          ],
-          "severity_rmse": 28.7344,
-          "lead_time_mae_hours": 14.5111,
-          "evaluation_dataset": "synthetic_development",
-          "synthetic_development": true,
-          "real_world_validation": false,
-          "spectral_stream": false,
-          "spatial_stream": true,
-          "env_stream": true
-        },
-        {
-          "accuracy_pct": 58.61,
-          "precision_macro": 0.783,
-          "recall_macro": 0.6017,
-          "f1_score_macro": 0.5362,
-          "f1_score_weighted": 0.5267,
-          "confusion_matrix": [
-            [
-              20,
-              38,
-              0,
-              6,
-              0,
-              0
-            ],
-            [
-              0,
-              49,
-              0,
-              6,
-              0,
-              0
-            ],
-            [
-              0,
-              0,
-              5,
-              8,
-              55,
-              0
-            ],
-            [
-              0,
-              0,
-              0,
-              62,
-              0,
-              0
-            ],
-            [
-              0,
-              0,
-              0,
-              0,
-              57,
-              0
-            ],
-            [
+              1,
               0,
               0,
               0,
               1,
-              35,
-              18
+              66
             ]
           ],
-          "severity_rmse": 16.5096,
-          "lead_time_mae_hours": 16.0564,
+          "severity_rmse": 17.3681,
+          "lead_time_mae_hours": 12.0626,
           "evaluation_dataset": "synthetic_development",
           "synthetic_development": true,
           "real_world_validation": false,
-          "spectral_stream": false,
+          "spectral_stream": true,
           "spatial_stream": true,
           "env_stream": true
         }
       ],
       "confusion_matrix": [
         [
-          20,
-          38,
+          47,
           0,
-          6,
+          0,
+          0,
           0,
           0
         ],
         [
-          0,
-          49,
-          0,
-          6,
-          0,
-          0
-        ],
-        [
-          0,
-          0,
-          5,
-          8,
-          55,
-          0
-        ],
-        [
-          0,
-          0,
-          0,
-          62,
-          0,
-          0
-        ],
-        [
-          0,
-          0,
-          0,
-          0,
           57,
+          6,
+          6,
+          6,
+          0,
           0
         ],
         [
+          0,
+          0,
+          45,
+          1,
+          10,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          63,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          51,
+          0
+        ],
+        [
+          1,
           0,
           0,
           0,
           1,
-          35,
-          18
-        ]
-      ],
-      "evaluation_dataset": "synthetic_development",
-      "synthetic_development": true,
-      "real_world_validation": false,
-      "spectral_stream": false,
-      "spatial_stream": true,
-      "env_stream": true
-    },
-    "Variant F: Spectral 1D + Environmental": {
-      "accuracy_pct_mean": 70.56,
-      "accuracy_pct_std": 0.84,
-      "f1_score_macro_mean": 0.618,
-      "f1_score_macro_std": 0.003,
-      "f1_score_weighted_mean": 0.6197,
-      "severity_rmse_mean": 11.915,
-      "lead_time_mae_mean": 15.1846,
-      "seed_runs": [
-        {
-          "accuracy_pct": 71.39,
-          "precision_macro": 0.6733,
-          "recall_macro": 0.6973,
-          "f1_score_macro": 0.615,
-          "f1_score_weighted": 0.6321,
-          "confusion_matrix": [
-            [
-              57,
-              0,
-              0,
-              0,
-              0,
-              0
-            ],
-            [
-              33,
-              9,
-              0,
-              7,
-              0,
-              0
-            ],
-            [
-              0,
-              0,
-              0,
-              59,
-              4,
-              0
-            ],
-            [
-              0,
-              0,
-              0,
-              57,
-              0,
-              0
-            ],
-            [
-              0,
-              0,
-              0,
-              0,
-              66,
-              0
-            ],
-            [
-              0,
-              0,
-              0,
-              0,
-              0,
-              68
-            ]
-          ],
-          "severity_rmse": 12.1752,
-          "lead_time_mae_hours": 14.798,
-          "evaluation_dataset": "synthetic_development",
-          "synthetic_development": true,
-          "real_world_validation": false,
-          "spectral_stream": true,
-          "spatial_stream": false,
-          "env_stream": true
-        },
-        {
-          "accuracy_pct": 69.72,
-          "precision_macro": 0.8133,
-          "recall_macro": 0.7079,
-          "f1_score_macro": 0.6211,
-          "f1_score_weighted": 0.6072,
-          "confusion_matrix": [
-            [
-              64,
-              0,
-              0,
-              0,
-              0,
-              0
-            ],
-            [
-              36,
-              12,
-              0,
-              7,
-              0,
-              0
-            ],
-            [
-              0,
-              0,
-              2,
-              31,
-              35,
-              0
-            ],
-            [
-              0,
-              0,
-              0,
-              62,
-              0,
-              0
-            ],
-            [
-              0,
-              0,
-              0,
-              0,
-              57,
-              0
-            ],
-            [
-              0,
-              0,
-              0,
-              0,
-              0,
-              54
-            ]
-          ],
-          "severity_rmse": 11.6548,
-          "lead_time_mae_hours": 15.5712,
-          "evaluation_dataset": "synthetic_development",
-          "synthetic_development": true,
-          "real_world_validation": false,
-          "spectral_stream": true,
-          "spatial_stream": false,
-          "env_stream": true
-        }
-      ],
-      "confusion_matrix": [
-        [
-          64,
-          0,
-          0,
-          0,
-          0,
-          0
-        ],
-        [
-          36,
-          12,
-          0,
-          7,
-          0,
-          0
-        ],
-        [
-          0,
-          0,
-          2,
-          31,
-          35,
-          0
-        ],
-        [
-          0,
-          0,
-          0,
-          62,
-          0,
-          0
-        ],
-        [
-          0,
-          0,
-          0,
-          0,
-          57,
-          0
-        ],
-        [
-          0,
-          0,
-          0,
-          0,
-          0,
-          54
-        ]
-      ],
-      "evaluation_dataset": "synthetic_development",
-      "synthetic_development": true,
-      "real_world_validation": false,
-      "spectral_stream": true,
-      "spatial_stream": false,
-      "env_stream": true
-    },
-    "Variant G: Tri-Modal MM-SSNet (Proposed)": {
-      "accuracy_pct_mean": 76.66,
-      "accuracy_pct_std": 15.27,
-      "f1_score_macro_mean": 0.7275,
-      "f1_score_macro_std": 0.1875,
-      "f1_score_weighted_mean": 0.7157,
-      "severity_rmse_mean": 13.9787,
-      "lead_time_mae_mean": 14.3316,
-      "seed_runs": [
-        {
-          "accuracy_pct": 91.94,
-          "precision_macro": 0.9278,
-          "recall_macro": 0.9179,
-          "f1_score_macro": 0.9149,
-          "f1_score_weighted": 0.9199,
-          "confusion_matrix": [
-            [
-              46,
-              11,
-              0,
-              0,
-              0,
-              0
-            ],
-            [
-              0,
-              46,
-              0,
-              3,
-              0,
-              0
-            ],
-            [
-              0,
-              0,
-              48,
-              15,
-              0,
-              0
-            ],
-            [
-              0,
-              0,
-              0,
-              57,
-              0,
-              0
-            ],
-            [
-              0,
-              0,
-              0,
-              0,
-              66,
-              0
-            ],
-            [
-              0,
-              0,
-              0,
-              0,
-              0,
-              68
-            ]
-          ],
-          "severity_rmse": 14.1492,
-          "lead_time_mae_hours": 13.5461,
-          "evaluation_dataset": "synthetic_development",
-          "synthetic_development": true,
-          "real_world_validation": false,
-          "spectral_stream": true,
-          "spatial_stream": true,
-          "env_stream": true
-        },
-        {
-          "accuracy_pct": 61.39,
-          "precision_macro": 0.6423,
-          "recall_macro": 0.6446,
-          "f1_score_macro": 0.54,
-          "f1_score_weighted": 0.5115,
-          "confusion_matrix": [
-            [
-              2,
-              61,
-              0,
-              0,
-              0,
-              1
-            ],
-            [
-              0,
-              46,
-              3,
-              6,
-              0,
-              0
-            ],
-            [
-              0,
-              0,
-              0,
-              67,
-              1,
-              0
-            ],
-            [
-              0,
-              0,
-              0,
-              62,
-              0,
-              0
-            ],
-            [
-              0,
-              0,
-              0,
-              0,
-              57,
-              0
-            ],
-            [
-              0,
-              0,
-              0,
-              0,
-              0,
-              54
-            ]
-          ],
-          "severity_rmse": 13.8081,
-          "lead_time_mae_hours": 15.1171,
-          "evaluation_dataset": "synthetic_development",
-          "synthetic_development": true,
-          "real_world_validation": false,
-          "spectral_stream": true,
-          "spatial_stream": true,
-          "env_stream": true
-        }
-      ],
-      "confusion_matrix": [
-        [
-          2,
-          61,
-          0,
-          0,
-          0,
-          1
-        ],
-        [
-          0,
-          46,
-          3,
-          6,
-          0,
-          0
-        ],
-        [
-          0,
-          0,
-          0,
-          67,
-          1,
-          0
-        ],
-        [
-          0,
-          0,
-          0,
-          62,
-          0,
-          0
-        ],
-        [
-          0,
-          0,
-          0,
-          0,
-          57,
-          0
-        ],
-        [
-          0,
-          0,
-          0,
-          0,
-          0,
-          54
+          66
         ]
       ],
       "evaluation_dataset": "synthetic_development",

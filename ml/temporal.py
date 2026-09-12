@@ -120,10 +120,16 @@ def generate_synthetic_temporal_data(num_samples=1000, seq_len=10, seed=42):
     trends = []
     fut_sevs = []
 
-    samples_per_trajectory = num_samples // 4
+    base_samples = num_samples // 4
+    remainder = num_samples % 4
+
+    samples_per_trajectory = [
+        base_samples + (1 if trajectory_id < remainder else 0)
+        for trajectory_id in range(4)
+    ]
 
     # Trajectory 0: HEALTHY (STABLE)
-    for _ in range(samples_per_trajectory):
+    for _ in range(samples_per_trajectory[0]):
         seq = []
         base_moisture = np.random.normal(55.0, 3.0)
         base_temp = np.random.normal(23.0, 1.5)
@@ -147,7 +153,7 @@ def generate_synthetic_temporal_data(num_samples=1000, seq_len=10, seed=42):
         fut_sevs.append(seq[-1][-1] * 100.0)
 
     # Trajectory 1: WATER_STRESS (DETERIORATING)
-    for _ in range(samples_per_trajectory):
+    for _ in range(samples_per_trajectory[1]):
         seq = []
         start_moisture = np.random.normal(50.0, 4.0)
         start_temp = np.random.normal(25.0, 2.0)
@@ -173,7 +179,7 @@ def generate_synthetic_temporal_data(num_samples=1000, seq_len=10, seed=42):
         fut_sevs.append(seq[-1][-1] * 100.0)
 
     # Trajectory 2: DISEASE_PROGRESS (RAPID_DETERIORATION)
-    for _ in range(samples_per_trajectory):
+    for _ in range(samples_per_trajectory[2]):
         seq = []
         start_sev = np.random.normal(25.0, 3.0)
         for t in range(seq_len):
@@ -196,7 +202,7 @@ def generate_synthetic_temporal_data(num_samples=1000, seq_len=10, seed=42):
         fut_sevs.append(seq[-1][-1] * 100.0)
 
     # Trajectory 3: RECOVERY (IMPROVING)
-    for _ in range(samples_per_trajectory):
+    for _ in range(samples_per_trajectory[3]):
         seq = []
         start_sev = np.random.normal(65.0, 4.0)
         for t in range(seq_len):

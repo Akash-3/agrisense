@@ -1,23 +1,49 @@
 /*
- * AgriSense ESP32 Multi-Sensor IoT Station Firmware
- * Microcontroller: ESP32-WROOM-32 30-Pin USB-C DevKit
- * 
- * Hardware Connections:
- *   - Soil Moisture Sensor VCC  -> ESP32 3V3
- *   - Soil Moisture Sensor GND  -> ESP32 GND
- *   - Soil Moisture Sensor AOUT -> ESP32 D34 (GPIO 34)
- * 
- *   - MQ-135 Air Sensor VCC     -> ESP32 VIN (5V)
- *   - MQ-135 Air Sensor GND     -> ESP32 GND
- *   - MQ-135 Air Sensor AOUT    -> ESP32 D35 (GPIO 35)
- * 
- *   - DHT22 Temp Sensor VCC     -> ESP32 3V3
- *   - DHT22 Temp Sensor GND     -> ESP32 GND
- *   - DHT22 Temp Sensor DATA    -> ESP32 D4  (GPIO 4)
- * 
- * Status Reporting:
- *   - Real Hardware Disconnection Detection (NO Fake Fallbacks)
- *   - Sends null and status="SENSOR_DISCONNECTED" to dashboard when unplugged!
+ * ============================================================
+ * AgriSense ESP32 Multi-Sensor IoT Station
+ * ============================================================
+ *
+ * Hardware:
+ *   Soil Moisture Sensor
+ *     VCC  -> ESP32 3V3
+ *     GND  -> ESP32 GND
+ *     AOUT -> GPIO 34
+ *
+ *   MQ-135
+ *     VCC  -> ESP32 VIN (5V)
+ *     GND  -> ESP32 GND
+ *     AOUT -> GPIO 35
+ *
+ *   DHT22
+ *     VCC  -> ESP32 3V3
+ *     GND  -> ESP32 GND
+ *     DATA -> GPIO 4
+ *
+ * Network:
+ *   ESP32 -> Internet -> Tailscale Funnel -> FastAPI
+ *
+ * Public backend:
+ *   https://admin.tail4fe027.ts.net
+ *
+ * Telemetry endpoint:
+ *   https://admin.tail4fe027.ts.net/api/v1/telemetry/ingest
+ *
+ * Features:
+ *   - HTTPS telemetry transmission
+ *   - Wi-Fi auto-reconnection
+ *   - DNS resolution diagnostics
+ *   - HTTPS/TLS diagnostics
+ *   - HTTP status diagnostics
+ *   - Sensor disconnection detection
+ *   - Explicit null values for disconnected sensors
+ *   - No fake sensor fallbacks
+ *   - 5-second telemetry interval
+ *
+ * NOTE:
+ *   client.setInsecure() is intentionally used during development.
+ *   This disables TLS certificate validation.
+ *   Proper certificate validation should be added before production.
+ * ============================================================
  */
 
 #include <WiFi.h>
@@ -25,219 +51,876 @@
 #include <WiFiClientSecure.h>
 #include <DHT.h>
 
-// ==================== CONFIGURATION ====================
-const char* WIFI_SSID     = "Hiii";             // User Wi-Fi SSID
-const char* WIFI_PASSWORD = "kavya432";         // User Wi-Fi Password
+// ============================================================
+// CONFIGURATION
+// ============================================================
 
-// Server Endpoint (Cloudflare Tunnel Public HTTPS Domain)
-const char* SERVER_URL = "https://adapters-allows-publicity-sagem.trycloudflare.com/api/v1/telemetry/ingest";
-const char* DEVICE_ID  = "ESP32_MULTI_NODE_01";
+// Wi-Fi credentials
+const char* WIFI_SSID     = "Hiii";
+const char* WIFI_PASSWORD = "kavya432";
 
-// Google Public DNS servers to guarantee domain name resolution
-IPAddress primaryDNS(8, 8, 8, 8);
-IPAddress secondaryDNS(8, 8, 4, 4);
+// Public AgriSense backend through Tailscale Funnel
+const char* SERVER_URL =
+    "https://admin.tail4fe027.ts.net/api/v1/telemetry/ingest";
 
-// ==================== PIN DEFINITIONS ====================
-#define SOIL_PIN 34 // GPIO 34 (D34 - ADC1_CH6)
-#define MQ135_PIN 35 // GPIO 35 (D35 - ADC1_CH7)
-#define DHT_PIN   4  // GPIO 4  (D4 - Digital)
+const char* DEVICE_ID = "ESP32_MULTI_NODE_01";
+
+// ============================================================
+// PIN DEFINITIONS
+// ============================================================
+
+#define SOIL_PIN  34
+#define MQ135_PIN 35
+#define DHT_PIN   4
 #define DHTTYPE   DHT22
 
 DHT dht(DHT_PIN, DHTTYPE);
 
-// Soil Calibration Constants (Dry Air ADC = 4095, Submerged Water ADC = 1200)
-const int AirValue   = 4095; // Sensor in dry air (0% moisture)
-const int WaterValue = 1200; // Sensor submerged in water (100% moisture)
+// ============================================================
+// SOIL MOISTURE CALIBRATION
+// ============================================================
+//
+// Dry air      = 0%
+// Water        = 100%
+//
 
-// Read Intervals
-const unsigned long SEND_INTERVAL_MS = 5000; // Send telemetry every 5 seconds
+const int AirValue   = 4095;
+const int WaterValue = 2650;
+
+// ============================================================
+// TIMING
+// ============================================================
+
+const unsigned long SEND_INTERVAL_MS = 5000;
+
 unsigned long lastSendTime = 0;
 
-void setup() {
-  Serial.begin(115200);
-  delay(1000);
-  
+// ============================================================
+// NETWORK CONFIGURATION
+// ============================================================
+
+const unsigned long WIFI_CONNECT_TIMEOUT_MS = 20000;
+const unsigned long WIFI_RECONNECT_TIMEOUT_MS = 10000;
+
+const unsigned long HTTPS_TIMEOUT_MS = 20000;
+const unsigned long TLS_HANDSHAKE_TIMEOUT_SECONDS = 15;
+
+// ============================================================
+// WIFI CONNECTION
+// ============================================================
+
+bool connectToWiFi(unsigned long timeoutMs) {
+
+  if (WiFi.status() == WL_CONNECTED) {
+    return true;
+  }
+
   Serial.println();
-  Serial.println("==========================================================");
-  Serial.println("   🌱 AgriSense ESP32 Remote Multi-Sensor Node Booting   ");
-  Serial.println("==========================================================");
-
-  analogReadResolution(12);
-  pinMode(SOIL_PIN, INPUT);
-  pinMode(MQ135_PIN, INPUT);
-
-  dht.begin();
-  Serial.println("[DHT22] Sensor driver initialized on GPIO 4.");
-
-  Serial.print("[Wi-Fi] Connecting to network: ");
-  Serial.println(WIFI_SSID);
+  Serial.println("[Wi-Fi] Connecting...");
 
   WiFi.mode(WIFI_STA);
+
+  // Automatically reconnect if the access point disappears.
+  WiFi.setAutoReconnect(true);
+
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
-  while (WiFi.status() != WL_CONNECTED) {
+  unsigned long startTime = millis();
+
+  while (WiFi.status() != WL_CONNECTED &&
+         millis() - startTime < timeoutMs) {
+
     delay(500);
     Serial.print(".");
   }
 
-  // Force Google DNS (8.8.8.8) to guarantee resolution of Cloudflare domains on local Wi-Fi router
-  WiFi.config(WiFi.localIP(), WiFi.gatewayIP(), WiFi.subnetMask(), primaryDNS, secondaryDNS);
-
   Serial.println();
-  Serial.println("[Wi-Fi] Connected successfully!");
-  Serial.print("[Wi-Fi] IP Address: ");
+
+  if (WiFi.status() != WL_CONNECTED) {
+
+    Serial.println("[Wi-Fi] ❌ Connection failed.");
+
+    Serial.print("[Wi-Fi] Status code: ");
+    Serial.println(WiFi.status());
+
+    return false;
+  }
+
+  Serial.println("[Wi-Fi] ✅ Connected successfully.");
+
+  Serial.print("[Wi-Fi] IP address: ");
   Serial.println(WiFi.localIP());
-  Serial.print("[Wi-Fi] DNS Server: ");
+
+  Serial.print("[Wi-Fi] Gateway: ");
+  Serial.println(WiFi.gatewayIP());
+
+  Serial.print("[Wi-Fi] Subnet: ");
+  Serial.println(WiFi.subnetMask());
+
+  Serial.print("[Wi-Fi] DNS: ");
   Serial.println(WiFi.dnsIP());
-  Serial.println("==========================================================");
+
+  Serial.print("[Wi-Fi] RSSI: ");
+  Serial.print(WiFi.RSSI());
+  Serial.println(" dBm");
+
+  return true;
 }
 
+// ============================================================
+// WIFI RECONNECTION
+// ============================================================
+
+bool ensureWiFiConnection() {
+
+  if (WiFi.status() == WL_CONNECTED) {
+    return true;
+  }
+
+  Serial.println();
+  Serial.println("[Wi-Fi] ⚠️ Connection lost.");
+  Serial.println("[Wi-Fi] Attempting reconnection...");
+
+  WiFi.disconnect();
+
+  delay(500);
+
+  return connectToWiFi(WIFI_RECONNECT_TIMEOUT_MS);
+}
+
+// ============================================================
+// ANALOG SENSOR READING
+// ============================================================
+
 int readAveragedAnalog(int pin, int samples = 10) {
+
   long sum = 0;
+
   for (int i = 0; i < samples; i++) {
+
     sum += analogRead(pin);
+
     delay(5);
   }
+
   return (int)(sum / samples);
 }
 
-// ------------------- SENSOR READERS WITH NO FAKE FALLBACKS -------------------
+// ============================================================
+// SOIL MOISTURE SENSOR
+// ============================================================
 
-// 1. Soil Moisture Reader
 bool getSoilMoisture(float &moisturePct, int &rawADC) {
+
   rawADC = readAveragedAnalog(SOIL_PIN, 10);
 
-  // Disconnection check: 0 indicates shorted/unconnected pin
+  // Basic electrical fault detection.
   if (rawADC < 10) {
-    Serial.printf("[SOIL FAULT] ⚠️ Sensor disconnected or shorted (Raw ADC: %d)\n", rawADC);
-    return false; // Disconnected
+
+    Serial.printf(
+        "[SOIL FAULT] Sensor disconnected or shorted "
+        "(Raw ADC: %d)\n",
+        rawADC
+    );
+
+    return false;
   }
 
-  moisturePct = (float)map(rawADC, AirValue, WaterValue, 0, 100);
-  moisturePct = constrain(moisturePct, 0.0f, 100.0f);
-  return true; // Online
+  moisturePct =
+      (float)map(
+          rawADC,
+          AirValue,
+          WaterValue,
+          0,
+          100
+      );
+
+  moisturePct =
+      constrain(
+          moisturePct,
+          0.0f,
+          100.0f
+      );
+
+  return true;
 }
 
-// 2. MQ-135 Gas Reader
+// ============================================================
+// MQ-135 SENSOR
+// ============================================================
+
 bool getSmokePPM(float &smokePPM, int &rawADC) {
+
   rawADC = readAveragedAnalog(MQ135_PIN, 10);
 
+  // Basic electrical fault detection.
   if (rawADC < 10) {
-    Serial.printf("[MQ135 FAULT] ⚠️ Sensor unplugged (Raw ADC: %d)\n", rawADC);
-    return false; // Disconnected
+
+    Serial.printf(
+        "[MQ135 FAULT] Sensor disconnected "
+        "(Raw ADC: %d)\n",
+        rawADC
+    );
+
+    return false;
   }
 
-  smokePPM = (float)map(rawADC, 200, 3500, 50, 600);
-  smokePPM = constrain(smokePPM, 20.0f, 999.0f);
-  return true; // Online
+  /*
+   * Existing project mapping retained.
+   *
+   * IMPORTANT:
+   * This is an application-level ADC-to-PPM mapping,
+   * not laboratory-calibrated gas concentration measurement.
+   */
+
+  smokePPM =
+      (float)map(
+          rawADC,
+          200,
+          3500,
+          50,
+          600
+      );
+
+  smokePPM =
+      constrain(
+          smokePPM,
+          20.0f,
+          999.0f
+      );
+
+  return true;
 }
 
-// 3. DHT22 Temp & Humidity Reader
+// ============================================================
+// DHT22 SENSOR
+// ============================================================
+
 bool getDHTData(float &tempC, float &humidityPct) {
+
   float t = dht.readTemperature();
   float h = dht.readHumidity();
 
   if (isnan(t) || isnan(h)) {
-    Serial.println("[DHT22 FAULT] ⚠️ Sensor disconnected / NaN reading!");
-    return false; // Disconnected
+
+    Serial.println(
+        "[DHT22 FAULT] Sensor disconnected "
+        "or invalid NaN reading."
+    );
+
+    return false;
   }
 
   tempC = t;
   humidityPct = h;
-  return true; // Online
+
+  return true;
 }
 
-// ------------------- HTTP TELEMETRY TRANSMITTER -------------------
+// ============================================================
+// DNS DIAGNOSTIC
+// ============================================================
 
-void sendTelemetry(bool soilOk, float soilMoisture,
-                   bool dhtOk, float tempC, float humidity,
-                   bool mqOk, float smokePPM) {
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("[Wi-Fi] Network connection lost! Reconnecting...");
-    WiFi.reconnect();
+bool checkBackendDNS() {
+
+  Serial.println("[DNS] Resolving backend hostname...");
+
+  IPAddress resolvedIP;
+
+  if (!WiFi.hostByName(
+          "admin.tail4fe027.ts.net",
+          resolvedIP
+      )) {
+
+    Serial.println(
+        "[DNS] ❌ Failed to resolve "
+        "admin.tail4fe027.ts.net"
+    );
+
+    return false;
+  }
+
+  Serial.print("[DNS] ✅ Resolved to: ");
+  Serial.println(resolvedIP);
+
+  return true;
+}
+
+// ============================================================
+// HTTPS TELEMETRY TRANSMISSION
+// ============================================================
+
+void sendTelemetry(
+    bool soilOk,
+    float soilMoisture,
+    bool dhtOk,
+    float tempC,
+    float humidity,
+    bool mqOk,
+    float smokePPM
+) {
+
+  // ----------------------------------------------------------
+  // WIFI CHECK
+  // ----------------------------------------------------------
+
+  if (!ensureWiFiConnection()) {
+
+    Serial.println(
+        "[HTTP WAN] ❌ No Wi-Fi connection. "
+        "Telemetry skipped."
+    );
+
     return;
   }
 
-  // Format JSON payload with explicit nulls and status indicators
-  String soilStr   = soilOk ? String(soilMoisture, 1) : "null";
-  String tempStr   = dhtOk  ? String(tempC, 1)        : "null";
-  String humStr    = dhtOk  ? String(humidity, 1)     : "null";
-  String smokeStr  = mqOk   ? String(smokePPM, 1)     : "null";
+  // ----------------------------------------------------------
+  // JSON VALUES
+  // ----------------------------------------------------------
 
-  String soilStatus = soilOk ? "ONLINE" : "SENSOR_DISCONNECTED";
-  String dhtStatus  = dhtOk  ? "ONLINE" : "SENSOR_DISCONNECTED";
-  String mqStatus   = mqOk   ? "ONLINE" : "SENSOR_DISCONNECTED";
+  String soilStr =
+      soilOk
+          ? String(soilMoisture, 1)
+          : "null";
+
+  String tempStr =
+      dhtOk
+          ? String(tempC, 1)
+          : "null";
+
+  String humStr =
+      dhtOk
+          ? String(humidity, 1)
+          : "null";
+
+  String smokeStr =
+      mqOk
+          ? String(smokePPM, 1)
+          : "null";
+
+  String soilStatus =
+      soilOk
+          ? "ONLINE"
+          : "SENSOR_DISCONNECTED";
+
+  String dhtStatus =
+      dhtOk
+          ? "ONLINE"
+          : "SENSOR_DISCONNECTED";
+
+  String mqStatus =
+      mqOk
+          ? "ONLINE"
+          : "SENSOR_DISCONNECTED";
+
+  // ----------------------------------------------------------
+  // JSON PAYLOAD
+  // ----------------------------------------------------------
 
   String jsonPayload = "{";
-  jsonPayload += "\"device_id\":\"" + String(DEVICE_ID) + "\",";
-  jsonPayload += "\"soil_moisture\":" + soilStr + ",";
-  jsonPayload += "\"soil_status\":\"" + soilStatus + "\",";
-  jsonPayload += "\"temperature\":" + tempStr + ",";
-  jsonPayload += "\"humidity\":" + humStr + ",";
-  jsonPayload += "\"dht_status\":\"" + dhtStatus + "\",";
-  jsonPayload += "\"smoke_ppm\":" + smokeStr + ",";
-  jsonPayload += "\"mq135_status\":\"" + mqStatus + "\"";
+
+  jsonPayload +=
+      "\"device_id\":\"" +
+      String(DEVICE_ID) +
+      "\",";
+
+  jsonPayload +=
+      "\"soil_moisture\":" +
+      soilStr +
+      ",";
+
+  jsonPayload +=
+      "\"soil_status\":\"" +
+      soilStatus +
+      "\",";
+
+  jsonPayload +=
+      "\"temperature\":" +
+      tempStr +
+      ",";
+
+  jsonPayload +=
+      "\"humidity\":" +
+      humStr +
+      ",";
+
+  jsonPayload +=
+      "\"dht_status\":\"" +
+      dhtStatus +
+      "\",";
+
+  jsonPayload +=
+      "\"smoke_ppm\":" +
+      smokeStr +
+      ",";
+
+  jsonPayload +=
+      "\"mq135_status\":\"" +
+      mqStatus +
+      "\"";
+
   jsonPayload += "}";
 
-  Serial.print("[HTTP WAN] Dispatching Telemetry Payload (1,200 km): ");
+  // ----------------------------------------------------------
+  // LOG
+  // ----------------------------------------------------------
+
+  Serial.println();
+  Serial.println("----------------------------------------------------------");
+
+  Serial.println(
+      "[HTTP WAN] Preparing HTTPS telemetry transmission..."
+  );
+
+  Serial.print("[HTTP WAN] Target: ");
+  Serial.println(SERVER_URL);
+
+  Serial.print("[HTTP WAN] Payload: ");
   Serial.println(jsonPayload);
 
+  // ----------------------------------------------------------
+  // DNS TEST
+  // ----------------------------------------------------------
+
+  if (!checkBackendDNS()) {
+
+    Serial.println(
+        "[HTTP WAN] ❌ DNS resolution failed. "
+        "POST aborted."
+    );
+
+    return;
+  }
+
+  // ----------------------------------------------------------
+  // SECURE CLIENT
+  // ----------------------------------------------------------
+
   WiFiClientSecure client;
-  client.setInsecure(); // Skip SSL certificate validation for public Cloudflare HTTPS
-  client.setHandshakeTimeout(10); // 10s handshake timeout
+
+  /*
+   * Development mode:
+   * Do not validate the remote TLS certificate.
+   *
+   * This avoids certificate provisioning being a
+   * variable during initial Funnel integration testing.
+   *
+   * TODO for production:
+   * Replace setInsecure() with proper certificate
+   * validation / CA certificate.
+   */
+
+  client.setInsecure();
+
+  client.setHandshakeTimeout(
+      TLS_HANDSHAKE_TIMEOUT_SECONDS
+  );
+
+  // ----------------------------------------------------------
+  // HTTP CLIENT
+  // ----------------------------------------------------------
 
   HTTPClient http;
-  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS); // Follow 301/302/307/308 redirects strictly preserving POST payload
 
-  if (http.begin(client, SERVER_URL)) {
-    http.setTimeout(15000); // 15-second timeout for long-distance internet routing
-    http.setReuse(false);   // Disable TCP connection reuse to prevent closed socket write errors!
-    http.addHeader("Content-Type", "application/json");
-    http.addHeader("User-Agent", "ESP32-AgriSense-Node");
-    http.addHeader("Connection", "close"); // Instruct server and ESP32 stack to close TCP socket after response
+  http.setTimeout(HTTPS_TIMEOUT_MS);
 
-    int httpCode = http.POST(jsonPayload);
+  /*
+   * Disable keep-alive connection reuse.
+   *
+   * This is intentional for the current ESP32
+   * telemetry reliability configuration.
+   */
 
-    if (httpCode > 0) {
-      String response = http.getString();
-      Serial.printf("[HTTP WAN] ✅ Server Response Code: %d\n", httpCode);
-      Serial.printf("[HTTP WAN] Response: %s\n", response.c_str());
-    } else {
-      Serial.printf("[HTTP WAN] ❌ POST Error: %s (Code: %d)\n",
-                    http.errorToString(httpCode).c_str(), httpCode);
-    }
-    http.end();
-  } else {
-    Serial.println("[HTTP WAN] ❌ Unable to initiate connection to Cloudflare server.");
+  http.setReuse(false);
+
+  http.addHeader(
+      "Content-Type",
+      "application/json"
+  );
+
+  http.addHeader(
+      "User-Agent",
+      "ESP32-AgriSense-Node"
+  );
+
+  http.addHeader(
+      "Connection",
+      "close"
+  );
+
+  // ----------------------------------------------------------
+  // BEGIN HTTPS
+  // ----------------------------------------------------------
+
+  Serial.println(
+      "[HTTPS] Initializing secure connection..."
+  );
+
+  if (!http.begin(client, SERVER_URL)) {
+
+    Serial.println(
+        "[HTTPS] ❌ Failed to initialize HTTPS client."
+    );
+
+    return;
   }
+
+  Serial.println(
+      "[HTTPS] ✅ HTTPS client initialized."
+  );
+
+  // ----------------------------------------------------------
+  // POST
+  // ----------------------------------------------------------
+
+  Serial.println(
+      "[HTTP WAN] Sending telemetry POST..."
+  );
+
+  int httpCode =
+      http.POST(jsonPayload);
+
+  // ----------------------------------------------------------
+  // SUCCESS / SERVER RESPONSE
+  // ----------------------------------------------------------
+
+  if (httpCode > 0) {
+
+    Serial.printf(
+        "[HTTP WAN] Server response code: %d\n",
+        httpCode
+    );
+
+    String response =
+        http.getString();
+
+    Serial.print(
+        "[HTTP WAN] Server response: "
+    );
+
+    Serial.println(response);
+
+    if (httpCode >= 200 &&
+        httpCode < 300) {
+
+      Serial.println(
+          "[HTTP WAN] ✅ Telemetry successfully delivered."
+      );
+
+    } else {
+
+      Serial.println(
+          "[HTTP WAN] ⚠️ Server returned "
+          "a non-success HTTP status."
+      );
+    }
+
+  }
+
+  // ----------------------------------------------------------
+  // CONNECTION ERROR
+  // ----------------------------------------------------------
+
+  else {
+
+    Serial.printf(
+        "[HTTP WAN] ❌ POST failed. "
+        "HTTP error code: %d\n",
+        httpCode
+    );
+
+    Serial.print(
+        "[HTTP WAN] Error description: "
+    );
+
+    Serial.println(
+        http.errorToString(httpCode)
+    );
+
+    Serial.print(
+        "[HTTP WAN] Wi-Fi status: "
+    );
+
+    Serial.println(
+        WiFi.status()
+    );
+
+    Serial.print(
+        "[HTTP WAN] ESP32 IP: "
+    );
+
+    Serial.println(
+        WiFi.localIP()
+    );
+
+    Serial.print(
+        "[HTTP WAN] DNS server: "
+    );
+
+    Serial.println(
+        WiFi.dnsIP()
+    );
+
+    Serial.print(
+        "[HTTP WAN] RSSI: "
+    );
+
+    Serial.print(
+        WiFi.RSSI()
+    );
+
+    Serial.println(" dBm");
+  }
+
+  // ----------------------------------------------------------
+  // CLEANUP
+  // ----------------------------------------------------------
+
+  http.end();
+
+  Serial.println(
+      "[HTTPS] Connection closed."
+  );
 }
 
-// ------------------- MAIN LOOP -------------------
+// ============================================================
+// SETUP
+// ============================================================
+
+void setup() {
+
+  Serial.begin(115200);
+
+  delay(1000);
+
+  Serial.println();
+  Serial.println(
+      "=========================================================="
+  );
+
+  Serial.println(
+      "     AgriSense ESP32 Multi-Sensor IoT Station"
+  );
+
+  Serial.println(
+      "=========================================================="
+  );
+
+  Serial.println();
+
+  // ----------------------------------------------------------
+  // HARDWARE INITIALIZATION
+  // ----------------------------------------------------------
+
+  analogReadResolution(12);
+
+  pinMode(
+      SOIL_PIN,
+      INPUT
+  );
+
+  pinMode(
+      MQ135_PIN,
+      INPUT
+  );
+
+  dht.begin();
+
+  Serial.println(
+      "[DHT22] Sensor driver initialized on GPIO 4."
+  );
+
+  // ----------------------------------------------------------
+  // NETWORK INFORMATION
+  // ----------------------------------------------------------
+
+  Serial.println();
+  Serial.println(
+      "[Network] Public backend:"
+  );
+
+  Serial.println(
+      "https://admin.tail4fe027.ts.net"
+  );
+
+  Serial.println();
+
+  // ----------------------------------------------------------
+  // WIFI
+  // ----------------------------------------------------------
+
+  Serial.print(
+      "[Wi-Fi] Connecting to network: "
+  );
+
+  Serial.println(
+      WIFI_SSID
+  );
+
+  if (!connectToWiFi(
+          WIFI_CONNECT_TIMEOUT_MS
+      )) {
+
+    Serial.println();
+    Serial.println(
+        "[Wi-Fi] ❌ Initial Wi-Fi connection failed."
+    );
+
+    Serial.println(
+        "[System] Restarting ESP32 in 5 seconds..."
+    );
+
+    delay(5000);
+
+    ESP.restart();
+  }
+
+  Serial.println();
+  Serial.println(
+      "=========================================================="
+  );
+
+  Serial.println(
+      "[System] ESP32 initialization complete."
+  );
+
+  Serial.println(
+      "[System] Telemetry interval: 5 seconds."
+  );
+
+  Serial.println(
+      "=========================================================="
+  );
+}
+
+// ============================================================
+// MAIN LOOP
+// ============================================================
 
 void loop() {
-  unsigned long currentMillis = millis();
 
-  if (currentMillis - lastSendTime >= SEND_INTERVAL_MS) {
-    lastSendTime = currentMillis;
+  unsigned long currentMillis =
+      millis();
 
-    int rawSoilADC = 0, rawMQADC = 0;
-    float soilMoisture = 0.0f, smokePPM = 0.0f;
-    float tempC = 0.0f, humidity = 0.0f;
+  // ----------------------------------------------------------
+  // TELEMETRY INTERVAL
+  // ----------------------------------------------------------
 
-    bool soilOk = getSoilMoisture(soilMoisture, rawSoilADC);
-    bool mqOk   = getSmokePPM(smokePPM, rawMQADC);
-    bool dhtOk  = getDHTData(tempC, humidity);
+  if (
+      currentMillis - lastSendTime >=
+      SEND_INTERVAL_MS
+  ) {
 
-    Serial.println("----------------------------------------------------------");
-    if (soilOk) Serial.printf("[READINGS] Soil Moisture: %.1f%% (ADC %d)\n", soilMoisture, rawSoilADC);
-    else        Serial.println("[READINGS] ⚠️ Soil Moisture Sensor: DISCONNECTED");
+    lastSendTime =
+        currentMillis;
 
-    if (dhtOk)  Serial.printf("[READINGS] Temp: %.1f°C | Humidity: %.1f%%\n", tempC, humidity);
-    else        Serial.println("[READINGS] ⚠️ DHT22 Sensor: DISCONNECTED");
+    // --------------------------------------------------------
+    // SENSOR VARIABLES
+    // --------------------------------------------------------
 
-    if (mqOk)   Serial.printf("[READINGS] Air Quality: %.1f PPM (ADC %d)\n", smokePPM, rawMQADC);
-    else        Serial.println("[READINGS] ⚠️ MQ-135 Sensor: DISCONNECTED");
+    int rawSoilADC = 0;
+    int rawMQADC = 0;
 
-    sendTelemetry(soilOk, soilMoisture, dhtOk, tempC, humidity, mqOk, smokePPM);
+    float soilMoisture = 0.0f;
+    float smokePPM = 0.0f;
+
+    float tempC = 0.0f;
+    float humidity = 0.0f;
+
+    // --------------------------------------------------------
+    // READ SENSORS
+    // --------------------------------------------------------
+
+    bool soilOk =
+        getSoilMoisture(
+            soilMoisture,
+            rawSoilADC
+        );
+
+    bool mqOk =
+        getSmokePPM(
+            smokePPM,
+            rawMQADC
+        );
+
+    bool dhtOk =
+        getDHTData(
+            tempC,
+            humidity
+        );
+
+    // --------------------------------------------------------
+    // SERIAL SENSOR REPORT
+    // --------------------------------------------------------
+
+    Serial.println();
+    Serial.println(
+        "----------------------------------------------------------"
+    );
+
+    if (soilOk) {
+
+      Serial.printf(
+          "[READINGS] Soil Moisture: %.1f%% "
+          "(ADC %d)\n",
+          soilMoisture,
+          rawSoilADC
+      );
+
+    } else {
+
+      Serial.println(
+          "[READINGS] ⚠ Soil Moisture: DISCONNECTED"
+      );
+    }
+
+    if (dhtOk) {
+
+      Serial.printf(
+          "[READINGS] Temperature: %.1f°C | "
+          "Humidity: %.1f%%\n",
+          tempC,
+          humidity
+      );
+
+    } else {
+
+      Serial.println(
+          "[READINGS] ⚠ DHT22: DISCONNECTED"
+      );
+    }
+
+    if (mqOk) {
+
+      Serial.printf(
+          "[READINGS] Air Quality: %.1f PPM "
+          "(ADC %d)\n",
+          smokePPM,
+          rawMQADC
+      );
+
+    } else {
+
+      Serial.println(
+          "[READINGS] ⚠ MQ-135: DISCONNECTED"
+      );
+    }
+
+    // --------------------------------------------------------
+    // SEND TO BACKEND
+    // --------------------------------------------------------
+
+    sendTelemetry(
+        soilOk,
+        soilMoisture,
+        dhtOk,
+        tempC,
+        humidity,
+        mqOk,
+        smokePPM
+    );
   }
+
+  // Small yield/delay to keep the ESP32 responsive.
+  delay(10);
 }
