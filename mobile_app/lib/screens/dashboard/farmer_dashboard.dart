@@ -161,7 +161,11 @@ class FarmerDashboardState extends State<FarmerDashboard> {
     try {
       await http.post(Uri.parse('${AppConfig.backendHttpUrl}/api/v1/simulate?preset=$preset'));
     } catch (e) {
-      // Fallback
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not trigger preset on the backend. Proceeding via websocket.')),
+        );
+      }
     }
   }
 
@@ -228,22 +232,20 @@ class FarmerDashboardState extends State<FarmerDashboard> {
                 if (modalCtx.mounted) {
                   setModalState(() {
                     aiReport = {
-                      "crop_condition": "Early Leaf Blight ($selectedCrop)",
-                      "disease_type": "Fungal Infection (Alternaria Solani)",
-                      "health_score": 74.0,
-                      "confidence_pct": 94.6,
-                      "severity": "MODERATE_RISK",
+                      "error": true,
+                      "crop_condition": "AI Service Unavailable",
+                      "disease_type": "Connection Timeout / Offline",
+                      "health_score": 0.0,
+                      "confidence_pct": 0.0,
+                      "severity": "UNKNOWN",
                       "symptoms_detected": [
-                        "Concentric dark brown circular spots on foliage",
-                        "Chlorotic yellow halo surrounding lesion margins",
-                        "Early localized foliar necrosis"
+                        "Could not connect to the diagnostic server"
                       ],
                       "ai_remedy_recommendations": [
-                        "Apply Copper Hydroxide or Mancozeb fungicide spray at 2.5g/L concentration.",
-                        "Increase inter-row spacing to enhance canopy aeration and lower humidity.",
-                        "Schedule drip irrigation early morning to prevent leaf wetness."
+                        "Please verify your internet connection.",
+                        "Check if the AgriSense backend service is running."
                       ],
-                      "pathogen_vector": "Alternaria Solani Spores"
+                      "pathogen_vector": "N/A"
                     };
                     isAnalyzing = false;
                   });
@@ -288,22 +290,20 @@ class FarmerDashboardState extends State<FarmerDashboard> {
               if (modalCtx.mounted) {
                 setModalState(() {
                   aiReport = {
-                    "crop_condition": "Early Leaf Blight ($selectedCrop)",
-                    "disease_type": "Fungal Infection (Alternaria Solani)",
-                    "health_score": 74.0,
-                    "confidence_pct": 94.6,
-                    "severity": "MODERATE_RISK",
+                    "error": true,
+                    "crop_condition": "AI Service Unavailable",
+                    "disease_type": "Connection Timeout / Offline",
+                    "health_score": 0.0,
+                    "confidence_pct": 0.0,
+                    "severity": "UNKNOWN",
                     "symptoms_detected": [
-                      "Concentric dark brown circular spots on foliage",
-                      "Chlorotic yellow halo surrounding lesion margins",
-                      "Early localized foliar necrosis"
+                      "Could not connect to the diagnostic server"
                     ],
                     "ai_remedy_recommendations": [
-                      "Apply Copper Hydroxide or Mancozeb fungicide spray at 2.5g/L concentration.",
-                      "Increase inter-row spacing to enhance canopy aeration and lower humidity.",
-                      "Schedule drip irrigation early morning to prevent leaf wetness."
+                      "Please verify your internet connection.",
+                      "Check if the AgriSense backend service is running."
                     ],
-                    "pathogen_vector": "Alternaria Solani Spores"
+                    "pathogen_vector": "N/A"
                   };
                   isAnalyzing = false;
                 });
@@ -382,7 +382,7 @@ class FarmerDashboardState extends State<FarmerDashboard> {
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(22),
-                          boxShadow: [BoxShadow(color: const Color(0xFF064E3B).withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 6))],
+                          boxShadow: [BoxShadow(color: const Color(0xFF064E3B).withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 6))],
                         ),
                         child: Column(
                           children: [
@@ -390,9 +390,9 @@ class FarmerDashboardState extends State<FarmerDashboard> {
                               height: 160,
                               width: double.infinity,
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.3),
+                                color: Colors.black.withValues(alpha: 0.3),
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: const Color(0xFF10B981).withOpacity(0.6), width: 1.5),
+                                border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.6), width: 1.5),
                               ),
                               child: Stack(
                                 children: [
@@ -456,7 +456,7 @@ class FarmerDashboardState extends State<FarmerDashboard> {
                                 Expanded(
                                   child: ElevatedButton.icon(
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white.withOpacity(0.15),
+                                      backgroundColor: Colors.white.withValues(alpha: 0.15),
                                       foregroundColor: Colors.white,
                                       padding: const EdgeInsets.symmetric(vertical: 12),
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -659,7 +659,7 @@ class FarmerDashboardState extends State<FarmerDashboard> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: color.withOpacity(0.12), shape: BoxShape.circle),
+                    decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
                     child: Icon(icon, color: color, size: 28),
                   ),
                   const SizedBox(width: 12),
@@ -674,7 +674,7 @@ class FarmerDashboardState extends State<FarmerDashboard> {
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
                     child: Text(sensorValue, style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 13)),
                   ),
                 ],
@@ -790,16 +790,16 @@ class FarmerDashboardState extends State<FarmerDashboard> {
                 child: ListView(
                   children: [
                     _categoryHeader('AIR QUALITY & GAS SENSORS'),
-                    _sensorTile(context, 'Air Quality Sensor', '${(tel?.smokePpm ?? 80.0).round()} PPM', 'Clean Air Range', 'MQ-135 Optical Array', Icons.air_rounded, const Color(0xFF059669)),
+                    _sensorTile(context, 'Air Quality Sensor', tel?.smokePpm != null ? '${tel!.smokePpm!.round()} PPM' : 'Unavailable', tel?.mq135Status ?? 'OFFLINE', 'MQ-135 Optical Array', Icons.air_rounded, const Color(0xFF059669)),
 
                     _categoryHeader('THERMAL & MOISTURE SENSORS'),
-                    _sensorTile(context, 'Ambient Temperature', '${(tel?.temperatureC ?? 26.1).toStringAsFixed(1)}°C', 'Normal Thermal Range', 'DHT-22 Temp Array', Icons.thermostat_rounded, Colors.amber[800]!),
-                    _sensorTile(context, 'Relative Humidity', '58.0% RH', 'Optimal Humidity', 'DHT-22 Humidity Module', Icons.water_rounded, Colors.blue),
-                    _sensorTile(context, 'Soil Hydration Sensor', '${(tel?.soilMoistureVwc ?? 42.5).toStringAsFixed(1)}%', 'Optimal Soil Hydration', 'Capacitive VWC Probe', Icons.water_drop_rounded, const Color(0xFF059669)),
+                    _sensorTile(context, 'Ambient Temperature', tel?.temperatureC != null ? '${tel!.temperatureC!.toStringAsFixed(1)}°C' : 'Unavailable', tel?.dhtStatus ?? 'OFFLINE', 'DHT-22 Temp Array', Icons.thermostat_rounded, Colors.amber[800]!),
+                    _sensorTile(context, 'Relative Humidity', tel?.humidityPct != null ? '${tel!.humidityPct!.toStringAsFixed(1)}% RH' : 'Unavailable', tel?.dhtStatus ?? 'OFFLINE', 'DHT-22 Humidity Module', Icons.water_rounded, Colors.blue),
+                    _sensorTile(context, 'Soil Hydration Sensor', tel?.soilMoistureVwc != null ? '${tel!.soilMoistureVwc!.toStringAsFixed(1)}%' : 'Unavailable', tel?.soilStatus ?? 'OFFLINE', 'Capacitive VWC Probe', Icons.water_drop_rounded, const Color(0xFF059669)),
 
                     _categoryHeader('SOLAR & SPECTRAL CROP SENSORS'),
-                    _sensorTile(context, 'Solar Irradiance Level', '845 W/m²', 'Bright Sunlight', 'Pyranometer Sensor Array', Icons.wb_sunny_rounded, Colors.orange),
-                    _sensorTile(context, 'Crop Chlorophyll Index', '0.82 NDVI', 'Photosynthesis Active', 'Multi-Spectral Sensor', Icons.eco_rounded, const Color(0xFF059669)),
+                    _sensorTile(context, 'Solar Irradiance Level', tel?.clearChannel != null ? '${tel!.clearChannel} W/m² (est)' : 'Unavailable', tel?.soilStatus ?? 'OFFLINE', 'Pyranometer Sensor Array', Icons.wb_sunny_rounded, Colors.orange),
+                    _sensorTile(context, 'Crop Chlorophyll Index', tel?.nir_885nm != null ? 'NIR: ${tel!.nir_885nm}' : 'Unavailable', tel?.soilStatus ?? 'OFFLINE', 'Multi-Spectral Sensor', Icons.eco_rounded, const Color(0xFF059669)),
                   ],
                 ),
               ),
@@ -831,7 +831,7 @@ class FarmerDashboardState extends State<FarmerDashboard> {
       child: ListTile(
         leading: Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: color.withOpacity(0.12), shape: BoxShape.circle),
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
           child: Icon(icon, color: color, size: 22),
         ),
         title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
@@ -895,7 +895,7 @@ class FarmerDashboardState extends State<FarmerDashboard> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 14,
                   offset: const Offset(0, 4),
                 ),
@@ -943,12 +943,12 @@ class FarmerDashboardState extends State<FarmerDashboard> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.85),
+                      color: Colors.white.withValues(alpha: 0.85),
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(color: Colors.white, width: 1.5),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 10,
                           offset: const Offset(0, 3),
                         ),
@@ -1004,7 +1004,7 @@ class FarmerDashboardState extends State<FarmerDashboard> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF059669).withOpacity(0.3),
+                  color: const Color(0xFF059669).withValues(alpha: 0.3),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -1022,7 +1022,7 @@ class FarmerDashboardState extends State<FarmerDashboard> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.center_focus_strong_rounded, color: Colors.white, size: 24),
@@ -1073,7 +1073,7 @@ class FarmerDashboardState extends State<FarmerDashboard> {
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -1085,7 +1085,7 @@ class FarmerDashboardState extends State<FarmerDashboard> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: healthColor.withOpacity(0.12),
+                    color: healthColor.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -1163,8 +1163,8 @@ class FarmerDashboardState extends State<FarmerDashboard> {
                 child: _buildMetricTile(
                   context: context,
                   title: 'Soil Hydration',
-                  value: '${(tel?.soilMoistureVwc ?? 42.5).toStringAsFixed(1)}%',
-                  badgeText: 'Optimal',
+                  value: tel?.soilMoistureVwc != null ? '${tel!.soilMoistureVwc!.toStringAsFixed(1)}%' : 'N/A',
+                  badgeText: tel?.soilMoistureVwc != null ? 'Optimal' : 'Offline',
                   badgeBg: const Color(0xFFDCFCE7),
                   badgeTextColor: const Color(0xFF166534),
                   icon: Icons.water_drop_rounded,
@@ -1172,7 +1172,7 @@ class FarmerDashboardState extends State<FarmerDashboard> {
                   iconColor: const Color(0xFF059669),
                   sparklineColor: const Color(0xFF059669),
                   sparklineData: [38.0, 40.0, 39.5, 41.2, 42.5],
-                  onTap: () => _showSensorHistoryModal(context, 'Soil Hydration Sensor', '${(tel?.soilMoistureVwc ?? 42.5).toStringAsFixed(1)}%', 'Capacitive VWC Probe', Icons.water_drop_rounded, const Color(0xFF059669)),
+                  onTap: () => _showSensorHistoryModal(context, 'Soil Hydration Sensor', tel?.soilMoistureVwc != null ? '${tel!.soilMoistureVwc!.toStringAsFixed(1)}%' : 'N/A', 'Capacitive VWC Probe', Icons.water_drop_rounded, const Color(0xFF059669)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1180,8 +1180,8 @@ class FarmerDashboardState extends State<FarmerDashboard> {
                 child: _buildMetricTile(
                   context: context,
                   title: 'Field Temp',
-                  value: '${(tel?.temperatureC ?? 26.1).toStringAsFixed(1)}°C',
-                  badgeText: 'Normal',
+                  value: tel?.temperatureC != null ? '${tel!.temperatureC!.toStringAsFixed(1)}°C' : 'N/A',
+                  badgeText: tel?.temperatureC != null ? 'Normal' : 'Offline',
                   badgeBg: const Color(0xFFFFEDD5),
                   badgeTextColor: const Color(0xFFC2410C),
                   icon: Icons.thermostat_rounded,
@@ -1189,7 +1189,7 @@ class FarmerDashboardState extends State<FarmerDashboard> {
                   iconColor: const Color(0xFFEA580C),
                   sparklineColor: const Color(0xFFEA580C),
                   sparklineData: [24.0, 25.2, 25.8, 26.0, 26.1],
-                  onTap: () => _showSensorHistoryModal(context, 'Field Temp Sensor', '${(tel?.temperatureC ?? 26.1).toStringAsFixed(1)}°C', 'DHT-22 Temp Array', Icons.thermostat_rounded, const Color(0xFFEA580C)),
+                  onTap: () => _showSensorHistoryModal(context, 'Field Temp Sensor', tel?.temperatureC != null ? '${tel!.temperatureC!.toStringAsFixed(1)}°C' : 'N/A', 'DHT-22 Temp Array', Icons.thermostat_rounded, const Color(0xFFEA580C)),
                 ),
               ),
             ],
@@ -1201,8 +1201,8 @@ class FarmerDashboardState extends State<FarmerDashboard> {
                 child: _buildMetricTile(
                   context: context,
                   title: 'Air Quality',
-                  value: '${(tel?.smokePpm ?? 80.0).round()} PPM',
-                  badgeText: 'Clean Air',
+                  value: tel?.smokePpm != null ? '${tel!.smokePpm!.round()} PPM' : 'N/A',
+                  badgeText: tel?.smokePpm != null ? 'Clean Air' : 'Offline',
                   badgeBg: const Color(0xFFDCFCE7),
                   badgeTextColor: const Color(0xFF15803D),
                   icon: Icons.air_rounded,
@@ -1210,7 +1210,7 @@ class FarmerDashboardState extends State<FarmerDashboard> {
                   iconColor: const Color(0xFF16A34A),
                   sparklineColor: const Color(0xFF16A34A),
                   sparklineData: [85.0, 82.0, 81.0, 80.0, 80.0],
-                  onTap: () => _showSensorHistoryModal(context, 'Air Quality Sensor', '${(tel?.smokePpm ?? 80.0).round()} PPM', 'MQ-135 Optical Array', Icons.air_rounded, const Color(0xFF16A34A)),
+                  onTap: () => _showSensorHistoryModal(context, 'Air Quality Sensor', tel?.smokePpm != null ? '${tel!.smokePpm!.round()} PPM' : 'N/A', 'MQ-135 Optical Array', Icons.air_rounded, const Color(0xFF16A34A)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1269,7 +1269,7 @@ class FarmerDashboardState extends State<FarmerDashboard> {
                   borderColor: const Color(0xFFA7F3D0),
                   icon: Icons.eco_rounded,
                   iconColor: const Color(0xFF059669),
-                  btnBg: const Color(0xFF059669).withOpacity(0.2),
+                  btnBg: const Color(0xFF059669).withValues(alpha: 0.2),
                   btnIconColor: const Color(0xFF047857),
                 ),
                 const SizedBox(width: 12),
@@ -1281,7 +1281,7 @@ class FarmerDashboardState extends State<FarmerDashboard> {
                   borderColor: const Color(0xFFFED7AA),
                   icon: Icons.grain_rounded,
                   iconColor: const Color(0xFFEA580C),
-                  btnBg: const Color(0xFFEA580C).withOpacity(0.2),
+                  btnBg: const Color(0xFFEA580C).withValues(alpha: 0.2),
                   btnIconColor: const Color(0xFFC2410C),
                 ),
                 const SizedBox(width: 12),
@@ -1293,7 +1293,7 @@ class FarmerDashboardState extends State<FarmerDashboard> {
                   borderColor: const Color(0xFFBAE6FD),
                   icon: Icons.water_drop_rounded,
                   iconColor: const Color(0xFF0284C7),
-                  btnBg: const Color(0xFF0284C7).withOpacity(0.2),
+                  btnBg: const Color(0xFF0284C7).withValues(alpha: 0.2),
                   btnIconColor: const Color(0xFF0369A1),
                 ),
               ],
@@ -1313,7 +1313,7 @@ class FarmerDashboardState extends State<FarmerDashboard> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF064E3B).withOpacity(0.35),
+                  color: const Color(0xFF064E3B).withValues(alpha: 0.35),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -1324,7 +1324,7 @@ class FarmerDashboardState extends State<FarmerDashboard> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
+                    color: Colors.white.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.sensors_rounded, color: Color(0xFF34D399), size: 24),
@@ -1335,13 +1335,13 @@ class FarmerDashboardState extends State<FarmerDashboard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
                       Text(
-                        'Autonomous Drone Station',
+                        'Drone Station (Demo)',
                         style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                       SizedBox(height: 2),
                       Text(
-                        'Drones ready • Last flight: 2 hours ago',
-                        style: TextStyle(fontSize: 11, color: Color(0xFFA7F3D0)),
+                        'Hardware offline',
+                        style: TextStyle(fontSize: 11, color: Colors.orangeAccent),
                       ),
                     ],
                   ),
@@ -1399,7 +1399,7 @@ class FarmerDashboardState extends State<FarmerDashboard> {
           borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 14,
               offset: const Offset(0, 4),
             ),
@@ -1502,7 +1502,7 @@ class FarmerDashboardState extends State<FarmerDashboard> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.7),
+                color: Colors.white.withValues(alpha: 0.7),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: iconColor, size: 20),

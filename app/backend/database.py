@@ -1,4 +1,6 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
 import re
 import sqlite3
 import hashlib
@@ -24,7 +26,7 @@ def get_db_connection():
         conn = psycopg2.connect(url)
         return conn
     else:
-        return sqlite3.connect(DB_PATH)
+        return sqlite3.connect(DB_PATH, timeout=15.0, check_same_thread=False)
 
 def format_query(sql: str) -> str:
     if IS_POSTGRES:
@@ -59,8 +61,8 @@ def execute_db(sql: str, params: tuple = (), fetchone: bool = False, fetchall: b
     conn.close()
     return res
 
-GMAIL_SENDER = os.getenv("GMAIL_SENDER", "agrisense.support.tcsc@gmail.com")
-GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD", "rjfomljidtgtvgcw")
+SMTP_EMAIL = os.getenv("SMTP_EMAIL")
+SMTP_APP_PASSWORD = os.getenv("SMTP_APP_PASSWORD")
 
 MAX_LOGIN_ATTEMPTS = 5
 LOCKOUT_DURATION = 900
@@ -293,8 +295,12 @@ def send_real_email_otp(to_email: str, otp_code: str, full_name: str = "Farmer")
     greeting_name = full_name.strip() if full_name and full_name.strip() else "Farmer"
     print(f"\n[GMAIL SMTP SERVICE] Sending Personalized OTP Email to: {greeting_name} ({to_email}) | Code: {otp_code}")
 
+    if not SMTP_EMAIL or not SMTP_APP_PASSWORD:
+        print("[SMTP FATAL ERROR] Missing SMTP_EMAIL or SMTP_APP_PASSWORD in environment.")
+        raise ValueError("Server configuration error: Email functionality is currently unavailable.")
+
     msg = MIMEMultipart()
-    msg['From'] = f"AgriSense Support <{GMAIL_SENDER}>"
+    msg['From'] = f"AgriSense Support <{SMTP_EMAIL}>"
     msg['To'] = to_email
     msg['Subject'] = f"Hello {greeting_name}, Your AgriSense Verification Code is: {otp_code}"
     
@@ -317,8 +323,8 @@ def send_real_email_otp(to_email: str, otp_code: str, full_name: str = "Farmer")
 
     try:
         server = smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=12)
-        server.login(GMAIL_SENDER, GMAIL_APP_PASSWORD)
-        server.sendmail(GMAIL_SENDER, [to_email], msg.as_string())
+        server.login(SMTP_EMAIL, SMTP_APP_PASSWORD)
+        server.sendmail(SMTP_EMAIL, [to_email], msg.as_string())
         server.quit()
         print(f"[GMAIL SMTP SUCCESS] REAL PERSONALIZED OTP EMAIL DISPATCHED TO GMAIL INBOX: {to_email}")
     except Exception as e:

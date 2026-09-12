@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../widgets/farmer_avatar_widget.dart';
-import '../../config/app_config.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsAndProfileScreen extends StatefulWidget {
   final Map<String, dynamic> farmer;
@@ -34,6 +34,26 @@ class _SettingsAndProfileScreenState extends State<SettingsAndProfileScreen> {
   bool _useCelsius = true;
   bool _autoSync = true;
   bool _pushAlerts = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _useCelsius = prefs.getBool('pref_useCelsius') ?? true;
+      _autoSync = prefs.getBool('pref_autoSync') ?? true;
+      _pushAlerts = prefs.getBool('pref_pushAlerts') ?? true;
+    });
+  }
+
+  Future<void> _saveSetting(String key, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
+  }
 
   void _showAddFarmDialog(BuildContext context) {
     final nameCtrl = TextEditingController();
@@ -105,7 +125,7 @@ class _SettingsAndProfileScreenState extends State<SettingsAndProfileScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)],
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)],
             ),
             child: Row(
               children: [
@@ -128,9 +148,9 @@ class _SettingsAndProfileScreenState extends State<SettingsAndProfileScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF059669).withOpacity(0.1),
+                      color: const Color(0xFF059669).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFF059669).withOpacity(0.3)),
+                      border: Border.all(color: const Color(0xFF059669).withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       children: const [
@@ -173,7 +193,7 @@ class _SettingsAndProfileScreenState extends State<SettingsAndProfileScreen> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: i == widget.selectedIdx ? const Color(0xFF059669) : Colors.transparent, width: 2),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6)],
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 6)],
               ),
               child: ListTile(
                 leading: Icon(Icons.landscape, color: i == widget.selectedIdx ? const Color(0xFF059669) : Colors.grey),
@@ -194,7 +214,7 @@ class _SettingsAndProfileScreenState extends State<SettingsAndProfileScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6)],
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 6)],
             ),
             child: Row(
               children: [
@@ -232,7 +252,7 @@ class _SettingsAndProfileScreenState extends State<SettingsAndProfileScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6)],
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 6)],
             ),
             child: Column(
               children: [
@@ -241,8 +261,11 @@ class _SettingsAndProfileScreenState extends State<SettingsAndProfileScreen> {
                   title: const Text('Temperature Unit (°C / °F)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                   subtitle: Text(_useCelsius ? 'Celsius (°C)' : 'Fahrenheit (°F)', style: const TextStyle(fontSize: 11, color: Colors.grey)),
                   value: _useCelsius,
-                  activeColor: const Color(0xFF059669),
-                  onChanged: (val) => setState(() => _useCelsius = val),
+                  activeThumbColor: const Color(0xFF059669),
+                  onChanged: (val) {
+                    setState(() => _useCelsius = val);
+                    _saveSetting('pref_useCelsius', val);
+                  },
                 ),
                 const Divider(height: 1),
                 SwitchListTile(
@@ -250,8 +273,11 @@ class _SettingsAndProfileScreenState extends State<SettingsAndProfileScreen> {
                   title: const Text('Real-Time Data Sync', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                   subtitle: const Text('Automated telemetry stream updates', style: TextStyle(fontSize: 11, color: Colors.grey)),
                   value: _autoSync,
-                  activeColor: const Color(0xFF059669),
-                  onChanged: (val) => setState(() => _autoSync = val),
+                  activeThumbColor: const Color(0xFF059669),
+                  onChanged: (val) {
+                    setState(() => _autoSync = val);
+                    _saveSetting('pref_autoSync', val);
+                  },
                 ),
                 const Divider(height: 1),
                 SwitchListTile(
@@ -259,8 +285,11 @@ class _SettingsAndProfileScreenState extends State<SettingsAndProfileScreen> {
                   title: const Text('Crop Alert Notifications', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                   subtitle: const Text('Receive immediate pathogen and weather warnings', style: TextStyle(fontSize: 11, color: Colors.grey)),
                   value: _pushAlerts,
-                  activeColor: const Color(0xFF059669),
-                  onChanged: (val) => setState(() => _pushAlerts = val),
+                  activeThumbColor: const Color(0xFF059669),
+                  onChanged: (val) {
+                    setState(() => _pushAlerts = val);
+                    _saveSetting('pref_pushAlerts', val);
+                  },
                 ),
               ],
             ),

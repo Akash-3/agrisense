@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
 import '../../config/app_config.dart';
+import '../../services/auth_service.dart';
 
 class FarmSetupWizardScreen extends StatefulWidget {
   final String fullName;
@@ -97,58 +98,17 @@ class _FarmSetupWizardScreenState extends State<FarmSetupWizardScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await AppConfig.resolveActiveHost();
-
-      final payload = <String, dynamic>{
-        'full_name': widget.fullName.trim(),
-        'phone_or_email': widget.emailOrPhone.trim(),
-        'farm_name': farmName,
-        'farm_acres': acres,
-        'password': widget.password,
-        'gender': widget.gender,
-        'age': widget.age,
-        'avatar_id': widget.avatarId,
-        'crop_type': _cropType,
-        'otp_code': widget.otpCode.trim(),
-      };
-
-      final response = await http
-          .post(
-            Uri.parse('${AppConfig.backendHttpUrl}/api/v1/auth/register'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(payload),
-          )
-          .timeout(const Duration(seconds: 12));
-
-      Map<String, dynamic> data = {};
-      try {
-        final decoded = jsonDecode(response.body);
-        if (decoded is Map<String, dynamic>) {
-          data = decoded;
-        }
-      } catch (_) {
-        // Handled by the status-code branch below.
-      }
-
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        final detail = data['detail']?.toString();
-        _showMessage(
-          detail != null && detail.isNotEmpty
-              ? detail
-              : 'Registration failed. Please try again.',
-        );
-        return;
-      }
-
-      if (data['status'] != 'success') {
-        final message = data['detail']?.toString() ?? data['message']?.toString();
-        _showMessage(
-          message != null && message.isNotEmpty
-              ? message
-              : 'Registration was not completed by the server.',
-        );
-        return;
-      }
+      const authService = AuthService();
+      final data = await authService.register(
+        fullName: widget.fullName,
+        phoneOrEmail: widget.emailOrPhone,
+        farmName: farmName,
+        farmAcres: acres,
+        password: widget.password,
+        gender: widget.gender,
+        age: widget.age,
+        otpCode: widget.otpCode,
+      );
 
       final farmerId = data['farmer_id'];
       if (farmerId == null) {
@@ -165,8 +125,7 @@ class _FarmSetupWizardScreenState extends State<FarmSetupWizardScreen> {
               'crop_type': _cropType,
             };
 
-      if (!mounted) return;
-      widget.onSetupComplete({
+      final farmerData = {
         'id': farmerId,
         'full_name': widget.fullName,
         'phone_or_email': widget.emailOrPhone,
@@ -174,9 +133,19 @@ class _FarmSetupWizardScreenState extends State<FarmSetupWizardScreen> {
         'age': widget.age,
         'avatar_id': widget.avatarId,
         'farms': [farm],
-      });
-    } on http.ClientException {
-      _showMessage('Unable to contact the registration service. Please check your connection and try again.');
+      };
+      
+      // On successful registration we log the user in immediately via AuthService 
+      // if the backend returned a session token.
+      if (data['session_token'] != null) {
+        await authService.saveSession(data['session_token'], farmerData);
+      }
+
+      if (!mounted) return;
+      widget.onSetupComplete(farmerData);
+      
+    } on AuthServiceException catch (e) {
+      _showMessage(e.message);
     } catch (_) {
       _showMessage('Registration could not be completed. Please try again.');
     } finally {
@@ -304,6 +273,7 @@ class _FarmSetupWizardScreenState extends State<FarmSetupWizardScreen> {
                       children: [
                         const Expanded(
                           child: Text('Tap the map to mark at least 3 boundary points:', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                        ),
                         if (_polygonPoints.isNotEmpty)
                           GestureDetector(
                             onTap: _isLoading ? null : () => setState(() => _polygonPoints.clear()),
@@ -349,6 +319,11 @@ class _FarmSetupWizardScreenState extends State<FarmSetupWizardScreen> {
                                     ),
                                   )
                                   .toList(),
+                            ),
+                            const RichAttributionWidget(
+                              attributions: [
+                                TextSourceAttribution('OpenStreetMap contributors', onTap: null),
+                              ],
                             ),
                           ],
                         ),

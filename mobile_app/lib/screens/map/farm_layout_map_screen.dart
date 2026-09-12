@@ -22,9 +22,6 @@ import '../../widgets/agri_logo_badge.dart';
 import '../../widgets/app_drawer.dart';
 import '../../widgets/farmer_avatar_widget.dart';
 import '../../widgets/top_capsule_notification.dart';
-import '../dashboard/farmer_dashboard.dart';
-import '../drone/drone_flight_control_screen.dart';
-import '../settings/settings_and_profile_screen.dart';
 
 class FarmLayoutMapScreen extends StatefulWidget {
   const FarmLayoutMapScreen({super.key});
@@ -81,7 +78,11 @@ class _FarmLayoutMapScreenState extends State<FarmLayoutMapScreen> {
         _mapController.move(_currentGpsPos, 16.5);
       }
     } catch (e) {
-      // Fallback
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to acquire GPS location. Showing default area.')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLocating = false);
     }
@@ -133,7 +134,7 @@ class _FarmLayoutMapScreenState extends State<FarmLayoutMapScreen> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Google Hybrid Satellite Terrain', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
+                    const Text('Satellite Imagery (ArcGIS)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
                     Text('Area: ${areaAcres.toStringAsFixed(1)} Acres (${_farmPolygon.length} Drag-Adjustable Corners)', style: const TextStyle(fontSize: 10, color: Color(0xFF34D399), fontWeight: FontWeight.bold)),
                   ],
                 ),
@@ -220,7 +221,7 @@ class _FarmLayoutMapScreenState extends State<FarmLayoutMapScreen> {
                       polygons: [
                         Polygon(
                           points: _farmPolygon,
-                          color: const Color(0xFF10B981).withOpacity(0.3),
+                          color: const Color(0xFF10B981).withValues(alpha: 0.3),
                           borderColor: const Color(0xFF10B981),
                           borderStrokeWidth: 3,
                           isFilled: true,
@@ -248,12 +249,11 @@ class _FarmLayoutMapScreenState extends State<FarmLayoutMapScreen> {
                             color: const Color(0xFF10B981),
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white, width: 3),
-                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 8)],
+                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 8)],
                           ),
                           child: const Icon(Icons.my_location, color: Colors.white, size: 22),
                         ),
                       ),
-
                       for (int i = 0; i < _farmPolygon.length; i++)
                         Marker(
                           point: _farmPolygon[i],
@@ -273,7 +273,7 @@ class _FarmLayoutMapScreenState extends State<FarmLayoutMapScreen> {
                                 color: Colors.amber,
                                 shape: BoxShape.circle,
                                 border: Border.all(color: Colors.black, width: 2.5),
-                                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 6)],
+                                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 6)],
                               ),
                               child: Center(
                                 child: Text(
@@ -284,6 +284,11 @@ class _FarmLayoutMapScreenState extends State<FarmLayoutMapScreen> {
                             ),
                           ),
                         ),
+                    ],
+                  ),
+                  const RichAttributionWidget(
+                    attributions: [
+                      TextSourceAttribution('OpenStreetMap contributors', onTap: null),
                     ],
                   ),
                 ],
@@ -310,7 +315,7 @@ class _FarmLayoutMapScreenState extends State<FarmLayoutMapScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    _tileModeIndex == 0 ? 'Google Hybrid Satellite Terrain (Touch & Drag Markers to Adjust)' : (_tileModeIndex == 1 ? 'Topo Contour Map' : 'OpenStreetMap'),
+                    _tileModeIndex == 0 ? 'Satellite Imagery (ArcGIS) (Touch & Drag Markers)' : (_tileModeIndex == 1 ? 'Topo Contour Map' : 'OpenStreetMap'),
                     style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                   ),
                 ),

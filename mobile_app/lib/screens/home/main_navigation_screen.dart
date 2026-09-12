@@ -464,7 +464,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       context: context,
       barrierDismissible: true,
       barrierLabel: 'Dismiss',
-      barrierColor: Colors.black.withOpacity(0.3),
+      barrierColor: Colors.black.withValues(alpha: 0.3),
       transitionDuration: const Duration(milliseconds: 220),
       pageBuilder: (ctx, anim1, anim2) {
         return SafeArea(
@@ -486,7 +486,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     borderRadius: BorderRadius.circular(22),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF0F172A).withOpacity(0.2),
+                        color: const Color(0xFF0F172A).withValues(alpha: 0.2),
                         blurRadius: 24,
                         offset: const Offset(0, 10),
                       ),
@@ -913,7 +913,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                         height: 44,
                         child: ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.redAccent.withOpacity(0.1),
+                            backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
                             foregroundColor: Colors.redAccent,
                             elevation: 0,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1131,7 +1131,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                               decoration: BoxDecoration(
                                 color: const Color(0xFF022C22),
                                 shape: BoxShape.circle,
-                                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8)],
+                                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8)],
                               ),
                               child: const Icon(Icons.menu_rounded, color: Colors.white, size: 20),
                             ),
@@ -1148,7 +1148,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                               decoration: BoxDecoration(
                                 color: const Color(0xFF047857),
                                 borderRadius: BorderRadius.circular(25),
-                                boxShadow: [BoxShadow(color: const Color(0xFF047857).withOpacity(0.35), blurRadius: 8)],
+                                boxShadow: [BoxShadow(color: const Color(0xFF047857).withValues(alpha: 0.35), blurRadius: 8)],
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -1201,7 +1201,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                               color: const Color(0xFF0F172A),
                               shape: BoxShape.circle,
                               border: Border.all(color: const Color(0xFF059669), width: 1.5),
-                              boxShadow: [BoxShadow(color: const Color(0xFF059669).withOpacity(0.3), blurRadius: 8)],
+                              boxShadow: [BoxShadow(color: const Color(0xFF059669).withValues(alpha: 0.3), blurRadius: 8)],
                             ),
                             child: const Icon(Icons.agriculture_rounded, color: Colors.white, size: 20),
                           ),
@@ -1251,7 +1251,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 20,
               spreadRadius: 2,
               offset: const Offset(0, 4),

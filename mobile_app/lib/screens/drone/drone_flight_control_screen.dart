@@ -21,19 +21,23 @@ class DroneFlightControlScreen extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)],
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Autonomous Drone Control Station', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+                const Text('Autonomous Drone Control Station (Demo)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    _metric('Battery', '88%', Icons.battery_charging_full, Colors.green),
-                    _metric('Altitude', '15.0 m', Icons.height, Colors.cyan[700]!),
-                    _metric('Flight Speed', '4.2 m/s', Icons.speed, Colors.amber[800]!),
+                    _metric('Battery', 'N/A', Icons.battery_unknown, Colors.grey),
+                    _metric('Altitude', 'N/A', Icons.height, Colors.grey),
+                    _metric('Flight Speed', 'N/A', Icons.speed, Colors.grey),
                   ],
+                ),
+                const SizedBox(height: 8),
+                const Center(
+                  child: Text('Hardware not connected. Feature unavailable.', style: TextStyle(fontSize: 12, color: Colors.orange, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -44,7 +48,7 @@ class DroneFlightControlScreen extends StatelessWidget {
             height: 50,
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF059669),
+                backgroundColor: Colors.grey,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -53,19 +57,19 @@ class DroneFlightControlScreen extends StatelessWidget {
                   SnackBar(
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-                    backgroundColor: const Color(0xFF059669),
+                    backgroundColor: Colors.orange,
                     content: Row(
                       children: const [
-                        Icon(Icons.flight_takeoff_rounded, color: Colors.white, size: 20),
+                        Icon(Icons.warning_amber_rounded, color: Colors.white, size: 20),
                         SizedBox(width: 10),
-                        Expanded(child: Text('Autonomous Scan Mission Dispatched!', style: TextStyle(fontSize: 12, color: Colors.white))),
+                        Expanded(child: Text('Demo Mode: Hardware unavailable.', style: TextStyle(fontSize: 12, color: Colors.white))),
                       ],
                     ),
                   ),
                 );
               },
               icon: const Icon(Icons.flight_takeoff_rounded),
-              label: const Text('Start Autonomous Scan Mission', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+              label: const Text('Start Autonomous Scan (Demo)', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
             ),
           ),
         ],

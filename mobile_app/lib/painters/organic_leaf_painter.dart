@@ -8,7 +8,7 @@ class OrganicLeafPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = const Color(0xFFD1FAE5).withOpacity(0.45)
+      ..color = const Color(0xFFD1FAE5).withValues(alpha: 0.45)
       ..style = PaintingStyle.fill;
 
     final path = ui.Path();
@@ -19,7 +19,7 @@ class OrganicLeafPainter extends CustomPainter {
     canvas.drawPath(path, paint);
 
     final leafPaint = Paint()
-      ..color = const Color(0xFF059669).withOpacity(0.22)
+      ..color = const Color(0xFF059669).withValues(alpha: 0.22)
       ..style = PaintingStyle.fill;
 
     final leafPath = ui.Path();

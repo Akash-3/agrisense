@@ -1,6 +1,7 @@
 import hashlib
 from typing import Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from dependencies import get_current_user
 from database import (
     register_farmer, login_farmer, generate_otp, verify_otp,
     check_farmer_exists, reset_password_with_otp, update_farmer_profile,
@@ -34,6 +35,8 @@ async def handle_verify_otp(req: VerifyOTPRequest):
 
 @router.post("/register")
 async def handle_register(req: RegisterRequest):
+    if not verify_otp(req.phone_or_email, req.otp_code):
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP code")
     res = register_farmer(req.full_name, req.phone_or_email, req.farm_name, req.farm_acres, req.password, req.gender, req.age, req.avatar_id, req.crop_type)
     if res.get("status") == "error":
         raise HTTPException(status_code=400, detail=res.get("message"))
@@ -172,9 +175,9 @@ async def handle_password_change_reset(req: ResetPasswordRequest):
     return res
 
 @router.post("/profile/update")
-async def handle_update_profile(req: UpdateProfileRequest):
+async def handle_update_profile(req: UpdateProfileRequest, current_user: int = Depends(get_current_user)):
     return update_farmer_profile(
-        farmer_id=req.farmer_id,
+        farmer_id=current_user,
         full_name=req.full_name,
         phone_or_email=req.phone_or_email,
         phone=req.phone,
@@ -193,3 +196,8 @@ async def handle_update_profile(req: UpdateProfileRequest):
         avatar_id=req.avatar_id,
         location=req.location
     )
+
+@router.post("/logout")
+async def handle_logout(current_user: int = Depends(get_current_user)):
+    execute_db("DELETE FROM auth_sessions WHERE farmer_id = ?", (current_user,), commit=True)
+    return {"status": "success", "message": "Logged out successfully"}

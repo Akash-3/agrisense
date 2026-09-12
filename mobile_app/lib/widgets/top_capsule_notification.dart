@@ -34,7 +34,7 @@ class TopCapsuleNotification extends StatelessWidget {
               borderRadius: BorderRadius.circular(30),
               boxShadow: [
                 BoxShadow(
-                  color: backgroundColor.withOpacity(0.35),
+                  color: backgroundColor.withValues(alpha: 0.35),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -70,7 +70,7 @@ class TopCapsuleNotification extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: textColor.withOpacity(0.85),
+                          color: textColor.withValues(alpha: 0.85),
                           fontSize: 11,
                         ),
                       ),

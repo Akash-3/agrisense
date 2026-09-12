@@ -1,8 +1,9 @@
 import os
 import time
 from typing import List
-from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect, Depends
 from fastapi.responses import FileResponse, StreamingResponse
+from dependencies import get_current_user
 from simulator import TelemetryPayload, AIDiagnosticResult, simulator
 from database import add_farm
 from config import load_latest_app_version, get_existing_apk_path
@@ -108,11 +109,11 @@ async def download_apk_update(request: Request):
     )
 
 @router.post("/api/v1/farms/add")
-async def handle_add_farm(req: AddFarmRequest):
-    return add_farm(req.farmer_id, req.farm_name, req.farm_acres, req.crop_type)
+async def handle_add_farm(req: AddFarmRequest, current_user: int = Depends(get_current_user)):
+    return add_farm(current_user, req.farm_name, req.farm_acres, req.crop_type)
 
 @router.get("/api/v1/telemetry/latest")
-async def get_latest_telemetry():
+async def get_latest_telemetry(current_user: int = Depends(get_current_user)):
     return {"telemetry": latest_telemetry.dict(), "ai_diagnosis": latest_ai_result}
 
 @router.post("/api/v1/telemetry/ingest")
@@ -189,7 +190,7 @@ async def ingest_esp32_telemetry(payload: ESP32TelemetryIngest):
     }
 
 @router.post("/api/v1/simulate")
-async def trigger_simulation_preset(preset: str = "HEALTHY"):
+async def trigger_simulation_preset(preset: str = "HEALTHY", current_user: int = Depends(get_current_user)):
     """
     Explicit SIL Simulation Preset Route (Explicitly Tagged as Simulation Mode).
     """

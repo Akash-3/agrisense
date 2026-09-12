@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 import '../../config/app_config.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/agri_logo_badge.dart';
 import '../../widgets/google_logo_widget.dart';
 import '../../widgets/microsoft_logo_widget.dart';
@@ -31,6 +32,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   bool _obscureLoginPass = true;
   bool _obscureRegPass = true;
   bool _obscureRegConfirmPass = true;
+  bool _isLoading = false;
 
   String? _regGender;
   int _regAge = 32;
@@ -68,38 +70,18 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     }
 
     setState(() => _isLoading = true);
-    await AppConfig.resolveActiveHost();
 
     try {
-      final res = await http.post(
-        Uri.parse('${AppConfig.backendHttpUrl}/api/v1/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'phone_or_email': id, 'password': pass}),
-      ).timeout(const Duration(seconds: 12));
-
-      Map<String, dynamic> data = <String, dynamic>{};
-      try {
-        final decoded = jsonDecode(res.body);
-        if (decoded is Map<String, dynamic>) {
-          data = decoded;
-        }
-      } catch (_) {}
-
-      if (res.statusCode == 200 &&
-          data['status'] == 'success' &&
-          data['farmer'] is Map<String, dynamic>) {
-        if (!mounted) return;
-        widget.onLoginSuccess(data['farmer'] as Map<String, dynamic>);
-        return;
-      }
-
-      _showMsg(
-        data['detail']?.toString() ??
-            data['message']?.toString() ??
-            'Invalid email/mobile or password.',
-      );
+      final authService = AuthService();
+      final data = await authService.login(phoneOrEmail: id, password: pass);
+      if (!mounted) return;
+      widget.onLoginSuccess(data['farmer'] as Map<String, dynamic>);
+    } on AuthServiceException catch (e) {
+      if (mounted) _showMsg(e.message);
     } catch (_) {
-      _showMsg('Unable to reach the authentication service. Please check your internet connection and try again.');
+      if (mounted) {
+        _showMsg('Unable to reach the authentication service. Please check your internet connection and try again.');
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -186,47 +168,14 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     setState(() => _isLoading = true);
 
     try {
-      await AppConfig.resolveActiveHost();
-
-      final res = await http
-          .post(
-            Uri.parse(
-              '${AppConfig.backendHttpUrl}/api/v1/auth/forgot-password/send-otp',
-            ),
-            headers: const {'Content-Type': 'application/json'},
-            body: jsonEncode({'phone_or_email': id}),
-          )
-          .timeout(const Duration(seconds: 8));
-
-      Map<String, dynamic> data = <String, dynamic>{};
-      try {
-        final decoded = jsonDecode(res.body);
-        if (decoded is Map<String, dynamic>) {
-          data = decoded;
-        }
-      } catch (_) {}
-
-      if (res.statusCode < 200 || res.statusCode >= 300) {
-        final detail = data['detail']?.toString();
-        if (mounted) {
-          _showMsg(
-            detail != null && detail.isNotEmpty
-                ? detail
-                : 'Unable to send password reset OTP. Please try again.',
-          );
-        }
-        return;
-      }
-
+      final authService = AuthService();
+      await authService.sendPasswordResetOtp(phoneOrEmail: id);
+      
       if (!mounted) return;
-
-      // The backend owns OTP generation and verification. The app never
-      // invents a fallback OTP. A demo_otp may be returned by the development
-      // backend so the demo flow can display the generated code.
-      if (mounted) {
-        _showMsg('Verification OTP sent. Please check your email or mobile.', isError: false);
-        _showResetPasswordDialog(id);
-      }
+      _showMsg('Verification OTP sent. Please check your email or mobile.', isError: false);
+      _showResetPasswordDialog(id);
+    } on AuthServiceException catch (e) {
+      if (mounted) _showMsg(e.message);
     } catch (_) {
       if (mounted) {
         _showMsg(
@@ -337,49 +286,19 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     setState(() => _isLoading = true);
 
     try {
-      await AppConfig.resolveActiveHost();
+      final authService = AuthService();
+      await authService.resetPassword(phoneOrEmail: recipient, newPassword: newPass, otpCode: otp);
 
-      final res = await http
-          .post(
-            Uri.parse(
-              '${AppConfig.backendHttpUrl}/api/v1/auth/forgot-password/reset',
-            ),
-            headers: const {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'phone_or_email': recipient.trim(),
-              'new_password': newPass,
-              'otp_code': otp.trim(),
-            }),
-          )
-          .timeout(const Duration(seconds: 8));
-
-      Map<String, dynamic> data = <String, dynamic>{};
-      try {
-        final decoded = jsonDecode(res.body);
-        if (decoded is Map<String, dynamic>) {
-          data = decoded;
-        }
-      } catch (_) {}
-
-      if (res.statusCode == 200 && data['status'] == 'success') {
-        if (!mounted) return;
-        _showMsg(
-          'Password reset successfully! Please sign in with your new password.',
-          isError: false,
-        );
-        _loginIdController.text = recipient.trim();
-        _loginPassController.clear();
-        _tabController.animateTo(0);
-      } else {
-        final detail = data['detail']?.toString() ?? data['message']?.toString();
-        if (mounted) {
-          _showMsg(
-            detail != null && detail.isNotEmpty
-                ? detail
-                : 'Password reset failed. Please verify the OTP and try again.',
-          );
-        }
-      }
+      if (!mounted) return;
+      _showMsg(
+        'Password reset successfully! Please sign in with your new password.',
+        isError: false,
+      );
+      _loginIdController.text = recipient.trim();
+      _loginPassController.clear();
+      _tabController.animateTo(0);
+    } on AuthServiceException catch (e) {
+      if (mounted) _showMsg(e.message);
     } catch (_) {
       if (mounted) {
         _showMsg('Connection error. Could not reset password.');
@@ -591,36 +510,12 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
 
     setState(() => _isLoading = true);
     try {
-      await AppConfig.resolveActiveHost();
-      final res = await http.post(
-        Uri.parse('${AppConfig.backendHttpUrl}/api/v1/auth/send-otp'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'phone_or_email': id, 'full_name': name}),
-      ).timeout(const Duration(seconds: 8));
-
-      Map<String, dynamic> data = {};
-      try {
-        final decoded = jsonDecode(res.body);
-        if (decoded is Map<String, dynamic>) data = decoded;
-      } catch (_) {}
-
-      if (res.statusCode < 200 || res.statusCode >= 300) {
-        final detail = data['detail']?.toString();
-        if (mounted) {
-          _showMsg(detail != null && detail.isNotEmpty ? detail : 'Unable to send verification OTP. Please try again.');
-        }
-        return;
-      }
-
-      final demoOtp = data['demo_otp']?.toString();
-      if (demoOtp == null || demoOtp.length != 6) {
-        if (mounted) _showMsg('OTP service did not return a valid verification response. Please try again.');
-        return;
-      }
+      final authService = AuthService();
+      await authService.sendRegistrationOtp(phoneOrEmail: id, fullName: name);
 
       if (!mounted) return;
       final otpController = TextEditingController();
-      final verifiedOtp = await showDialog<String>(
+      final enteredOtp = await showDialog<String>(
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) => AlertDialog(
@@ -639,10 +534,6 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: const InputDecoration(labelText: 'OTP', border: OutlineInputBorder()),
               ),
-              if (demoOtp.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text('Development OTP: $demoOtp', style: const TextStyle(fontSize: 12, color: Colors.orange)),
-              ],
             ],
           ),
           actions: [
@@ -654,20 +545,16 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                   _showMsg('Please enter the 6-digit OTP.');
                   return;
                 }
-                if (otp != demoOtp) {
-                  _showMsg('Invalid OTP. Please check the code and try again.');
-                  return;
-                }
                 Navigator.pop(dialogContext, otp);
               },
-              child: const Text('Verify'),
+              child: const Text('Continue'),
             ),
           ],
         ),
       );
       otpController.dispose();
 
-      if (!mounted || verifiedOtp == null) return;
+      if (!mounted || enteredOtp == null) return;
 
       Navigator.push(
         context,
@@ -679,14 +566,17 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             age: _regAge,
             avatarId: _regAvatarId,
             password: pass,
-            otpCode: verifiedOtp,
-            onSetupComplete: (farmerData) {
+            otpCode: enteredOtp,
+            onSetupComplete: (farmerData) async {
               Navigator.pop(ctx);
+              // Store session using the backend return
               widget.onLoginSuccess(farmerData);
             },
           ),
         ),
       );
+    } on AuthServiceException catch (e) {
+      if (mounted) _showMsg(e.message);
     } catch (_) {
       if (mounted) _showMsg('Unable to contact the verification service. Please check your internet connection and try again.');
     } finally {

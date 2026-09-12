@@ -9,6 +9,7 @@ class RegisterRequest(BaseModel):
     farm_name: str = "Main Farm"
     farm_acres: float = 10.0
     password: str
+    otp_code: str
     gender: str = "Farmer"
     age: int = 32
     avatar_id: int = 1

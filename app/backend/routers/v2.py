@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
+from dependencies import get_current_user
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 
@@ -169,7 +170,7 @@ def generate_targeted_revisit(req: RevisitMissionRequest):
         raise HTTPException(status_code=400, detail=str(ve))
 
 @router.post("/actuators/control")
-def trigger_actuator(req: ActuationRequest):
+def trigger_actuator(req: ActuationRequest, current_user: int = Depends(get_current_user)):
     """
     Triggers relay actuation through pluggable RelayAdapter interface.
     """
@@ -177,17 +178,17 @@ def trigger_actuator(req: ActuationRequest):
     return {"status": "SUCCESS", "actuator_response": res}
 
 @router.post("/actuators/emergency-stop")
-def emergency_stop():
+def emergency_stop(current_user: int = Depends(get_current_user)):
     res = irrigation_service.emergency_stop()
     return {"status": "SUCCESS", "emergency_stop": res}
 
 @router.post("/actuators/reset-emergency-stop")
-def reset_emergency_stop():
+def reset_emergency_stop(current_user: int = Depends(get_current_user)):
     res = irrigation_service.reset_emergency_stop()
     return {"status": "SUCCESS", "emergency_stop": res}
 
 @router.get("/actuators/status")
-def get_actuator_status():
+def get_actuator_status(current_user: int = Depends(get_current_user)):
     res = irrigation_service.get_status()
     return {"status": "SUCCESS", "actuator_status": res}
 

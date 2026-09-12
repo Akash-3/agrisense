@@ -1,15 +1,48 @@
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/app_config.dart';
 
-/// Centralizes all authentication HTTP calls.
-///
-/// This service deliberately does not invent OTPs or silently convert
-/// network failures into successful authentication states.
+/// Centralizes all authentication HTTP calls and session management.
 class AuthService {
   const AuthService();
+
+  static const _secureStorage = FlutterSecureStorage();
+  static const _tokenKey = 'auth_session_token';
+  static const _farmerDataKey = 'auth_farmer_data';
+
+  Future<void> saveSession(String token, Map<String, dynamic> farmerData) async {
+    await _secureStorage.write(key: _tokenKey, value: token);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_farmerDataKey, jsonEncode(farmerData));
+  }
+
+  Future<void> clearSession() async {
+    await _secureStorage.delete(key: _tokenKey);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_farmerDataKey);
+  }
+
+  Future<Map<String, dynamic>?> getStoredFarmer() async {
+    final prefs = await SharedPreferences.getInstance();
+    final dataStr = prefs.getString(_farmerDataKey);
+    final token = await _secureStorage.read(key: _tokenKey);
+    
+    if (dataStr != null && token != null) {
+      try {
+        return jsonDecode(dataStr) as Map<String, dynamic>;
+      } catch (e) {
+        // Fallthrough
+      }
+    }
+    return null;
+  }
+
+  Future<String?> getToken() async {
+    return await _secureStorage.read(key: _tokenKey);
+  }
 
   Future<Map<String, dynamic>> login({
     required String phoneOrEmail,
@@ -24,7 +57,11 @@ class AuthService {
       timeout: const Duration(seconds: 12),
     );
 
-    return _decodeSuccess(response, expectedStatus: 200);
+    final data = _decodeSuccess(response, expectedStatus: 200);
+    if (data['session_token'] != null && data['farmer'] != null) {
+      await saveSession(data['session_token'], data['farmer']);
+    }
+    return data;
   }
 
   Future<Map<String, dynamic>> sendRegistrationOtp({
@@ -75,7 +112,8 @@ class AuthService {
       timeout: const Duration(seconds: 12),
     );
 
-    return _decodeSuccess(response, expectedStatus: 200);
+    final data = _decodeSuccess(response, expectedStatus: 200);
+    return data;
   }
 
   Future<Map<String, dynamic>> sendPasswordResetOtp({
@@ -120,7 +158,11 @@ class AuthService {
       timeout: const Duration(seconds: 12),
     );
 
-    return _decodeSuccess(response, expectedStatus: 200);
+    final data = _decodeSuccess(response, expectedStatus: 200);
+    if (data['session_token'] != null && data['farmer'] != null) {
+      await saveSession(data['session_token'], data['farmer']);
+    }
+    return data;
   }
 
   Future<Map<String, dynamic>> updateProfile({
@@ -144,12 +186,18 @@ class AuthService {
     required Duration timeout,
   }) async {
     await AppConfig.resolveActiveHost();
+    
+    final token = await getToken();
+    final headers = {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
 
     try {
       return await http
           .post(
             Uri.parse('${AppConfig.backendHttpUrl}$path'),
-            headers: const {'Content-Type': 'application/json'},
+            headers: headers,
             body: jsonEncode(body),
           )
           .timeout(timeout);
@@ -162,30 +210,27 @@ class AuthService {
     http.Response response, {
     required int expectedStatus,
   }) {
-    Map<String, dynamic> data = <String, dynamic>{};
-
+    Map<String, dynamic> data;
     try {
-      final decoded = jsonDecode(response.body);
-      if (decoded is Map<String, dynamic>) {
-        data = decoded;
-      }
+      data = jsonDecode(response.body);
     } catch (_) {
-      // Handled below as an invalid server response.
+      throw AuthServiceException(
+        'Invalid response format. HTTP ${response.statusCode}.',
+        statusCode: response.statusCode,
+      );
     }
 
     if (response.statusCode != expectedStatus) {
       final detail = data['detail'] ?? data['message'];
       throw AuthServiceException(
-        detail?.toString() ??
-            'Server returned HTTP ${response.statusCode}.',
+        detail?.toString() ?? 'Server returned HTTP ${response.statusCode}.',
         statusCode: response.statusCode,
       );
     }
 
     if (data['status'] == 'error') {
       throw AuthServiceException(
-        (data['detail'] ?? data['message'] ?? 'Authentication failed.')
-            .toString(),
+        (data['detail'] ?? data['message'] ?? 'Authentication failed.').toString(),
         statusCode: response.statusCode,
       );
     }

@@ -16,7 +16,7 @@ class AgriSenseLogoBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF10B981).withOpacity(0.35),
+            color: const Color(0xFF10B981).withValues(alpha: 0.35),
             blurRadius: size * 0.25,
             spreadRadius: 2,
           )
