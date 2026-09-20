@@ -28,6 +28,12 @@ class TelemetryPayload(BaseModel):
     smoke_ppm: Optional[float] = Field(default=80.0)
     soil_status: Optional[str] = Field(default="SENSOR_DISCONNECTED")
     dht_status: Optional[str] = Field(default="SENSOR_DISCONNECTED")
+
+    # Multi-Crop Architecture Context
+    zone_id: Optional[int] = Field(default=None)
+    farm_id: Optional[int] = Field(default=None)
+    crop_id: Optional[int] = Field(default=None)
+    crop_name: Optional[str] = Field(default=None)
     mq135_status: Optional[str] = Field(default="SENSOR_DISCONNECTED")
 
 class AIDiagnosticResult(BaseModel):

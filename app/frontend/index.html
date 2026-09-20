@@ -197,18 +197,26 @@
                             <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Email or Mobile</label>
                             <input type="text" id="regEmail" placeholder="e.g. farmer@agrisense.io" class="input-agri w-full">
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Farm Name & Size</label>
-                            <div class="grid grid-cols-2 gap-2">
-                                <input type="text" id="regFarm" placeholder="Farm Name" class="input-agri w-full">
-                                <input type="number" id="regAcres" placeholder="Acres (e.g. 15.0)" class="input-agri w-full">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Gender</label>
+                                <select id="regGender" class="input-agri w-full h-[46px] bg-white">
+                                    <option value="" disabled selected>Select</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Age</label>
+                                <input type="number" id="regAge" placeholder="e.g. 32" class="input-agri w-full h-[46px]">
                             </div>
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Password</label>
                             <input type="password" id="regPass" placeholder="Create a strong password" class="input-agri w-full">
                         </div>
-                        <button onclick="UI.submitRegister()" class="btn-agri-primary w-full py-3.5 rounded-xl font-bold text-sm transition mt-2">Create Farmer Account</button>
+                        <button onclick="UI.openFarmWizard()" class="btn-agri-primary w-full py-3.5 rounded-xl font-bold text-sm transition mt-2">Next: Configure Farm</button>
                     </div>
 
                 </div>
@@ -1875,5 +1883,62 @@
     <script src="/static/js/chartService.js"></script>
     <script src="/static/js/ui.js"></script>
     <script src="/static/js/agrisense2.js"></script>
+
+    <!-- FARM WIZARD OVERLAY -->
+    <div id="farmWizardOverlay" class="hidden fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-[100] overflow-y-auto">
+        <div class="min-h-screen px-4 py-8 flex flex-col items-center justify-center">
+            <div class="card-agri w-full max-w-2xl bg-white shadow-2xl flex flex-col overflow-hidden">
+                <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                    <div>
+                        <h2 class="text-xl font-black text-slate-900">Farm Setup Wizard</h2>
+                        <p class="text-xs text-slate-500 font-medium mt-1">Step 2: Farm Boundary & Acreage</p>
+                    </div>
+                    <button onclick="UI.closeFarmWizard()" class="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="p-5 space-y-4 flex-1 flex flex-col">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Farm Name</label>
+                        <input type="text" id="wizardFarmName" placeholder="e.g. North Field Plot" class="input-agri w-full">
+                    </div>
+
+                    <div class="flex-1 min-h-[300px] rounded-xl overflow-hidden border border-slate-200 relative">
+                        <div id="wizardMap" class="w-full h-full z-0"></div>
+                        <div class="absolute top-4 left-4 z-[400] pointer-events-none">
+                            <div class="bg-white/90 backdrop-blur-md px-4 py-2 rounded-lg shadow-sm border border-slate-200 pointer-events-auto">
+                                <p class="text-xs font-bold text-slate-800">Tap the map to mark at least 3 boundary points.</p>
+                            </div>
+                        </div>
+                        <div class="absolute bottom-4 left-4 z-[400] pointer-events-none">
+                            <div class="bg-emerald-600 px-4 py-2 rounded-lg shadow-md pointer-events-auto">
+                                <p class="text-xs font-bold text-emerald-100 uppercase">Calculated Acreage</p>
+                                <p class="text-xl font-black text-white" id="wizardAcreageDisplay">0.00 Acres</p>
+                            </div>
+                        </div>
+                        <div class="absolute bottom-4 right-4 z-[400] pointer-events-auto">
+                            <button onclick="UI.clearWizardMap()" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 px-3 py-2 rounded-lg text-xs font-bold shadow-sm transition flex items-center space-x-2">
+                                <i class="fa-solid fa-trash-can"></i>
+                                <span>Clear Points</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-blue-50 border border-blue-100 p-3 rounded-lg flex items-start space-x-3">
+                        <i class="fa-solid fa-circle-info text-blue-500 mt-0.5"></i>
+                        <p class="text-xs text-blue-800 leading-relaxed font-medium">
+                            <span class="font-bold">Notice:</span> Boundary points are used to calculate farm acreage and are not currently saved.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="p-5 border-t border-slate-100 bg-slate-50 flex space-x-3">
+                    <button onclick="UI.closeFarmWizard()" class="flex-1 py-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 text-sm font-bold transition">Back</button>
+                    <button onclick="UI.submitWizard()" class="flex-[2] btn-agri-primary py-3 rounded-xl font-bold text-sm transition">Complete Setup</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

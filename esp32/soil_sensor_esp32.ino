@@ -13,12 +13,21 @@
 #include <HTTPClient.h>
 
 // ==================== CONFIGURATION ====================
-const char* WIFI_SSID     = "YOUR_WIFI_SSID";       // Replace with your Wi-Fi name
-const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";   // Replace with your Wi-Fi password
+#ifndef WIFI_SSID
+#error "WIFI_SSID must be defined at compile time"
+#endif
+
+#ifndef WIFI_PASSWORD
+#error "WIFI_PASSWORD must be defined at compile time"
+#endif
 
 // Server Endpoint (Replace with your Laptop/Server IP address or Cloudflare URL)
 // Example Local IP: "http://192.168.1.100:8000/api/v1/telemetry/ingest"
 // Example Cloudflare: "https://your-tunnel.trycloudflare.com/api/v1/telemetry/ingest"
+#ifndef DEVICE_API_KEY
+#error "DEVICE_API_KEY must be defined at compile time (e.g., -DDEVICE_API_KEY=\"secret\")"
+#endif
+
 const char* SERVER_URL = "http://192.168.1.100:8000/api/v1/telemetry/ingest";
 
 const char* DEVICE_ID  = "ESP32_SOIL_NODE_01";
@@ -84,6 +93,7 @@ void sendTelemetry(float soilMoisturePct, int rawADC) {
   HTTPClient http;
   http.begin(SERVER_URL);
   http.addHeader("Content-Type", "application/json");
+    http.addHeader("X-API-Key", DEVICE_API_KEY);
 
   // Construct JSON payload string without needing external libraries
   char jsonBuffer[256];

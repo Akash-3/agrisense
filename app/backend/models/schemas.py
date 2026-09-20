@@ -9,7 +9,6 @@ class RegisterRequest(BaseModel):
     farm_name: str = "Main Farm"
     farm_acres: float = 10.0
     password: str
-    otp_code: str
     gender: str = "Farmer"
     age: int = 32
     avatar_id: int = 1
@@ -127,3 +126,96 @@ class CropImageDiagnosisRequest(BaseModel):
     crop_type: Optional[str] = "Wheat & Paddy"
     image_base64: Optional[str] = None
     note: Optional[str] = None
+from typing import Optional
+
+import json
+
+def _validate_polygon_coords(v):
+    if v is None:
+        return v
+    try:
+        coords = json.loads(v)
+        if not isinstance(coords, list) or len(coords) < 3:
+            raise ValueError("polygon_coords must be a JSON array with at least 3 points")
+    except Exception:
+        raise ValueError("polygon_coords must be valid JSON")
+    return v
+
+def _validate_acres(v):
+    if v is not None and v <= 0:
+        raise ValueError("acres must be greater than 0")
+    return v
+
+def _validate_non_empty_str(v):
+    if v is not None and not v.strip():
+        raise ValueError("String field cannot be empty")
+    return v
+
+def _validate_crop_status(v):
+    if v is not None and v not in ("PLANTED", "HARVESTED", "FAILED"):
+        raise ValueError("Invalid crop status")
+    return v
+
+class ZoneCreate(BaseModel):
+    zone_name: str
+    acres: float
+    polygon_coords: str = "[]"
+
+    @validator('zone_name')
+    def validate_name(cls, v):
+        return _validate_non_empty_str(v)
+
+    @validator('acres')
+    def validate_acres(cls, v):
+        return _validate_acres(v)
+
+    @validator('polygon_coords')
+    def validate_polygon(cls, v):
+        return _validate_polygon_coords(v)
+
+class ZoneUpdate(BaseModel):
+    zone_name: Optional[str] = None
+    acres: Optional[float] = None
+    polygon_coords: Optional[str] = None
+
+    @validator('zone_name')
+    def validate_name(cls, v):
+        return _validate_non_empty_str(v)
+
+    @validator('acres')
+    def validate_acres(cls, v):
+        return _validate_acres(v)
+
+    @validator('polygon_coords')
+    def validate_polygon(cls, v):
+        return _validate_polygon_coords(v)
+
+class CropCreate(BaseModel):
+    crop_name: str
+    status: str = "PLANTED"
+    planted_date: Optional[float] = None
+
+    @validator('crop_name')
+    def validate_name(cls, v):
+        return _validate_non_empty_str(v)
+
+    @validator('status')
+    def validate_status(cls, v):
+        return _validate_crop_status(v)
+
+class CropUpdate(BaseModel):
+    crop_name: Optional[str] = None
+    status: Optional[str] = None
+
+    @validator('crop_name')
+    def validate_name(cls, v):
+        return _validate_non_empty_str(v)
+
+    @validator('status')
+    def validate_status(cls, v):
+        return _validate_crop_status(v)
+
+class DeviceAssignRequest(BaseModel):
+    device_id: str
+    zone_id: int
+    device_type: str = "SENSOR"

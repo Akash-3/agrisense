@@ -4,15 +4,15 @@
 const AgriState = {
     // Current Authenticated User State
     currentUser: {
-        isAuthenticated: true,
-        isDemoMode: true,
-        name: "Alex Vance",
-        email: "demo.farmer@agrisense.io",
-        phone: "+1 (555) 019-2834",
-        farmName: "Green Valley Field Plot",
-        farmSize: 15.0,
-        location: "Lat: 20.2961, Lon: 85.8245",
-        avatar: "AV"
+        isAuthenticated: false,
+        isDemoMode: false,
+        name: "",
+        email: "",
+        phone: "",
+        farmName: "",
+        farmSize: 0,
+        location: "",
+        avatar: ""
     },
 
     // Hardware Connection & Sensor Diagnostic State
@@ -75,20 +75,21 @@ const AgriState = {
 
     // Live Telemetry Payload
     telemetry: {
-        soilMoisture: 42.5, // %
-        temperatureC: 26.1, // °C
-        humidity: 68.4, // %
-        airQualityPpm: 80, // PPM
-        pathogenRiskPct: 9.9, // %
-        chiScore: 85.0, // Crop Health Index out of 100
-        leadTimeDays: 5.4, // Days early lead warning
-        snirRatio: 6.89, // S_NIR NIR reflectance ratio
-        clearChannel: 12400, // Lux light intensity
-        soilStatus: "Optimal",
-        dhtStatus: "Normal",
-        mq135Status: "Clean Air",
-        recommendedAction: "Optimal Crop Health: Leaf canopy NIR scattering & soil hydration levels are within target ranges.",
-        as7341Channels: [450, 680, 920, 1450, 2800, 1600, 980, 520, 12400, 6893], // F1-F8, Clear, NIR
+        deviceId: null,
+        soilMoisture: null,
+        temperatureC: null,
+        humidity: null,
+        airQualityPpm: null,
+        pathogenRiskPct: null,
+        chiScore: null,
+        leadTimeDays: null,
+        snirRatio: null,
+        clearChannel: null,
+        soilStatus: "N/A",
+        dhtStatus: "N/A",
+        mq135Status: "N/A",
+        recommendedAction: "Awaiting telemetry...",
+        as7341Channels: null,
         lastUpdated: new Date()
     },
 
@@ -140,6 +141,7 @@ const AgriState = {
 
     // Methods
     getFormattedTemp(celsiusVal) {
+        if (celsiusVal === null || celsiusVal === undefined) return "N/A";
         if (this.settings.tempUnit === "F") {
             const f = (celsiusVal * 9/5) + 32;
             return `${f.toFixed(1)}°F`;
@@ -203,16 +205,51 @@ const AgriState = {
         if (this.simInterval) clearInterval(this.simInterval);
 
         const fetchLatest = async () => {
+            if (window.AgriSense2 && window.AgriSense2.operatingMode === "SIMULATION") {
+                return; // Respect simulation mode, do not poll real data
+            }
+
+            // Phase 7: Always send the actual stored session token.
+            // If no token exists, skip the request entirely – never poll unauthenticated.
+            const token = window.AuthService ? window.AuthService.getToken()
+                        : localStorage.getItem('agrisense_session_token');
+            if (!token) {
+                this.hardwareStatus = "OFFLINE";
+                this.telemetry.deviceId = null;
+                this.telemetry.soilMoisture = null;
+                this.telemetry.temperatureC = null;
+                this.telemetry.humidity = null;
+                this.telemetry.airQualityPpm = null;
+                if (typeof callback === 'function') callback(this.telemetry);
+                return;
+            }
+
             try {
-                const res = await fetch('/api/v1/telemetry/latest');
+                const res = await fetch('/api/v1/telemetry/latest', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.status === 401 || res.status === 403) {
+                    // Token is invalid/expired or farm mismatch – clear auth state.
+                    localStorage.removeItem('agrisense_session_token');
+                    this.currentUser.isAuthenticated = false;
+                    this.hardwareStatus = "OFFLINE";
+                    this.telemetry.deviceId = null;
+                    this.telemetry.soilMoisture = null;
+                    this.telemetry.temperatureC = null;
+                    this.telemetry.humidity = null;
+                    this.telemetry.airQualityPpm = null;
+                    if (typeof callback === 'function') callback(this.telemetry);
+                    return;
+                }
                 if (res.ok) {
                     const data = await res.json();
                     if (data && data.telemetry) {
                         const t = data.telemetry;
-                        this.telemetry.soilMoisture = t.soil_moisture_vwc !== null ? t.soil_moisture_vwc : 42.5;
-                        this.telemetry.temperatureC = t.temperature_c !== null ? t.temperature_c : 26.1;
-                        this.telemetry.humidity = t.humidity_pct !== null ? t.humidity_pct : 68.4;
-                        this.telemetry.airQualityPpm = t.smoke_ppm !== null ? t.smoke_ppm : 80.0;
+                        this.telemetry.deviceId = t.device_id ?? null;
+                        this.telemetry.soilMoisture = t.soil_moisture_vwc ?? null;
+                        this.telemetry.temperatureC = t.temperature_c ?? null;
+                        this.telemetry.humidity = t.humidity_pct ?? null;
+                        this.telemetry.airQualityPpm = t.smoke_ppm ?? null;
                         this.telemetry.isRealHardware = t.is_real_hardware || false;
 
                         if (t.is_real_hardware) {
@@ -221,8 +258,16 @@ const AgriState = {
 
                         if (typeof callback === 'function') callback(this.telemetry);
                     }
+                } else {
+                    throw new Error("Telemetry endpoint unavailable");
                 }
             } catch (_) {
+                this.hardwareStatus = "OFFLINE";
+                this.telemetry.deviceId = null;
+                this.telemetry.soilMoisture = null;
+                this.telemetry.temperatureC = null;
+                this.telemetry.humidity = null;
+                this.telemetry.airQualityPpm = null;
                 if (typeof callback === 'function') callback(this.telemetry);
             }
         };

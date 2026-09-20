@@ -56,8 +56,16 @@
 // ============================================================
 
 // Wi-Fi credentials
-const char* WIFI_SSID     = "Hiii";
-const char* WIFI_PASSWORD = "kavya432";
+#ifndef WIFI_SSID
+#error "WIFI_SSID must be defined at compile time"
+#endif
+#ifndef WIFI_PASSWORD
+#error "WIFI_PASSWORD must be defined at compile time"
+#endif
+
+#ifndef DEVICE_API_KEY
+#error "DEVICE_API_KEY must be defined at compile time (e.g., -DDEVICE_API_KEY=\"secret\")"
+#endif
 
 // Public AgriSense backend through Tailscale Funnel
 const char* SERVER_URL =

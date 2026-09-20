@@ -719,11 +719,21 @@ const UI = {
                         <div class="text-[10px] text-slate-400 font-medium mt-1">${n.field} • ${n.timestamp}</div>
                     </div>
                 </div>
-                <button onclick="UI.markNotificationRead(${n.id})" class="text-xs text-slate-400 hover:text-emerald-600 font-bold">
+                <button data-action="mark-read" data-id="${n.id}" class="text-xs text-slate-400 hover:text-emerald-600 font-bold">
                     ${n.read ? 'Read' : 'Mark Read'}
                 </button>
             </div>
         `).join('');
+
+        if (!container.hasAttribute('data-delegated')) {
+            container.addEventListener('click', e => {
+                const btn = e.target.closest('button[data-action="mark-read"]');
+                if (btn) {
+                    UI.markNotificationRead(parseInt(btn.getAttribute('data-id')));
+                }
+            });
+            container.setAttribute('data-delegated', 'true');
+        }
     },
 
     markNotificationRead(id) {

@@ -3,28 +3,61 @@ import io
 from datetime import datetime
 import numpy as np
 from PIL import Image
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from dependencies import get_current_user
 from models.schemas import CropImageDiagnosisRequest
 from app.backend.services import ai_service, xai_service
 
 router = APIRouter(prefix="/api/v1/ai", tags=["AI Diagnosis"])
 
+MAX_IMAGE_PIXELS = 4096 * 4096   # ~16 MP; rejects decompression-bomb images
+MAX_DIMENSION    = 4096           # either side
+
 @router.post("/diagnose-crop-image")
-async def diagnose_crop_image(payload: CropImageDiagnosisRequest):
+async def diagnose_crop_image(payload: CropImageDiagnosisRequest, current_user: int = Depends(get_current_user)):
     crop = payload.crop_type or "Wheat & Paddy"
     note = payload.note or ""
     image_raw = payload.image_base64 or ""
 
     # REAL COMPUTER VISION INFERENCE ON UPLOADED IMAGE
     if image_raw:
-        try:
-            # Strip base64 header if present
-            if "," in image_raw:
-                image_raw = image_raw.split(",")[1]
-            img_bytes = base64.b64decode(image_raw)
-            img = Image.open(io.BytesIO(img_bytes)).convert("RGB").resize((64, 64))
-            spat_arr = np.array(img, dtype=np.float32).transpose(2, 0, 1) / 255.0
+        if len(image_raw) > 7 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="Image payload too large (max ~5MB allowed)")
 
+        if "," in image_raw:
+            image_raw = image_raw.split(",")[1]
+        try:
+            img_bytes = base64.b64decode(image_raw)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid base64 payload")
+
+        if len(img_bytes) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="Image file too large (max 5MB allowed)")
+
+        try:
+            img = Image.open(io.BytesIO(img_bytes))
+            img.verify()
+            # Re-open after verify() (verify closes the image)
+            img = Image.open(io.BytesIO(img_bytes))
+            w, h = img.size
+            if w > MAX_DIMENSION or h > MAX_DIMENSION:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"Image dimensions too large (max {MAX_DIMENSION}x{MAX_DIMENSION} px)"
+                )
+            if w * h > MAX_IMAGE_PIXELS:
+                raise HTTPException(
+                    status_code=413,
+                    detail="Image pixel count exceeds safe limit (possible decompression bomb)"
+                )
+            img = img.convert("RGB").resize((64, 64))
+            spat_arr = np.array(img, dtype=np.float32).transpose(2, 0, 1) / 255.0
+        except HTTPException:
+            raise
+        except Exception:
+            raise HTTPException(status_code=415, detail="Invalid image file or unsupported format")
+
+        try:
             # Default spectral & env for vision-only analysis
             default_spectral = [0.15, 0.18, 0.20, 0.35, 0.65, 0.40, 0.25, 0.15, 0.70, 0.90]
             default_env = [25.0, 60.0, 50.0, 80.0]

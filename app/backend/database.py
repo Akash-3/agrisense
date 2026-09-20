@@ -36,14 +36,14 @@ def format_query(sql: str) -> str:
 def execute_db(sql: str, params: tuple = (), fetchone: bool = False, fetchall: bool = False, commit: bool = False, return_lastrowid: bool = False):
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     formatted_sql = format_query(sql)
-    
+
     if IS_POSTGRES and return_lastrowid and "RETURNING id" not in formatted_sql and formatted_sql.strip().upper().startswith("INSERT"):
         formatted_sql += " RETURNING id"
-    
+
     cursor.execute(formatted_sql, params)
-    
+
     res = None
     if return_lastrowid:
         if IS_POSTGRES:
@@ -54,10 +54,10 @@ def execute_db(sql: str, params: tuple = (), fetchone: bool = False, fetchall: b
         res = cursor.fetchone()
     elif fetchall:
         res = cursor.fetchall()
-        
+
     if commit or return_lastrowid:
         conn.commit()
-        
+
     conn.close()
     return res
 
@@ -104,12 +104,59 @@ def init_db():
             crop_type VARCHAR(255) DEFAULT 'Wheat & Paddy',
             created_at DOUBLE PRECISION NOT NULL
         );
-        CREATE TABLE IF NOT EXISTS otp_codes (
-            email_or_phone VARCHAR(255) PRIMARY KEY,
-            otp_code VARCHAR(10) NOT NULL,
-            expires_at DOUBLE PRECISION NOT NULL,
-            attempts INTEGER DEFAULT 0
+        CREATE TABLE IF NOT EXISTS password_resets (
+            token VARCHAR(255) PRIMARY KEY,
+            email_or_phone VARCHAR(255) NOT NULL,
+            expires_at DOUBLE PRECISION NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS zones (
+            id SERIAL PRIMARY KEY,
+            farm_id INTEGER NOT NULL REFERENCES farms(id) ON DELETE CASCADE,
+            zone_name VARCHAR(255) NOT NULL,
+            acres DOUBLE PRECISION NOT NULL,
+            polygon_coords TEXT,
+            created_at DOUBLE PRECISION NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS crops (
+            id SERIAL PRIMARY KEY,
+            zone_id INTEGER NOT NULL REFERENCES zones(id) ON DELETE CASCADE,
+            crop_name VARCHAR(255) NOT NULL,
+            status VARCHAR(50) NOT NULL,
+            planted_date DOUBLE PRECISION NOT NULL,
+            created_at DOUBLE PRECISION NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS devices (
+            id SERIAL PRIMARY KEY,
+            device_id VARCHAR(255) UNIQUE NOT NULL,
+            zone_id INTEGER NOT NULL REFERENCES zones(id) ON DELETE CASCADE,
+            device_type VARCHAR(50) NOT NULL,
+            created_at DOUBLE PRECISION NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS telemetry_records (
+            id SERIAL PRIMARY KEY,
+            device_id VARCHAR(255) NOT NULL REFERENCES devices(device_id) ON DELETE CASCADE,
+            zone_id INTEGER NOT NULL REFERENCES zones(id) ON DELETE CASCADE,
+            farm_id INTEGER NOT NULL REFERENCES farms(id) ON DELETE CASCADE,
+            crop_id INTEGER REFERENCES crops(id) ON DELETE SET NULL,
+            crop_name VARCHAR(255),
+            timestamp DOUBLE PRECISION NOT NULL,
+            soil_moisture DOUBLE PRECISION,
+            temperature DOUBLE PRECISION,
+            humidity DOUBLE PRECISION,
+            smoke_ppm DOUBLE PRECISION,
+            spectral_data TEXT,
+            ai_condition TEXT,
+            ai_confidence DOUBLE PRECISION,
+            ai_severity DOUBLE PRECISION,
+            ai_rule_type TEXT,
+            ai_recommended_action TEXT,
+            anomaly_score DOUBLE PRECISION,
+            ood_score DOUBLE PRECISION,
+            is_simulated INTEGER DEFAULT 0
+        );
+        CREATE INDEX IF NOT EXISTS idx_telemetry_farm_time ON telemetry_records (farm_id, timestamp DESC);
+        CREATE INDEX IF NOT EXISTS idx_telemetry_zone_time ON telemetry_records (zone_id, timestamp DESC);
+        CREATE INDEX IF NOT EXISTS idx_telemetry_device_time ON telemetry_records (device_id, timestamp DESC);
         CREATE TABLE IF NOT EXISTS login_attempts (
             identifier VARCHAR(255) PRIMARY KEY,
             failed_count INTEGER DEFAULT 0,
@@ -192,20 +239,13 @@ def init_db():
         )
         """)
         cursor.execute("""
-        CREATE TABLE IF NOT EXISTS otp_codes (
-            email_or_phone TEXT PRIMARY KEY,
-            otp_code TEXT NOT NULL,
-            expires_at REAL NOT NULL,
-            attempts INTEGER DEFAULT 0
+        CREATE TABLE IF NOT EXISTS password_resets (
+            token TEXT PRIMARY KEY,
+            email_or_phone TEXT NOT NULL,
+            expires_at REAL NOT NULL
         )
         """)
-        cursor.execute("PRAGMA table_info(otp_codes)")
-        otp_cols = [c[1] for c in cursor.fetchall()]
-        if 'attempts' not in otp_cols:
-            try:
-                cursor.execute("ALTER TABLE otp_codes ADD COLUMN attempts INTEGER DEFAULT 0")
-            except Exception:
-                pass
+
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS login_attempts (
             identifier TEXT PRIMARY KEY,
@@ -219,9 +259,75 @@ def init_db():
             farmer_id INTEGER NOT NULL,
             created_at REAL NOT NULL,
             expires_at REAL NOT NULL,
-            FOREIGN KEY(farmer_id) REFERENCES farmers(id)
+            ip_address TEXT,
+            user_agent TEXT,
+            FOREIGN KEY (farmer_id) REFERENCES farmers (id)
         )
         """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS zones (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            farm_id INTEGER NOT NULL,
+            zone_name TEXT NOT NULL,
+            acres REAL NOT NULL,
+            polygon_coords TEXT,
+            created_at REAL NOT NULL,
+            FOREIGN KEY(farm_id) REFERENCES farms(id)
+        )
+        """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS crops (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            zone_id INTEGER NOT NULL,
+            crop_name TEXT NOT NULL,
+            status TEXT NOT NULL,
+            planted_date REAL NOT NULL,
+            created_at REAL NOT NULL,
+            FOREIGN KEY(zone_id) REFERENCES zones(id)
+        )
+        """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS devices (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            device_id TEXT UNIQUE NOT NULL,
+            zone_id INTEGER NOT NULL,
+            device_type TEXT NOT NULL,
+            created_at REAL NOT NULL,
+            FOREIGN KEY(zone_id) REFERENCES zones(id)
+        )
+        """)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS telemetry_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            device_id TEXT NOT NULL,
+            zone_id INTEGER NOT NULL,
+            farm_id INTEGER NOT NULL,
+            crop_id INTEGER,
+            crop_name TEXT,
+            timestamp REAL NOT NULL,
+            soil_moisture REAL,
+            temperature REAL,
+            humidity REAL,
+            smoke_ppm REAL,
+            spectral_data TEXT,
+            ai_condition TEXT,
+            ai_confidence REAL,
+            ai_severity REAL,
+            ai_rule_type TEXT,
+            ai_recommended_action TEXT,
+            anomaly_score REAL,
+            ood_score REAL,
+            is_simulated BOOLEAN DEFAULT 0,
+            FOREIGN KEY(device_id) REFERENCES devices(device_id),
+            FOREIGN KEY(zone_id) REFERENCES zones(id),
+            FOREIGN KEY(farm_id) REFERENCES farms(id)
+        )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_telemetry_farm_time ON telemetry_records (farm_id, timestamp DESC)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_telemetry_zone_time ON telemetry_records (zone_id, timestamp DESC)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_telemetry_device_time ON telemetry_records (device_id, timestamp DESC)")
+
+
 
     conn.commit()
     conn.close()
@@ -303,7 +409,7 @@ def send_real_email_otp(to_email: str, otp_code: str, full_name: str = "Farmer")
     msg['From'] = f"AgriSense Support <{SMTP_EMAIL}>"
     msg['To'] = to_email
     msg['Subject'] = f"Hello {greeting_name}, Your AgriSense Verification Code is: {otp_code}"
-    
+
     html_content = f"""
     <html>
       <body style="font-family: Arial, sans-serif; background-color: #f8fafc; padding: 20px;">
@@ -346,35 +452,35 @@ def generate_otp(email_or_phone: str, full_name: str = "Farmer") -> str:
             (clean_id, otp, expires),
             commit=True
         )
-    
+
     if "@" in clean_id:
         send_real_email_otp(clean_id, otp, full_name=full_name)
-        
+
     return otp
 
 def verify_otp(email_or_phone: str, otp_code: str) -> bool:
     clean_id = email_or_phone.strip().lower()
     row = execute_db("SELECT otp_code, expires_at, attempts FROM otp_codes WHERE LOWER(email_or_phone) = ?", (clean_id,), fetchone=True)
-    
+
     if not row:
         return False
-        
+
     stored_otp, expires_at, attempts = row[0], row[1], row[2]
-    
+
     if time.time() > expires_at or attempts >= 5:
         return False
-        
+
     execute_db("UPDATE otp_codes SET attempts = attempts + 1 WHERE LOWER(email_or_phone) = ?", (clean_id,), commit=True)
-    
+
     if stored_otp == otp_code:
         execute_db("DELETE FROM otp_codes WHERE LOWER(email_or_phone) = ?", (clean_id,), commit=True)
         return True
-        
+
     return False
 
 def register_farmer(full_name: str, phone_or_email: str, farm_name: str = "Main Farm", farm_acres: float = 10.0, password: str = "", gender: str = "Farmer", age: int = 32, avatar_id: int = 1, crop_type: str = "Wheat & Paddy", phone: str = "+1 (555) 019-2834"):
     clean_id = phone_or_email.strip().lower()
-    
+
     is_valid, msg = validate_password_strength(password)
     if not is_valid:
         return {"status": "error", "message": msg}
@@ -388,22 +494,39 @@ def register_farmer(full_name: str, phone_or_email: str, farm_name: str = "Main 
     salt = generate_salt()
     pwd_hash = hash_password(password, salt)
 
+    conn = get_db_connection()
+    cursor = conn.cursor()
     try:
-        farmer_id = execute_db(
-            "INSERT INTO farmers (full_name, phone_or_email, phone, password_hash, salt, farm_name, gender, age, avatar_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (full_name, clean_id, phone, pwd_hash, salt, farm_name, gender, age, avatar_id, time.time()),
-            return_lastrowid=True
-        )
-        execute_db(
-            "INSERT INTO farms (farmer_id, farm_name, farm_acres, crop_type, created_at) VALUES (?, ?, ?, ?, ?)",
-            (farmer_id, farm_name, farm_acres, crop_type, time.time()),
-            commit=True
-        )
-        
+        if IS_POSTGRES:
+            cursor.execute(
+                "INSERT INTO farmers (full_name, phone_or_email, phone, password_hash, salt, farm_name, gender, age, avatar_id, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id",
+                (full_name, clean_id, phone, pwd_hash, salt, farm_name, gender, age, avatar_id, time.time())
+            )
+            farmer_id = cursor.fetchone()[0]
+            cursor.execute(
+                "INSERT INTO farms (farmer_id, farm_name, farm_acres, crop_type, created_at) VALUES (%s, %s, %s, %s, %s) RETURNING id",
+                (farmer_id, farm_name, farm_acres, crop_type, time.time())
+            )
+            farm_id = cursor.fetchone()[0]
+        else:
+            cursor.execute(
+                "INSERT INTO farmers (full_name, phone_or_email, phone, password_hash, salt, farm_name, gender, age, avatar_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (full_name, clean_id, phone, pwd_hash, salt, farm_name, gender, age, avatar_id, time.time())
+            )
+            farmer_id = cursor.lastrowid
+            cursor.execute(
+                "INSERT INTO farms (farmer_id, farm_name, farm_acres, crop_type, created_at) VALUES (?, ?, ?, ?, ?)",
+                (farmer_id, farm_name, farm_acres, crop_type, time.time())
+            )
+            farm_id = cursor.lastrowid
+
+        conn.commit()
+
         session_token = create_session_token(farmer_id)
         return {
             "status": "success",
             "farmer_id": farmer_id,
+            "farm_id": farm_id,
             "full_name": full_name,
             "farm_name": farm_name,
             "gender": gender,
@@ -412,15 +535,15 @@ def register_farmer(full_name: str, phone_or_email: str, farm_name: str = "Main 
             "session_token": session_token
         }
     except Exception as err:
+        conn.rollback()
         print(f"[REGISTER DB EXCEPTION] {err}")
-        return {
-            "status": "error",
-            "message": f"Registration Error: {err}"
-        }
+        return {"status": "error", "message": f"Registration Error: {err}"}
+    finally:
+        conn.close()
 
 def login_farmer(phone_or_email: str, password: str):
     clean_id = phone_or_email.strip().lower()
-    
+
     locked, remaining_mins = is_account_locked(clean_id)
     if locked:
         return {
@@ -433,7 +556,7 @@ def login_farmer(phone_or_email: str, password: str):
         (clean_id,),
         fetchone=True
     )
-    
+
     if row:
         farmer_id = row[0]
         full_name = row[1]
@@ -450,16 +573,16 @@ def login_farmer(phone_or_email: str, password: str):
         city = row[12] if len(row) > 12 and row[12] else ""
         state = row[13] if len(row) > 13 and row[13] else ""
         postal_code = row[14] if len(row) > 14 and row[14] else ""
-        
+
         computed_hash = hash_password(password, salt) if salt else hash_password(password)
         salt_bytes = salt.encode('utf-8') if salt else b''
         legacy_hash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt_bytes, 100000).hex() if salt else hashlib.sha256(password.encode('utf-8')).hexdigest()
-        
+
         if computed_hash == stored_hash or legacy_hash == stored_hash or hash_password(password) == stored_hash:
             clear_failed_attempts(clean_id)
             farm_rows = execute_db("SELECT id, farm_name, farm_acres, crop_type FROM farms WHERE farmer_id = ?", (farmer_id,), fetchall=True)
             farms = [{"id": f[0], "farm_name": f[1], "farm_acres": f[2], "crop_type": f[3]} for f in (farm_rows or [])]
-            
+
             token = create_session_token(farmer_id)
             return {
                 "status": "success",
@@ -488,22 +611,22 @@ def login_farmer(phone_or_email: str, password: str):
 
 def reset_password_with_otp(phone_or_email: str, new_password: str, otp_code: str) -> dict:
     clean_id = phone_or_email.strip().lower()
-    
+
     if not verify_otp(clean_id, otp_code):
         return {"status": "error", "message": "Invalid or expired OTP code!"}
-        
+
     valid, msg = validate_password_strength(new_password)
     if not valid:
         return {"status": "error", "message": msg}
-        
+
     row = execute_db("SELECT id FROM farmers WHERE LOWER(phone_or_email) = ?", (clean_id,), fetchone=True)
     if not row:
         return {"status": "error", "message": f"No account registered with '{clean_id}'."}
-        
+
     salt = generate_salt()
     pwd_hash = hash_password(new_password, salt)
     now = time.time()
-    
+
     execute_db("UPDATE farmers SET password_hash = ?, salt = ?, password_updated_at = ? WHERE LOWER(phone_or_email) = ?", (pwd_hash, salt, now, clean_id), commit=True)
     clear_failed_attempts(clean_id)
     return {"status": "success", "message": "Password reset successfully! You can now log in with your new password.", "password_updated_at": now}
@@ -619,3 +742,164 @@ def update_farmer_profile(farmer_id: int, full_name: str, phone_or_email: str = 
 
 # Run table initialization on module load
 init_db()
+
+def get_device_by_device_id(device_id: str):
+    res = execute_db("SELECT id, device_id, zone_id, device_type FROM devices WHERE device_id = ?", (device_id,), fetchone=True)
+    if res:
+        return {"id": res[0], "device_id": res[1], "zone_id": res[2], "device_type": res[3]}
+    return None
+
+def assign_device(device_id: str, zone_id: int, device_type: str = 'SENSOR', expected_owner_id: int = None):
+    existing = get_device_by_device_id(device_id)
+    if existing:
+        if expected_owner_id is not None:
+            owner = get_zone_owner(existing['zone_id'])
+            if owner is not None and owner != expected_owner_id:
+                raise Exception("Device belongs to another farmer and cannot be reassigned")
+        execute_db("UPDATE devices SET zone_id = ?, device_type = ? WHERE device_id = ?", (zone_id, device_type, device_id), commit=True)
+    else:
+        execute_db("INSERT INTO devices (device_id, zone_id, device_type, created_at) VALUES (?, ?, ?, ?)", (device_id, zone_id, device_type, time.time()), commit=True)
+
+def get_devices_for_farm(farm_id: int):
+    query = """
+    SELECT d.id, d.device_id, d.zone_id, d.device_type, d.created_at, z.zone_name
+    FROM devices d
+    JOIN zones z ON d.zone_id = z.id
+    WHERE z.farm_id = ?
+    """
+    rows = execute_db(query, (farm_id,), fetchall=True)
+    if not rows:
+        return []
+    return [{"id": r[0], "device_id": r[1], "zone_id": r[2], "device_type": r[3], "created_at": r[4], "zone_name": r[5]} for r in rows]
+
+def get_farm_owner(farm_id: int):
+    res = execute_db("SELECT farmer_id FROM farms WHERE id = ?", (farm_id,), fetchone=True)
+    return res[0] if res else None
+
+def get_zone_owner(zone_id: int):
+    res = execute_db("SELECT farms.farmer_id FROM zones JOIN farms ON zones.farm_id = farms.id WHERE zones.id = ?", (zone_id,), fetchone=True)
+    return res[0] if res else None
+
+def get_crop_owner(crop_id: int):
+    res = execute_db("SELECT farms.farmer_id FROM crops JOIN zones ON crops.zone_id = zones.id JOIN farms ON zones.farm_id = farms.id WHERE crops.id = ?", (crop_id,), fetchone=True)
+    return res[0] if res else None
+
+def create_zone(farm_id: int, zone_name: str, acres: float, polygon_coords: str):
+    return execute_db("INSERT INTO zones (farm_id, zone_name, acres, polygon_coords, created_at) VALUES (?, ?, ?, ?, ?)", (farm_id, zone_name, acres, polygon_coords, time.time()), return_lastrowid=True, commit=True)
+
+def get_zones_by_farm(farm_id: int):
+    rows = execute_db("SELECT id, farm_id, zone_name, acres, polygon_coords, created_at FROM zones WHERE farm_id = ?", (farm_id,), fetchall=True)
+    return [{"id": r[0], "farm_id": r[1], "zone_name": r[2], "acres": r[3], "polygon_coords": r[4], "created_at": r[5]} for r in (rows or [])]
+
+def update_zone(zone_id: int, zone_name: str = None, acres: float = None, polygon_coords: str = None):
+    fields = []
+    params = []
+    if zone_name is not None:
+        fields.append("zone_name = ?")
+        params.append(zone_name)
+    if acres is not None:
+        fields.append("acres = ?")
+        params.append(acres)
+    if polygon_coords is not None:
+        fields.append("polygon_coords = ?")
+        params.append(polygon_coords)
+    if not fields:
+        return
+    params.append(zone_id)
+    execute_db(f"UPDATE zones SET {', '.join(fields)} WHERE id = ?", tuple(params), commit=True)
+
+def create_crop(zone_id: int, crop_name: str, status: str, planted_date: float):
+    return execute_db("INSERT INTO crops (zone_id, crop_name, status, planted_date, created_at) VALUES (?, ?, ?, ?, ?)", (zone_id, crop_name, status, planted_date, time.time()), return_lastrowid=True, commit=True)
+
+def get_crops_by_zone(zone_id: int):
+    rows = execute_db("SELECT id, zone_id, crop_name, status, planted_date, created_at FROM crops WHERE zone_id = ?", (zone_id,), fetchall=True)
+    return [{"id": r[0], "zone_id": r[1], "crop_name": r[2], "status": r[3], "planted_date": r[4], "created_at": r[5]} for r in (rows or [])]
+
+def get_active_crop_by_zone(zone_id: int):
+    res = execute_db("SELECT id FROM crops WHERE zone_id = ? AND status = 'PLANTED'", (zone_id,), fetchone=True)
+    return res[0] if res else None
+
+def update_crop(crop_id: int, crop_name: str = None, status: str = None):
+    fields = []
+    params = []
+    if crop_name is not None:
+        fields.append("crop_name = ?")
+        params.append(crop_name)
+    if status is not None:
+        fields.append("status = ?")
+        params.append(status)
+    if not fields:
+        return
+    params.append(crop_id)
+    execute_db(f"UPDATE crops SET {', '.join(fields)} WHERE id = ?", tuple(params), commit=True)
+
+def send_password_reset_email(to_email: str, reset_link: str, full_name: str = "Farmer"):
+    greeting = f"Hello {full_name},"
+    body = f"{greeting}\n\nYou requested a password reset. Click the link below to reset your password:\n\n{reset_link}\n\nIf you did not request this, please ignore this email.\n"
+
+    msg = MIMEMultipart()
+    msg['From'] = SMTP_EMAIL
+    msg['To'] = to_email
+    msg['Subject'] = "Agrisense Password Reset"
+    msg.attach(MIMEText(body, 'plain'))
+
+    try:
+        server = smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=12)
+        server.login(SMTP_EMAIL, SMTP_APP_PASSWORD)
+        server.sendmail(SMTP_EMAIL, [to_email], msg.as_string())
+        server.quit()
+    except Exception:
+        print(f"[GMAIL SMTP ERROR] Failed to dispatch password reset email.")
+
+def generate_password_reset_token(email_or_phone: str, full_name: str = "Farmer") -> str:
+    clean_id = email_or_phone.strip().lower()
+    token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    expires = time.time() + 900 # 15 minutes
+
+    execute_db("DELETE FROM password_resets WHERE email_or_phone = ?", (clean_id,), commit=True)
+
+    execute_db(
+        "INSERT INTO password_resets (token, email_or_phone, expires_at) VALUES (?, ?, ?)",
+        (token_hash, clean_id, expires),
+        commit=True
+    )
+
+    if "@" in clean_id:
+        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:8000")
+        reset_link = f"{frontend_url}/reset-password.html?token={token}"
+        send_password_reset_email(clean_id, reset_link, full_name=full_name)
+
+    return token
+
+def reset_password_with_token(token: str, new_password: str) -> dict:
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    row = execute_db("SELECT email_or_phone, expires_at FROM password_resets WHERE token = ?", (token_hash,), fetchone=True)
+
+    if not row:
+        return {"status": "error", "message": "Invalid or expired reset token!"}
+
+    clean_id, expires_at = row[0], row[1]
+
+    if time.time() > expires_at:
+        execute_db("DELETE FROM password_resets WHERE token = ?", (token_hash,), commit=True)
+        return {"status": "error", "message": "Invalid or expired reset token!"}
+
+    valid, msg = validate_password_strength(new_password)
+    if not valid:
+        return {"status": "error", "message": msg}
+
+    user_row = execute_db("SELECT id FROM farmers WHERE LOWER(phone_or_email) = ?", (clean_id,), fetchone=True)
+    if not user_row:
+        return {"status": "error", "message": "Invalid or expired reset token!"}
+
+    farmer_id = user_row[0]
+    salt = generate_salt()
+    pwd_hash = hash_password(new_password, salt)
+    now = time.time()
+
+    execute_db("UPDATE farmers SET password_hash = ?, salt = ?, password_updated_at = ? WHERE id = ?", (pwd_hash, salt, now, farmer_id), commit=True)
+    execute_db("DELETE FROM password_resets WHERE token = ?", (token_hash,), commit=True)
+    execute_db("DELETE FROM auth_sessions WHERE farmer_id = ?", (farmer_id,), commit=True)
+    clear_failed_attempts(clean_id)
+    return {"status": "success", "message": "Password reset successfully! You can now log in with your new password.", "password_updated_at": now}

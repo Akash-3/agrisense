@@ -1,8 +1,25 @@
 /**
  * AgriSense Authentication Service Abstraction Layer
  * Encapsulates backend API communication, session management, and Demo Mode handling.
+ *
+ * Phase 6: ONE consistent source of truth for the session token.
+ * All protected requests must use AuthService.getToken() which reads the
+ * stored 'agrisense_session_token' key from localStorage.
+ * window.AgriState.token is NOT used; callers must not hard-code tokens.
  */
 const AuthService = {
+    /** Returns the current session token or null if not authenticated. */
+    getToken() {
+        return localStorage.getItem('agrisense_session_token') || null;
+    },
+
+    /** Returns a standard Authorization header object, or null if no token. */
+    authHeaders() {
+        const token = this.getToken();
+        if (!token) return null;
+        return { 'Authorization': `Bearer ${token}` };
+    },
+
     // Standard Database Login
     async login(emailOrPhone, password) {
         const res = await fetch('/api/v1/auth/login', {
@@ -24,27 +41,14 @@ const AuthService = {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             });
-            if (res.ok) {
-                const data = await res.json();
+            const data = await res.json();
+            if (res.ok && data.status === 'success') {
                 data.isDemo = true;
-                return data;
             }
-        } catch (_) {}
-
-        // Secure client fallback for offline evaluation
-        return {
-            status: "success",
-            isDemo: true,
-            message: "Authenticated into AgriSense Demo Account!",
-            farmer: {
-                id: 1,
-                full_name: "Alex Vance",
-                phone_or_email: "demo.farmer@agrisense.io",
-                farm_name: "Green Valley Field Plot",
-                farm_acres: 15.0,
-                crop_type: "Wheat & Paddy"
-            }
-        };
+            return data;
+        } catch (error) {
+            return { status: "error", message: "Demo login is unavailable or disabled." };
+        }
     },
 
     // Farmer Account Registration
@@ -79,11 +83,18 @@ const AuthService = {
         return data;
     },
 
-    // Update Profile
+    // Update Profile — Phase 6: uses stored token for Authorization header
     async updateProfile(profileData) {
+        const token = this.getToken();
+        if (!token) {
+            return { status: 'error', message: 'Not authenticated' };
+        }
         const res = await fetch('/api/v1/auth/profile/update', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
             body: JSON.stringify(profileData)
         });
         return await res.json();

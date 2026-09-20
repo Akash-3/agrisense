@@ -6,7 +6,7 @@ title AgriSense Server
 :: AGRISENSE SERVER LAUNCHER
 :: ============================================================
 
-cd /d C:\Users\karti\agrisense
+cd /d "%~dp0"
 
 :: ============================================================
 :: REQUEST ADMINISTRATOR PRIVILEGES
@@ -14,7 +14,7 @@ cd /d C:\Users\karti\agrisense
 
 net session >nul 2>&1
 
-if %errorlevel% neq 0 (
+if errorlevel 1 (
     echo.
     echo Requesting Administrator privileges...
     echo.
@@ -34,7 +34,7 @@ echo ============================================================
 echo                    AGRISENSE SERVER
 echo ============================================================
 echo.
-echo Project: C:\Users\karti\agrisense
+echo Project: %~dp0
 echo Public URL: https://admin.tail4fe027.ts.net
 echo.
 
@@ -47,7 +47,7 @@ echo.
 
 sc query Tailscale | findstr /I "RUNNING" >nul
 
-if %errorlevel% neq 0 (
+if errorlevel 1 (
 
     echo Tailscale service is NOT running.
     echo Starting Tailscale service...
@@ -55,7 +55,7 @@ if %errorlevel% neq 0 (
 
     net start Tailscale
 
-    if %errorlevel% neq 0 (
+    if errorlevel 1 (
         echo.
         echo ====================================================
         echo ERROR: Could not start Tailscale.
@@ -92,7 +92,7 @@ for /L %%i in (1,1,5) do (
 
     tailscale status >nul 2>&1
 
-    if %errorlevel% equ 0 (
+    if not errorlevel 1 (
         set "TAILSCALE_OK=1"
         goto TAILSCALE_READY
     )
@@ -102,6 +102,18 @@ for /L %%i in (1,1,5) do (
 )
 
 :TAILSCALE_READY
+
+if "%TAILSCALE_OK%"=="0" (
+    echo.
+    echo ====================================================
+    echo ERROR: Tailscale is not responding.
+    echo ====================================================
+    echo.
+    echo Please check the Tailscale application.
+    echo.
+    pause
+    exit /b 1
+)
 
 tailscale status
 
@@ -116,7 +128,7 @@ echo.
 
 netstat -ano | findstr /R /C:":8000 .*LISTENING" >nul
 
-if not %errorlevel% equ 0 (
+if errorlevel 1 (
 
     echo Backend is NOT running.
     echo.

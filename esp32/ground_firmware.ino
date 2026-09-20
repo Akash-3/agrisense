@@ -11,8 +11,18 @@
 #include <ArduinoJson.h>
 
 // --- Configuration ---
-const char* WIFI_SSID = "YOUR_WIFI_SSID";
-const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+#ifndef WIFI_SSID
+#error "WIFI_SSID must be defined at compile time"
+#endif
+
+#ifndef WIFI_PASSWORD
+#error "WIFI_PASSWORD must be defined at compile time"
+#endif
+
+#ifndef DEVICE_API_KEY
+#error "DEVICE_API_KEY must be defined at compile time (e.g., -DDEVICE_API_KEY=\"secret\")"
+#endif
+
 const char* SERVER_URL = "http://192.168.1.100:8000/api/v1/sensors"; // Replace with your server IP
 
 #define SOIL_PIN 35
@@ -56,6 +66,7 @@ void loop() {
     HTTPClient http;
     http.begin(SERVER_URL);
     http.addHeader("Content-Type", "application/json");
+    http.addHeader("X-API-Key", DEVICE_API_KEY);
 
     int httpResponseCode = http.POST(jsonPayload);
     if (httpResponseCode > 0) {

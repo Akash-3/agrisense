@@ -9,18 +9,40 @@
 #include <ArduinoJson.h>
 
 // Include configuration parameters
+// Preferred: create a config.h with your WIFI_SSID, WIFI_PASSWORD, DEVICE_API_KEY, etc.
+// If config.h is absent, every required credential MUST be supplied as a build flag.
 #if __has_include("config.h")
   #include "config.h"
-#else
-  #define WIFI_SSID       "Hiii"
-  #define WIFI_PASSWORD   "12345678"
-  #define BACKEND_SERVER  "http://adapters-allows-publicity-sagem.trycloudflare.com"
-  #define DEVICE_ID       "ESP32_UNIFIED_NODE_01"
+#endif
+
+// Validate that required credentials are defined (either via config.h or build flags).
+// Do NOT add fallback credential values here.
+#ifndef WIFI_SSID
+#error "WIFI_SSID must be defined in config.h or via a build flag (e.g., -DWIFI_SSID=\"MyNet\")"
+#endif
+#ifndef WIFI_PASSWORD
+#error "WIFI_PASSWORD must be defined in config.h or via a build flag (e.g., -DWIFI_PASSWORD=\"MyPass\")"
+#endif
+#ifndef BACKEND_SERVER
+#error "BACKEND_SERVER must be defined in config.h or via a build flag"
+#endif
+#ifndef DEVICE_ID
+  #define DEVICE_ID "ESP32_UNIFIED_NODE_01"
+#endif
+#ifndef TELEMETRY_INTERVAL_MS
   #define TELEMETRY_INTERVAL_MS 10000
-  #define DHT_PIN         4
+#endif
+#ifndef DHT_PIN
+  #define DHT_PIN 4
+#endif
+#ifndef SOIL_ANALOG_PIN
   #define SOIL_ANALOG_PIN 34
-  #define GAS_ANALOG_PIN  35
-  #define RELAY_PUMP_PIN  16
+#endif
+#ifndef GAS_ANALOG_PIN
+  #define GAS_ANALOG_PIN 35
+#endif
+#ifndef RELAY_PUMP_PIN
+  #define RELAY_PUMP_PIN 16
 #endif
 
 unsigned long lastTelemetryTime = 0;
@@ -107,6 +129,7 @@ void sendTelemetryPayload() {
 
   http.begin(url);
   http.addHeader("Content-Type", "application/json");
+    http.addHeader("X-API-Key", DEVICE_API_KEY);
   http.addHeader("Connection", "close");
   http.setReuse(false);
   http.setTimeout(15000);

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../widgets/farmer_avatar_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'device_management_screen.dart';
 
 class SettingsAndProfileScreen extends StatefulWidget {
   final Map<String, dynamic> farmer;
@@ -203,6 +204,36 @@ class _SettingsAndProfileScreenState extends State<SettingsAndProfileScreen> {
                 onTap: () => widget.onSelectFarm(i),
               ),
             ),
+          const SizedBox(height: 20),
+
+          // 2.5 DEVICE MANAGEMENT
+          const Text('Hardware Provisioning', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 6)],
+            ),
+            child: ListTile(
+              leading: const Icon(Icons.memory, color: Color(0xFF059669)),
+              title: const Text('Manage Farm Devices', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              subtitle: const Text('Assign ESP32 nodes to zones', style: TextStyle(fontSize: 11, color: Colors.grey)),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DeviceManagementScreen(
+                      farmId: activeFarm['id'],
+                      farmName: activeFarm['farm_name'],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
           const SizedBox(height: 20),
 
           // 3. APPLICATION & SOFTWARE UPDATES

@@ -56,8 +56,16 @@
 // ============================================================
 
 // Wi-Fi credentials
-const char* WIFI_SSID     = "YOUR_WIFI_SSID";
-const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+#ifndef WIFI_SSID
+#error "WIFI_SSID must be defined at compile time"
+#endif
+#ifndef WIFI_PASSWORD
+#error "WIFI_PASSWORD must be defined at compile time"
+#endif
+
+#ifndef DEVICE_API_KEY
+#error "DEVICE_API_KEY must be defined at compile time (e.g., -DDEVICE_API_KEY=\"secret\")"
+#endif
 
 // Public AgriSense backend through Tailscale Funnel
 const char* SERVER_URL =
@@ -536,6 +544,11 @@ void sendTelemetry(
   http.addHeader(
       "Content-Type",
       "application/json"
+  );
+
+  http.addHeader(
+      "X-API-Key",
+      DEVICE_API_KEY
   );
 
   http.addHeader(

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query, Depends
 from dependencies import get_current_user
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from typing import List, Optional, Dict, Any
 
 from app.backend.services import (
@@ -49,9 +49,67 @@ class LawnmowerMissionRequest(BaseModel):
     altitude_m: Optional[float] = 15.0
     spacing_m: Optional[float] = 10.0
 
+    @validator('boundary_coords')
+    def validate_boundary(cls, v):
+        if len(v) > 200:
+            raise ValueError('Maximum polygon vertex limit is 200')
+        import math
+        min_lat, max_lat, min_lng, max_lng = 90.0, -90.0, 180.0, -180.0
+        for coord in v:
+            if 'lat' not in coord or 'lng' not in coord:
+                raise ValueError('required coordinate keys missing')
+            lat, lng = coord['lat'], coord['lng']
+            if not isinstance(lat, (int, float)) or not isinstance(lng, (int, float)):
+                raise ValueError('reject malformed coordinates')
+            if math.isnan(lat) or math.isnan(lng):
+                raise ValueError('reject NaN')
+            if math.isinf(lat) or math.isinf(lng):
+                raise ValueError('reject infinity')
+            if not (-90 <= lat <= 90):
+                raise ValueError('latitude [-90, 90]')
+            if not (-180 <= lng <= 180):
+                raise ValueError('longitude [-180, 180]')
+            min_lat = min(min_lat, lat)
+            max_lat = max(max_lat, lat)
+            min_lng = min(min_lng, lng)
+            max_lng = max(max_lng, lng)
+        if len(v) > 0 and ((max_lat - min_lat) > 0.5 or (max_lng - min_lng) > 0.5):
+            raise ValueError('existing 0.5-degree boundary constraint')
+        return v
+
+    @validator('spacing_m')
+    def validate_spacing(cls, v):
+        if v is not None and (v < 1.0 or v > 1000.0):
+            raise ValueError('spacing_m >= 1.0 and <= 1000.0')
+        return v
+
+    @validator('altitude_m')
+    def validate_altitude(cls, v):
+        if v is not None and v < 0:
+            raise ValueError('altitude >= 0')
+        return v
+
 class RevisitMissionRequest(BaseModel):
     hotspot_id: str = "HS-DB-01"
     centroid: Dict[str, float]
+
+    @validator('centroid')
+    def validate_centroid(cls, v):
+        import math
+        if 'lat' not in v or 'lng' not in v:
+            raise ValueError('required coordinate keys missing')
+        lat, lng = v['lat'], v['lng']
+        if not isinstance(lat, (int, float)) or not isinstance(lng, (int, float)):
+            raise ValueError('reject malformed coordinates')
+        if math.isnan(lat) or math.isnan(lng):
+            raise ValueError('reject NaN')
+        if math.isinf(lat) or math.isinf(lng):
+            raise ValueError('reject infinity')
+        if not (-90 <= lat <= 90):
+            raise ValueError('latitude [-90, 90]')
+        if not (-180 <= lng <= 180):
+            raise ValueError('longitude [-180, 180]')
+        return v
 
 class SetScenarioRequest(BaseModel):
     scenario_name: str
@@ -59,7 +117,7 @@ class SetScenarioRequest(BaseModel):
 # --- Endpoints ---
 
 @router.post("/ai/predict")
-def predict_multimodal(req: PredictRequest):
+def predict_multimodal(req: PredictRequest, current_user: int = Depends(get_current_user)):
     """
     Runs PyTorch MM-SSNet (MobileNetV3 spatial stream) forward pass and applies physical sensor fusion.
     """
@@ -95,7 +153,7 @@ def predict_multimodal(req: PredictRequest):
     }
 
 @router.post("/ai/xai")
-def get_xai_explanation(req: XAIRequest):
+def get_xai_explanation(req: XAIRequest, current_user: int = Depends(get_current_user)):
     """
     Generates PyTorch Grad-CAM visual heatmaps (MobileNetV3) and Input x Gradient spectral attributions.
     """
@@ -103,7 +161,7 @@ def get_xai_explanation(req: XAIRequest):
     return {"status": "SUCCESS", "xai_explanation": res}
 
 @router.post("/ai/temporal-trend")
-def evaluate_temporal_trend(req: TemporalRequest):
+def evaluate_temporal_trend(req: TemporalRequest, current_user: int = Depends(get_current_user)):
     """
     Evaluates historical telemetry sequence using PyTorch GRU TemporalStressNet.
     """
@@ -111,7 +169,7 @@ def evaluate_temporal_trend(req: TemporalRequest):
     return {"status": "SUCCESS", "temporal_trend": res}
 
 @router.post("/ai/anomaly")
-def evaluate_anomaly(req: AnomalyRequest):
+def evaluate_anomaly(req: AnomalyRequest, current_user: int = Depends(get_current_user)):
     """
     Out-Of-Distribution (OOD) evaluation using fitted Mahalanobis detector calibration parameters.
     """
@@ -122,7 +180,7 @@ def evaluate_anomaly(req: AnomalyRequest):
         raise HTTPException(status_code=400, detail=str(ve))
 
 @router.post("/spatial/hotspots")
-def get_spatial_hotspots(telemetry_nodes: Optional[List[Dict[str, Any]]] = None, eps_meters: float = 20.0, min_samples: int = 2):
+def get_spatial_hotspots(telemetry_nodes: Optional[List[Dict[str, Any]]] = None, eps_meters: float = 20.0, min_samples: int = 2, current_user: int = Depends(get_current_user)):
     """
     Runs DBSCAN spatial clustering on provided or stored field node telemetry.
     Strictly reports estimated bounding area (m²).
@@ -132,7 +190,7 @@ def get_spatial_hotspots(telemetry_nodes: Optional[List[Dict[str, Any]]] = None,
     return {"status": "SUCCESS", "spatial_clusters": res}
 
 @router.get("/spatial/hotspots/simulation")
-def get_simulated_hotspots():
+def get_simulated_hotspots(current_user: int = Depends(get_current_user)):
     """
     Development & SIL Simulation endpoint for testing DBSCAN spatial clustering with sample field nodes.
     """
@@ -147,7 +205,7 @@ def get_simulated_hotspots():
     return {"status": "SUCCESS", "mode": "SIMULATION", "spatial_clusters": res}
 
 @router.post("/uav/mission/generate")
-def generate_uav_mission(req: LawnmowerMissionRequest):
+def generate_uav_mission(req: LawnmowerMissionRequest, current_user: int = Depends(get_current_user)):
     """
     Generates Lawnmower flight survey mission. Rejects request if field boundary coordinates are missing.
     """
@@ -158,7 +216,7 @@ def generate_uav_mission(req: LawnmowerMissionRequest):
         raise HTTPException(status_code=400, detail=str(ve))
 
 @router.post("/uav/mission/targeted-revisit")
-def generate_targeted_revisit(req: RevisitMissionRequest):
+def generate_targeted_revisit(req: RevisitMissionRequest, current_user: int = Depends(get_current_user)):
     """
     Generates targeted revisit flight mission for DBSCAN hotspots.
     """
@@ -169,11 +227,30 @@ def generate_targeted_revisit(req: RevisitMissionRequest):
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
 
-@router.post("/actuators/control")
+@router.post("/actuators/trigger")
 def trigger_actuator(req: ActuationRequest, current_user: int = Depends(get_current_user)):
     """
     Triggers relay actuation through pluggable RelayAdapter interface.
     """
+    from database import get_zone_owner, get_device_by_device_id
+
+    zone_id = None
+    if str(req.zone_id).isdigit():
+        zone_id = int(req.zone_id)
+    else:
+        device = get_device_by_device_id(str(req.zone_id))
+        if device is not None:
+            zone_id = device["zone_id"]
+        else:
+            raise HTTPException(status_code=400, detail="Unknown symbolic zone or device identifier")
+
+    if zone_id is None:
+        raise HTTPException(status_code=400, detail="Malformed identifier")
+
+    owner_id = get_zone_owner(zone_id)
+    if owner_id is None or owner_id != current_user:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
     res = irrigation_service.trigger_actuator(req.zone_id, req.duration_sec, req.trigger_source)
     return {"status": "SUCCESS", "actuator_response": res}
 
@@ -193,11 +270,11 @@ def get_actuator_status(current_user: int = Depends(get_current_user)):
     return {"status": "SUCCESS", "actuator_status": res}
 
 @router.post("/simulation/digital-twin/set-scenario")
-def set_digital_twin_scenario(req: SetScenarioRequest):
-    res = digital_twin_service.set_scenario(req.scenario_name)
+def set_digital_twin_scenario(req: SetScenarioRequest, current_user: int = Depends(get_current_user)):
+    res = digital_twin_service.set_scenario(req.scenario_name, user_id=current_user)
     return {"status": "SUCCESS", "digital_twin": res}
 
 @router.get("/simulation/digital-twin/telemetry")
-def get_digital_twin_telemetry(node_id: str = "NODE-01"):
-    res = digital_twin_service.generate_simulated_telemetry(node_id)
+def get_digital_twin_telemetry(node_id: str = "NODE-01", current_user: int = Depends(get_current_user)):
+    res = digital_twin_service.generate_simulated_telemetry(node_id, user_id=current_user)
     return {"status": "SUCCESS", "simulated_telemetry": res}

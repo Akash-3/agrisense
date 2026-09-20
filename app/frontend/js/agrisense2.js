@@ -350,10 +350,20 @@ const AgriSense2 = {
                             </div>
                             <div class="text-right space-y-1">
                                 <span class="px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800">${hs.estimated_bounding_area_m2} m²</span>
-                                <div><button onclick="AgriSense2.planTargetedRevisit('${hs.hotspot_id}', ${hs.centroid.lat}, ${hs.centroid.lng})" class="text-[10px] font-bold text-agri-primary hover:underline">Target UAV Revisit</button></div>
+                                <div><button data-action="target-revisit" data-id="${hs.hotspot_id}" data-lat="${hs.centroid.lat}" data-lng="${hs.centroid.lng}" class="text-[10px] font-bold text-agri-primary hover:underline">Target UAV Revisit</button></div>
                             </div>
                         </div>
                     `).join('');
+
+                    if (!list.hasAttribute('data-delegated')) {
+                        list.addEventListener('click', e => {
+                            const btn = e.target.closest('button[data-action="target-revisit"]');
+                            if (btn) {
+                                AgriSense2.planTargetedRevisit(btn.getAttribute('data-id'), parseFloat(btn.getAttribute('data-lat')), parseFloat(btn.getAttribute('data-lng')));
+                            }
+                        });
+                        list.setAttribute('data-delegated', 'true');
+                    }
                 }
             }
         } catch (e) {
