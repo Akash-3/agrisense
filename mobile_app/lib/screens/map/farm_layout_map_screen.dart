@@ -140,6 +140,7 @@ class _FarmLayoutMapScreenState extends State<FarmLayoutMapScreen> {
                 ),
                 const SizedBox(width: 14),
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
                       icon: const Icon(Icons.undo_rounded, color: Colors.amber, size: 20),

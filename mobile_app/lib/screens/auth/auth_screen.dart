@@ -111,23 +111,25 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
               Text('Reset Account Password', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Enter your registered Email or Mobile Number to receive a 6-digit verification code.', style: TextStyle(fontSize: 12, color: Colors.grey)),
-              const SizedBox(height: 14),
-              TextField(
-                controller: emailController,
-                decoration: InputDecoration(
-                  labelText: 'Registered Mobile or Email',
-                  prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF059669)),
-                  filled: true,
-                  fillColor: const Color(0xFFF1F5F9),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Enter your registered Email or Mobile Number to receive a 6-digit verification code.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: emailController,
+                  decoration: InputDecoration(
+                    labelText: 'Registered Mobile or Email',
+                    prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF059669)),
+                    filled: true,
+                    fillColor: const Color(0xFFF1F5F9),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -600,36 +602,44 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         backgroundColor: const Color(0xFFF8FAFC),
         body: SafeArea(
           child: Center(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-              child: Column(
-                children: [
-                  // Top Tagline Bar & Floating Server Config Badge
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFECFDF5),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFA7F3D0)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Icon(Icons.energy_savings_leaf_rounded, size: 13, color: Color(0xFF059669)),
-                            SizedBox(width: 6),
-                            Text(
-                              'SMART FARMS  •  HEALTHY CROPS',
-                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF047857), letterSpacing: 0.4),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 540),
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+                child: Column(
+                  children: [
+                    // Top Tagline Bar & Floating Server Config Badge
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFECFDF5),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: const Color(0xFFA7F3D0)),
                             ),
-                          ],
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.energy_savings_leaf_rounded, size: 13, color: Color(0xFF059669)),
+                                const SizedBox(width: 6),
+                                const Flexible(
+                                  child: Text(
+                                    'SMART FARMS  •  HEALTHY CROPS',
+                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF047857), letterSpacing: 0.4),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                      GestureDetector(
-                        onTap: _showServerSettingsDialog,
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: _showServerSettingsDialog,
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
@@ -973,8 +983,9 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildFooterFeature(IconData icon, String label) {
     return Row(

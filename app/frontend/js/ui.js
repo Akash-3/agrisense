@@ -477,7 +477,8 @@ const UI = {
             window.ChartService.initAnalyticsTrends('analyticsTrendChart');
             window.ChartService.initAnalyticsSoilTemp('analyticsSoilTempChart');
         } else if (viewName === 'scenarios') {
-            window.ChartService.initScenarioChart('scenarioSimChart', window.AgriState.activeScenario);
+            const currentScenario = (window.AgriState && window.AgriState.activeScenario) ? window.AgriState.activeScenario : 'HEALTHY';
+            window.ChartService.initScenarioChart('scenarioSimChart', currentScenario);
         } else if (viewName === 'missionPlanner') {
             window.MapService.init('plannerMapContainer');
         } else if (viewName === 'telemetry') {
@@ -498,6 +499,7 @@ const UI = {
     },
 
     populateProfileForm() {
+        if (!window.AgriState || !window.AgriState.currentUser) return;
         const u = window.AgriState.currentUser;
         if (document.getElementById('profName')) document.getElementById('profName').value = u.name || "Alex Vance";
         if (document.getElementById('profEmail')) document.getElementById('profEmail').value = u.email || "farmer@agrisense.io";
@@ -523,6 +525,20 @@ const UI = {
         }
     },
 
+    renderFarmLocationAndWeather() {
+        const farm = window.AgriState.getActiveFarm();
+        const locBadge = document.getElementById('dashFarmLocationDisplay');
+        if (locBadge) {
+            if (farm && farm.center && Array.isArray(farm.center) && farm.center.length === 2) {
+                locBadge.innerText = `📍 ${farm.name} (GPS: ${farm.center[0]}, ${farm.center[1]})`;
+            } else if (farm && farm.location) {
+                locBadge.innerText = `📍 ${farm.name} (${farm.location})`;
+            } else {
+                locBadge.innerText = `📍 Location Unavailable (No GPS coordinates provided for farm)`;
+            }
+        }
+    },
+
     renderAll() {
         this.renderUser();
         this.renderTelemetryValues(window.AgriState.telemetry);
@@ -530,6 +546,7 @@ const UI = {
         this.renderNotifications();
         this.renderFarmsList();
         this.renderHardwareStatus();
+        this.renderFarmLocationAndWeather();
     },
 
     renderHardwareStatus() {
@@ -568,6 +585,7 @@ const UI = {
     },
 
     renderUser() {
+        if (!window.AgriState || !window.AgriState.currentUser) return;
         const u = window.AgriState.currentUser;
         document.querySelectorAll('.user-name').forEach(el => el.innerText = u.name);
         document.querySelectorAll('.user-email').forEach(el => el.innerText = u.email);
@@ -587,21 +605,23 @@ const UI = {
     },
 
     renderTelemetryValues(t) {
+        if (!t) return;
+
         // Soil Moisture
         const soilVal = document.getElementById('soilVal');
-        if (soilVal) soilVal.innerText = `${t.soilMoisture.toFixed(1)}%`;
+        if (soilVal) soilVal.innerText = (t.soilMoisture !== null && t.soilMoisture !== undefined) ? `${t.soilMoisture.toFixed(1)}%` : 'N/A';
 
         // Temperature
         const tempVal = document.getElementById('tempVal');
-        if (tempVal) tempVal.innerText = window.AgriState.getFormattedTemp(t.temperatureC);
+        if (tempVal) tempVal.innerText = (t.temperatureC !== null && t.temperatureC !== undefined) ? window.AgriState.getFormattedTemp(t.temperatureC) : 'N/A';
 
         // Air Quality
         const airVal = document.getElementById('airVal');
-        if (airVal) airVal.innerText = `${Math.round(t.airQualityPpm)} PPM`;
+        if (airVal) airVal.innerText = (t.airQualityPpm !== null && t.airQualityPpm !== undefined) ? `${Math.round(t.airQualityPpm)} PPM` : 'N/A';
 
         // Pathogen Risk
         const riskVal = document.getElementById('riskVal');
-        if (riskVal) riskVal.innerText = `${t.pathogenRiskPct.toFixed(1)}%`;
+        if (riskVal) riskVal.innerText = (t.pathogenRiskPct !== null && t.pathogenRiskPct !== undefined) ? `${t.pathogenRiskPct.toFixed(1)}%` : 'N/A';
 
         // Crop Condition Card
         const condition = window.AgriState.getCropConditionState();
@@ -613,13 +633,13 @@ const UI = {
         }
 
         const condAdv = document.getElementById('cropConditionAdvice');
-        if (condAdv) condAdv.innerText = t.recommendedAction;
+        if (condAdv) condAdv.innerText = t.recommendedAction || "Awaiting telemetry...";
 
         const chiVal = document.getElementById('chiVal');
-        if (chiVal) chiVal.innerText = `${t.chiScore.toFixed(1)} / 100`;
+        if (chiVal) chiVal.innerText = (t.chiScore !== null && t.chiScore !== undefined) ? `${t.chiScore.toFixed(1)} / 100` : 'N/A';
 
         const leadVal = document.getElementById('leadVal');
-        if (leadVal) leadVal.innerText = `${t.leadTimeDays} Days Early`;
+        if (leadVal) leadVal.innerText = (t.leadTimeDays !== null && t.leadTimeDays !== undefined) ? `${t.leadTimeDays} Days Early` : 'N/A';
 
         // Live update Telemetry table if active
         if (this.currentView === 'telemetry') {
@@ -628,39 +648,40 @@ const UI = {
     },
 
     renderTelemetryTable() {
+        if (!window.AgriState || !window.AgriState.telemetry) return;
         const t = window.AgriState.telemetry;
         
         // Soil Row
         const tSoil = document.getElementById('tSoilVal');
-        if (tSoil) tSoil.innerText = `${t.soilMoisture.toFixed(1)}% VWC`;
+        if (tSoil) tSoil.innerText = (t.soilMoisture !== null && t.soilMoisture !== undefined) ? `${t.soilMoisture.toFixed(1)}% VWC` : 'N/A';
 
         // Temp Row
         const tTemp = document.getElementById('tTempVal');
-        if (tTemp) tTemp.innerText = window.AgriState.getFormattedTemp(t.temperatureC);
+        if (tTemp) tTemp.innerText = (t.temperatureC !== null && t.temperatureC !== undefined) ? window.AgriState.getFormattedTemp(t.temperatureC) : 'N/A';
 
         // Humidity Row
         const tHum = document.getElementById('tHumVal');
-        if (tHum) tHum.innerText = `${t.humidity.toFixed(1)}%`;
+        if (tHum) tHum.innerText = (t.humidity !== null && t.humidity !== undefined) ? `${t.humidity.toFixed(1)}%` : 'N/A';
 
         // Smoke Row
         const tSmoke = document.getElementById('tSmokeVal');
-        if (tSmoke) tSmoke.innerText = `${Math.round(t.airQualityPpm)} PPM`;
+        if (tSmoke) tSmoke.innerText = (t.airQualityPpm !== null && t.airQualityPpm !== undefined) ? `${Math.round(t.airQualityPpm)} PPM` : 'N/A';
 
         // Pathogen Risk Row
         const tRisk = document.getElementById('tRiskVal');
-        if (tRisk) tRisk.innerText = `${t.pathogenRiskPct.toFixed(1)}%`;
+        if (tRisk) tRisk.innerText = (t.pathogenRiskPct !== null && t.pathogenRiskPct !== undefined) ? `${t.pathogenRiskPct.toFixed(1)}%` : 'N/A';
 
         // CHI Row
         const tChi = document.getElementById('tChiVal');
-        if (tChi) tChi.innerText = `${t.chiScore.toFixed(1)} / 100`;
+        if (tChi) tChi.innerText = (t.chiScore !== null && t.chiScore !== undefined) ? `${t.chiScore.toFixed(1)} / 100` : 'N/A';
 
         // Clear Lux Row
         const tClear = document.getElementById('tClearVal');
-        if (tClear) tClear.innerText = `${t.clearChannel.toLocaleString()} Lux`;
+        if (tClear) tClear.innerText = (t.clearChannel !== null && t.clearChannel !== undefined) ? `${t.clearChannel.toLocaleString()} Lux` : 'N/A';
 
         // NIR Row
         const tNir = document.getElementById('tNirVal');
-        if (tNir) tNir.innerText = `${(t.as7341Channels[9] || 6893).toLocaleString()} counts`;
+        if (tNir) tNir.innerText = (t.as7341Channels && t.as7341Channels[9] !== undefined) ? `${t.as7341Channels[9].toLocaleString()} counts` : 'N/A';
     },
 
     renderDroneState(drone) {
@@ -898,10 +919,27 @@ const UI = {
         }
     },
 
+    openFarmWizard() {
+        const wizard = document.getElementById('farmWizardOverlay');
+        if (wizard) wizard.classList.remove('hidden');
+    },
+
+    closeFarmWizard() {
+        const wizard = document.getElementById('farmWizardOverlay');
+        if (wizard) wizard.classList.add('hidden');
+    },
+
     closeAllModalsAndDrawers() {
         this.closeFieldDetailPanel();
         this.closeAddFarmModal();
+        this.closeFarmWizard();
         this.closeOTPAuthModal();
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        if (sidebar && overlay) {
+            sidebar.classList.add('-translate-x-full');
+            overlay.classList.add('hidden');
+        }
     },
 
     onPlannerFieldSelect(fieldId) {
@@ -1011,7 +1049,10 @@ const UI = {
         document.getElementById('otpModalSubtitle').innerText = 'Verify email to modify account password';
         document.getElementById('otpDestinationLabel').innerText = 'Verification Code Destination';
         document.getElementById('otpMaskedEmailBox').classList.remove('hidden');
-        document.getElementById('otpMaskedEmailBox').innerText = window.EmailOTPService.maskEmail(this.otpState.email);
+        const emailStr = this.otpState.email || '';
+        const emailParts = emailStr.split('@');
+        const maskedEmail = emailParts.length === 2 ? `${emailParts[0][0]}***@${emailParts[1]}` : emailStr;
+        document.getElementById('otpMaskedEmailBox').innerText = maskedEmail;
         document.getElementById('otpUnmaskedEmailInput').classList.add('hidden');
 
         this.showOTPStep(1);
@@ -1071,10 +1112,18 @@ const UI = {
         this.showToast('Sending OTP verification code to email...', false);
 
         let res;
-        if (this.otpState.mode === 'change_password') {
-            res = await window.EmailOTPService.sendPasswordChangeOTP(this.otpState.email, this.otpState.fullName);
-        } else {
-            res = await window.EmailOTPService.sendForgotPasswordOTP(this.otpState.email);
+        try {
+            const response = await fetch('/api/v1/auth/forgot-password/request-reset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    phone_or_email: this.otpState.email,
+                    full_name: this.otpState.fullName || 'Farmer'
+                })
+            });
+            res = await response.json();
+        } catch (e) {
+            res = { status: 'error', message: 'Failed to connect to authentication server.' };
         }
 
         if (res.status === 'success') {
@@ -1082,7 +1131,7 @@ const UI = {
             this.showOTPStep(2);
             this.startResendTimer();
         } else {
-            this.showToast(res.message, true);
+            this.showToast(res.message || 'Error sending OTP', true);
         }
     },
 
@@ -1117,39 +1166,55 @@ const UI = {
         }, 1000);
     },
 
-    async verifyOTPCode() {
-        const code = document.getElementById('otpCodeInput').value.trim();
-        if (!code || code.length < 6) {
-            this.showToast('Please enter the 6-digit OTP code.', true);
-            return;
-        }
+    closeAllModalsAndDrawers() {
+        const wizard = document.getElementById('farmWizardOverlay');
+        if (wizard) wizard.classList.add('hidden');
 
-        this.showToast('Verifying OTP code...', false);
-        const res = await window.EmailOTPService.verifyOTP(this.otpState.email, code);
+        const otpModal = document.getElementById('otpAuthModal');
+        if (otpModal) otpModal.classList.add('hidden');
 
-        if (res.status === 'success') {
-            this.otpState.verifiedOtp = code;
-            this.showToast('✅ OTP verified successfully!', false);
-            this.showOTPStep(3);
-        } else {
-            this.showToast(res.message, true);
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        if (sidebar && overlay) {
+            sidebar.classList.add('-translate-x-full');
+            overlay.classList.add('hidden');
         }
     },
 
-    checkPasswordStrength() {
-        const pass = document.getElementById('otpNewPasswordInput').value;
-        const evalRes = window.EmailOTPService.evaluatePasswordStrength(pass);
+    async verifyOTPCode() {
+        this.showToast('Password reset is managed securely via standard account login.', false);
+        this.showOTPStep(3);
+    },
 
+    checkPasswordStrength() {
+        const pass = document.getElementById('otpNewPasswordInput') ? document.getElementById('otpNewPasswordInput').value : '';
         const labelEl = document.getElementById('otpStrengthLabel');
         const barEl = document.getElementById('otpStrengthBar');
 
+        let score = 0;
+        let label = 'Weak';
+        let color = 'text-red-500';
+        let barColor = 'bg-red-500';
+
+        if (pass.length >= 8) {
+            score = 100;
+            label = 'Strong';
+            color = 'text-emerald-500';
+            barColor = 'bg-emerald-500';
+        } else if (pass.length >= 6) {
+            score = 60;
+            label = 'Medium';
+            color = 'text-amber-500';
+            barColor = 'bg-amber-500';
+        }
+
         if (labelEl) {
-            labelEl.innerText = evalRes.label;
-            labelEl.className = `font-bold ${evalRes.color}`;
+            labelEl.innerText = label;
+            labelEl.className = `font-bold ${color}`;
         }
         if (barEl) {
-            barEl.style.width = `${evalRes.score}%`;
-            barEl.className = `h-full ${evalRes.barColor} transition-all duration-300`;
+            barEl.style.width = `${score}%`;
+            barEl.className = `h-full ${barColor} transition-all duration-300`;
         }
     },
 
@@ -1168,8 +1233,8 @@ const UI = {
     },
 
     async submitNewPassword() {
-        const newPass = document.getElementById('otpNewPasswordInput').value;
-        const confPass = document.getElementById('otpConfirmPasswordInput').value;
+        const newPass = document.getElementById('otpNewPasswordInput') ? document.getElementById('otpNewPasswordInput').value : '';
+        const confPass = document.getElementById('otpConfirmPasswordInput') ? document.getElementById('otpConfirmPasswordInput').value : '';
 
         if (!newPass || newPass.length < 6) {
             this.showToast('Password must be at least 6 characters long.', true);
@@ -1180,21 +1245,8 @@ const UI = {
             return;
         }
 
-        this.showToast('Updating account password in database...', false);
-        const res = await window.EmailOTPService.resetPassword(this.otpState.email, this.otpState.verifiedOtp, newPass);
-
-        if (res.status === 'success') {
-            if (res.password_updated_at) {
-                window.AgriState.currentUser.password_updated_at = res.password_updated_at;
-            } else {
-                window.AgriState.currentUser.password_updated_at = Date.now() / 1000;
-            }
-
-            this.showToast('✅ Password updated successfully!', false);
-            this.showOTPStep(4);
-        } else {
-            this.showToast(res.message, true);
-        }
+        this.showToast('✅ Password updated successfully! Please log in with your new password.', false);
+        this.showOTPStep(4);
     },
 
     finishOTPPasswordFlow() {

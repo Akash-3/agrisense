@@ -13,12 +13,20 @@ const AgriSense2 = {
     activeScenario: "HEALTHY_FIELD",
     wsConnection: null,
 
+    getAuthHeaders() {
+        const token = window.AuthService ? window.AuthService.getToken() : localStorage.getItem('agrisense_session_token');
+        if (!token) return null;
+        return { 'Authorization': `Bearer ${token}` };
+    },
+
     init() {
         console.log("[AgriSense 2.0] Initializing Research Component Controller...");
         this.bindEvents();
         this.setOperatingMode(this.operatingMode);
-        this.fetchSpatialHotspots();
-        this.fetchActuatorStatus();
+        if (this.getAuthHeaders()) {
+            this.fetchSpatialHotspots();
+            this.fetchActuatorStatus();
+        }
     },
 
     bindEvents() {
@@ -113,8 +121,10 @@ const AgriSense2 = {
     },
 
     async fetchSILTelemetry() {
+        const headers = this.getAuthHeaders();
+        if (!headers) return;
         try {
-            const res = await fetch('/api/v2/simulation/digital-twin/telemetry?node_id=NODE-01');
+            const res = await fetch('/api/v2/simulation/digital-twin/telemetry?node_id=NODE-01', { headers });
             const data = await res.json();
             if (data.status === 'SUCCESS' && data.simulated_telemetry) {
                 const tel = data.simulated_telemetry;
@@ -329,8 +339,10 @@ const AgriSense2 = {
     },
 
     async fetchSpatialHotspots() {
+        const headers = this.getAuthHeaders();
+        if (!headers) return;
         try {
-            const res = await fetch('/api/v2/spatial/hotspots/simulation');
+            const res = await fetch('/api/v2/spatial/hotspots/simulation', { headers });
             const data = await res.json();
             if (data.status === 'SUCCESS' && data.spatial_clusters) {
                 const clusters = data.spatial_clusters;
@@ -447,8 +459,10 @@ const AgriSense2 = {
     },
 
     async fetchActuatorStatus() {
+        const headers = this.getAuthHeaders();
+        if (!headers) return;
         try {
-            const res = await fetch('/api/v2/actuators/status');
+            const res = await fetch('/api/v2/actuators/status', { headers });
             const data = await res.json();
             if (data.status === 'SUCCESS' && data.actuator_status) {
                 const st = data.actuator_status;

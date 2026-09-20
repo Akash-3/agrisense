@@ -139,6 +139,24 @@ const AgriState = {
     // Simulation Ticker handle
     simInterval: null,
 
+    // Load persisted user settings from localStorage
+    loadSettings() {
+        try {
+            const stored = localStorage.getItem('agrisense_settings');
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                this.settings = { ...this.settings, ...parsed };
+            }
+        } catch (_) {}
+    },
+
+    saveSettings() {
+        try {
+            localStorage.getItem('agrisense_settings', JSON.stringify(this.settings));
+            localStorage.setItem('agrisense_settings', JSON.stringify(this.settings));
+        } catch (_) {}
+    },
+
     // Methods
     getFormattedTemp(celsiusVal) {
         if (celsiusVal === null || celsiusVal === undefined) return "N/A";
@@ -204,13 +222,12 @@ const AgriState = {
     startLiveTelemetryLoop(callback) {
         if (this.simInterval) clearInterval(this.simInterval);
 
-        const fetchLatest = async () => {
-            if (window.AgriSense2 && window.AgriSense2.operatingMode === "SIMULATION") {
-                return; // Respect simulation mode, do not poll real data
+            if (!this.currentUser || !this.currentUser.isAuthenticated) {
+                this.hardwareStatus = "OFFLINE";
+                if (typeof callback === 'function') callback(this.telemetry);
+                return;
             }
 
-            // Phase 7: Always send the actual stored session token.
-            // If no token exists, skip the request entirely – never poll unauthenticated.
             const token = window.AuthService ? window.AuthService.getToken()
                         : localStorage.getItem('agrisense_session_token');
             if (!token) {

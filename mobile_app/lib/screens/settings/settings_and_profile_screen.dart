@@ -67,27 +67,29 @@ class _SettingsAndProfileScreenState extends State<SettingsAndProfileScreen> {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           title: const Text('Add New Farm Field', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameCtrl,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(labelText: 'Farm Name (e.g. South Paddy Field)'),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: acresCtrl,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Farm Area (Acres)'),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: cropCtrl,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(labelText: 'Crop Types'),
-              ),
-            ],
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(labelText: 'Farm Name (e.g. South Paddy Field)'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: acresCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Farm Area (Acres)'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: cropCtrl,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(labelText: 'Crop Types'),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
@@ -120,7 +122,7 @@ class _SettingsAndProfileScreenState extends State<SettingsAndProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. ACCOUNT PROFILE CARD
+          // 1. FARMER PROFILE HEADER CARD
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -171,7 +173,14 @@ class _SettingsAndProfileScreenState extends State<SettingsAndProfileScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Farm Fields Catalog', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+              const Flexible(
+                child: Text(
+                  'Farm Fields Catalog',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF059669),

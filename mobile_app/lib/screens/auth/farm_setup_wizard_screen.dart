@@ -177,9 +177,12 @@ class _FarmSetupWizardScreenState extends State<FarmSetupWizardScreen> {
         actions: const [],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(18),
-          child: Column(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(18),
+              child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
@@ -352,6 +355,8 @@ class _FarmSetupWizardScreenState extends State<FarmSetupWizardScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 }

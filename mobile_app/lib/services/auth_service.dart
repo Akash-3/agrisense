@@ -180,6 +180,57 @@ class AuthService {
     return _decodeSuccess(response, expectedStatus: 200);
   }
 
+  Future<List<dynamic>> getZones(int farmId) async {
+    try {
+      final response = await _get('/api/v1/farms/$farmId/zones', timeout: const Duration(seconds: 10));
+      final data = _decodeSuccess(response, expectedStatus: 200);
+      return (data['zones'] as List<dynamic>?) ?? [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<List<dynamic>> getDevices(int farmId) async {
+    try {
+      final response = await _get('/api/v1/farms/$farmId/devices', timeout: const Duration(seconds: 10));
+      final data = _decodeSuccess(response, expectedStatus: 200);
+      return (data['devices'] as List<dynamic>?) ?? [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>> assignDevice(String deviceId, int zoneId) async {
+    final response = await _post(
+      '/api/v1/zones/$zoneId/devices',
+      {'device_id': deviceId},
+      timeout: const Duration(seconds: 10),
+    );
+    return _decodeSuccess(response, expectedStatus: 200);
+  }
+
+  Future<http.Response> _get(
+    String path, {
+    required Duration timeout,
+  }) async {
+    await AppConfig.resolveActiveHost();
+    final token = await getToken();
+    final headers = {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+    try {
+      return await http
+          .get(
+            Uri.parse('${AppConfig.backendHttpUrl}$path'),
+            headers: headers,
+          )
+          .timeout(timeout);
+    } on Exception catch (e) {
+      throw AuthServiceException('Request failed: $e');
+    }
+  }
+
   Future<http.Response> _post(
     String path,
     Map<String, dynamic> body, {

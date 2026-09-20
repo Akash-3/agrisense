@@ -144,7 +144,7 @@ class AppDrawer extends StatelessWidget {
             // HEADER CARD
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(20, 52, 20, 24),
+              padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 16, 20, 16),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Color(0xFF064E3B), Color(0xFF022C22)],
