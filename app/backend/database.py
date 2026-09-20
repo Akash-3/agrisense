@@ -337,7 +337,6 @@ def sanitize_input(text: str) -> str:
         return ""
     text = re.sub(r'<[^>]*>', '', str(text))
     text = re.sub(r'javascript\s*:', '', text, flags=re.IGNORECASE)
-    text = text.replace("'", "''")
     return text.strip()
 
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "agrisense_jwt_enterprise_secret_2026_key_#9821!")
@@ -775,6 +774,10 @@ def get_devices_for_farm(farm_id: int):
 def get_farm_owner(farm_id: int):
     res = execute_db("SELECT farmer_id FROM farms WHERE id = ?", (farm_id,), fetchone=True)
     return res[0] if res else None
+
+def get_farms_by_farmer(farmer_id: int):
+    rows = execute_db("SELECT id, farmer_id, farm_name, farm_acres, crop_type, created_at FROM farms WHERE farmer_id = ?", (farmer_id,), fetchall=True)
+    return [{"id": r[0], "farmer_id": r[1], "farm_name": r[2], "farm_acres": r[3], "crop_type": r[4], "created_at": r[5]} for r in (rows or [])]
 
 def get_zone_owner(zone_id: int):
     res = execute_db("SELECT farms.farmer_id FROM zones JOIN farms ON zones.farm_id = farms.id WHERE zones.id = ?", (zone_id,), fetchone=True)

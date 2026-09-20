@@ -1,6 +1,6 @@
 import os
 import time
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect, Depends, Query, Header
 from fastapi.responses import FileResponse, StreamingResponse
 from dependencies import get_current_user
@@ -9,7 +9,7 @@ from database import add_farm
 from config import load_latest_app_version, get_existing_apk_path
 from models.schemas import AddFarmRequest, ESP32TelemetryIngest
 
-from app.backend.services import ai_service, fusion_service, anomaly_service
+from services import ai_service, fusion_service, anomaly_service
 
 router = APIRouter(tags=["Telemetry & System"])
 
@@ -113,13 +113,67 @@ async def handle_add_farm(req: AddFarmRequest, current_user: int = Depends(get_c
     return add_farm(current_user, req.farm_name, req.farm_acres, req.crop_type)
 
 @router.get("/api/v1/telemetry/latest")
-async def get_latest_telemetry(current_user: int = Depends(get_current_user)):
-    from database import get_farm_owner
-    if latest_telemetry.farm_id is not None:
-        owner = get_farm_owner(latest_telemetry.farm_id)
-        if owner is not None and owner != current_user:
+async def get_latest_telemetry(farm_id: Optional[int] = Query(None), current_user: int = Depends(get_current_user)):
+    from database import get_farm_owner, get_farms_by_farmer, execute_db
+
+    if farm_id is not None:
+        owner = get_farm_owner(farm_id)
+        if owner is None or owner != current_user:
             raise HTTPException(status_code=403, detail="Forbidden")
-    return {"telemetry": latest_telemetry.dict(), "ai_diagnosis": latest_ai_result}
+        target_farm_ids = [farm_id]
+    else:
+        if latest_telemetry.farm_id is not None:
+            owner = get_farm_owner(latest_telemetry.farm_id)
+            if owner is not None and owner != current_user:
+                raise HTTPException(status_code=403, detail="Forbidden")
+
+        farms = get_farms_by_farmer(current_user)
+        if not farms:
+            return {"telemetry": None, "ai_diagnosis": None, "status": "no_farms"}
+        target_farm_ids = [f["id"] for f in farms]
+
+    placeholders = ",".join(["?"] * len(target_farm_ids))
+    row = execute_db(
+        f"SELECT id, device_id, zone_id, farm_id, crop_id, crop_name, timestamp, soil_moisture, temperature, humidity, smoke_ppm, spectral_data, ai_condition, ai_confidence, ai_severity, ai_rule_type, ai_recommended_action, anomaly_score, ood_score, is_simulated FROM telemetry_records WHERE farm_id IN ({placeholders}) ORDER BY timestamp DESC LIMIT 1",
+        tuple(target_farm_ids),
+        fetchone=True
+    )
+
+    if row:
+        telemetry_data = {
+            "id": row[0],
+            "device_id": row[1],
+            "zone_id": row[2],
+            "farm_id": row[3],
+            "crop_id": row[4],
+            "crop_name": row[5],
+            "timestamp": row[6],
+            "soil_moisture": row[7],
+            "temperature": row[8],
+            "humidity": row[9],
+            "smoke_ppm": row[10],
+            "spectral_data": row[11],
+            "ai_condition": row[12],
+            "ai_confidence": row[13],
+            "ai_severity": row[14],
+            "ai_rule_type": row[15],
+            "ai_recommended_action": row[16],
+            "anomaly_score": row[17],
+            "ood_score": row[18],
+            "is_simulated": bool(row[19]) if row[19] is not None else False
+        }
+        ai_diag = {
+            "condition": row[12],
+            "confidence": row[13],
+            "severity_score": row[14],
+            "recommended_action": row[16]
+        }
+        return {"telemetry": telemetry_data, "ai_diagnosis": ai_diag}
+
+    if latest_telemetry.farm_id is not None and latest_telemetry.farm_id in target_farm_ids:
+        return {"telemetry": latest_telemetry.dict(), "ai_diagnosis": latest_ai_result}
+
+    return {"telemetry": None, "ai_diagnosis": None, "status": "no_telemetry"}
 
 @router.post("/api/v1/telemetry/ingest")
 async def ingest_esp32_telemetry(payload: ESP32TelemetryIngest, request: Request = None, x_api_key: str = Header(None)):

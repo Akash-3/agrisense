@@ -3,7 +3,7 @@ from dependencies import get_current_user
 from pydantic import BaseModel, validator
 from typing import List, Optional, Dict, Any
 
-from app.backend.services import (
+from services import (
     ai_service,
     temporal_service,
     fusion_service,

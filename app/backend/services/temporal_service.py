@@ -1,6 +1,12 @@
 import os
+import sys
 import torch
 import numpy as np
+
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
+
 from ml.temporal import TemporalStressNet, TREND_LABELS
 
 CHECKPOINT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "ml", "checkpoints", "temporal_net.pth"))

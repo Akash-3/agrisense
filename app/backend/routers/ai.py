@@ -6,7 +6,7 @@ from PIL import Image
 from fastapi import APIRouter, HTTPException, Depends
 from dependencies import get_current_user
 from models.schemas import CropImageDiagnosisRequest
-from app.backend.services import ai_service, xai_service
+from services import ai_service, xai_service
 
 router = APIRouter(prefix="/api/v1/ai", tags=["AI Diagnosis"])
 

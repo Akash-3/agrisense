@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 import numpy as np
-from app.backend.services.ai_service import ai_service
+from services.ai_service import ai_service
 
 class XAIService:
     """

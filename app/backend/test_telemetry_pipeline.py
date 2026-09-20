@@ -583,3 +583,59 @@ def test_phase5_own_filters_allowed():
         headers={"Authorization": f"Bearer {token1}"}
     )
     assert res.status_code == 200
+
+# --------- REVISED DIRECTIVE 4: Explicit Telemetry Latest Isolation Tests ---
+
+def test_latest_telemetry_unauthenticated_rejected():
+    """Unauthenticated request to latest telemetry must return 401 Unauthorized."""
+    res = client.get("/api/v1/telemetry/latest")
+    assert res.status_code == 401
+
+def test_latest_telemetry_cross_farm_isolation():
+    """Farm A cannot receive Farm B latest telemetry, and Farm B cannot receive Farm A latest telemetry."""
+    # Ingest for Farm 1 (User 1)
+    client.post(
+        "/api/v1/telemetry/ingest",
+        headers={"X-API-Key": TEST_KEY},
+        json={"device_id": "TEST_DEVICE_01", "soil_moisture": 44.4, "temperature": 24.0, "humidity": 60.0, "smoke_ppm": 10.0}
+    )
+    # Ingest for Farm 2 (User 2)
+    client.post(
+        "/api/v1/telemetry/ingest",
+        headers={"X-API-Key": TEST_KEY},
+        json={"device_id": "TEST_DEVICE_02", "soil_moisture": 88.8, "temperature": 28.0, "humidity": 70.0, "smoke_ppm": 20.0}
+    )
+
+    token1 = get_test_token(1)
+    token2 = get_test_token(2)
+
+    res1 = client.get("/api/v1/telemetry/latest?farm_id=1", headers={"Authorization": f"Bearer {token1}"})
+    assert res1.status_code == 200
+    data1 = res1.json()
+    assert data1["telemetry"]["soil_moisture"] == 44.4
+    assert data1["telemetry"]["farm_id"] == 1
+
+    res2 = client.get("/api/v1/telemetry/latest?farm_id=2", headers={"Authorization": f"Bearer {token2}"})
+    assert res2.status_code == 200
+    data2 = res2.json()
+    assert data2["telemetry"]["soil_moisture"] == 88.8
+    assert data2["telemetry"]["farm_id"] == 2
+
+def test_latest_telemetry_forbidden_cross_farm_query():
+    """Requesting latest telemetry explicitly for another user's farm_id returns 403 Forbidden."""
+    token1 = get_test_token(1)
+    # User 1 attempts to query Farm 2 explicitly
+    res = client.get("/api/v1/telemetry/latest?farm_id=2", headers={"Authorization": f"Bearer {token1}"})
+    assert res.status_code == 403
+
+def test_latest_telemetry_empty_farm_response():
+    """A user with a farm but no ingested telemetry receives clean empty response without crash."""
+    execute_db("INSERT OR IGNORE INTO farmers (id, full_name, phone_or_email, password_hash, created_at) VALUES (99, 'EmptyUser', 'empty@test.com', 'hash', 200)", commit=True)
+    execute_db("INSERT OR IGNORE INTO farms (id, farmer_id, farm_name, farm_acres, created_at) VALUES (99, 99, 'Empty Farm', 5, 200)", commit=True)
+    token_empty = get_test_token(99)
+
+    res = client.get("/api/v1/telemetry/latest?farm_id=99", headers={"Authorization": f"Bearer {token_empty}"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["telemetry"] is None
+    assert data["status"] in ("no_telemetry", "no_farms")

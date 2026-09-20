@@ -1,6 +1,12 @@
 import os
+import sys
 import torch
 import numpy as np
+
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
+
 from ml.model import MMSSNet
 from ml.dataset import CONDITION_LABELS
 
