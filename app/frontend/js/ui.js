@@ -93,9 +93,9 @@ const UI = {
     },
 
     // ==================== AUTHENTICATION DELEGATION TO AUTHSERVICE ====================
-    async submitLogin() {
-        const idInput = document.getElementById('loginIdInput').value.trim();
-        const passInput = document.getElementById('loginPassInput').value.trim();
+    async submitLogin(emailOverride = null, passOverride = null) {
+        const idInput = emailOverride || (document.getElementById('loginIdInput') ? document.getElementById('loginIdInput').value.trim() : '');
+        const passInput = passOverride || (document.getElementById('loginPassInput') ? document.getElementById('loginPassInput').value.trim() : '');
 
         if (!idInput || !passInput) {
             this.showToast('Please enter your email/phone and password.', true);
@@ -109,8 +109,10 @@ const UI = {
             const farmer = data.farmer;
             window.AgriState.currentUser = {
                 id: farmer.id || 1,
+                isAuthenticated: true,
                 isDemoMode: false,
                 name: farmer.full_name || idInput,
+                full_name: farmer.full_name || idInput,
                 email: farmer.phone_or_email || idInput,
                 phone: farmer.phone || "+1 (555) 019-2834",
                 country: farmer.country || "United States",
@@ -925,6 +927,20 @@ const UI = {
     },
 
     openFarmWizard() {
+        const name = document.getElementById('regName')?.value.trim();
+        const email = document.getElementById('regEmail')?.value.trim();
+        const pass = document.getElementById('regPass')?.value.trim();
+
+        if (!window.AgriState?.currentUser?.isAuthenticated && (!name || !email || !pass)) {
+            this.showToast('Please fill in your Name, Email, and Password first.', true);
+            return;
+        }
+
+        const wizardFarmNameInput = document.getElementById('wizardFarmName');
+        if (wizardFarmNameInput && !wizardFarmNameInput.value) {
+            wizardFarmNameInput.value = name ? `${name}'s Farm Plot` : "Green Valley Field Plot";
+        }
+
         const wizard = document.getElementById('farmWizardOverlay');
         if (wizard) wizard.classList.remove('hidden');
         if (window.MapService && typeof window.MapService.initWizardMap === 'function') {
@@ -941,6 +957,65 @@ const UI = {
     closeFarmWizard() {
         const wizard = document.getElementById('farmWizardOverlay');
         if (wizard) wizard.classList.add('hidden');
+    },
+
+    async submitWizard() {
+        const wizardFarmName = document.getElementById('wizardFarmName')?.value.trim() || "Green Valley Field Plot";
+        let acres = 10.0;
+        if (window.MapService && window.MapService.wizardPoints && window.MapService.wizardPoints.length >= 3) {
+            acres = parseFloat((window.MapService.wizardPoints.length * 1.25).toFixed(2));
+        }
+
+        if (window.AgriState && window.AgriState.currentUser && window.AgriState.currentUser.isAuthenticated) {
+            this.closeFarmWizard();
+            const newId = (window.AgriState.farms || []).length + 1;
+            window.AgriState.farms.push({
+                id: newId,
+                name: wizardFarmName,
+                acres: acres,
+                cropType: "Wheat & Paddy",
+                location: "Registered Plot",
+                center: [20.2961, 85.8245],
+                status: "Optimal",
+                droneCoverage: "Scheduled"
+            });
+            this.switchFarm(newId);
+            this.renderFarmsList();
+            this.showToast(`✅ Farm '${wizardFarmName}' setup completed!`, false);
+        } else {
+            const name = document.getElementById('regName')?.value.trim();
+            const email = document.getElementById('regEmail')?.value.trim();
+            const pass = document.getElementById('regPass')?.value.trim();
+            const gender = document.getElementById('regGender')?.value || "Male";
+            const age = parseInt(document.getElementById('regAge')?.value) || 30;
+
+            if (!name || !email || !pass) {
+                this.showToast('Please enter your Name, Email, and Password.', true);
+                return;
+            }
+
+            this.showToast('Registering farmer account and farm details...', false);
+            const data = await window.AuthService.register({
+                full_name: name,
+                phone_or_email: email,
+                farm_name: wizardFarmName,
+                farm_acres: acres,
+                password: pass,
+                gender: gender,
+                age: age,
+                crop_type: "Wheat & Paddy"
+            });
+
+            if (data && data.status === 'success') {
+                this.closeFarmWizard();
+                this.showToast('✅ Account registered successfully! Signing in...', false);
+                if (document.getElementById('loginIdInput')) document.getElementById('loginIdInput').value = email;
+                if (document.getElementById('loginPassInput')) document.getElementById('loginPassInput').value = pass;
+                await this.submitLogin(email, pass);
+            } else {
+                this.showToast(data ? (data.detail || data.message) : 'Registration failed.', true);
+            }
+        }
     },
 
     closeAllModalsAndDrawers() {
