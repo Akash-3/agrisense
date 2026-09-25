@@ -52,6 +52,13 @@ const UI = {
                 overlay.classList.add('hidden');
             });
         }
+
+        // Global ESC key listener for modal & drawer dismissal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' || e.key === 'Esc') {
+                UI.closeAllModalsAndDrawers();
+            }
+        });
     },
 
     switchAuthTab(tab) {
@@ -903,18 +910,16 @@ const UI = {
 
         if (panel) {
             panel.classList.remove('translate-y-0', 'md:translate-x-0');
-            panel.classList.add('translate-y-full', 'md:translate-x-full');
+            panel.classList.add('translate-y-full');
+            panel.classList.add('md:translate-x-full');
+            panel.classList.add('hidden');
         }
         if (backdrop) {
             backdrop.classList.remove('opacity-100', 'pointer-events-auto');
             backdrop.classList.add('opacity-0', 'pointer-events-none');
         }
 
-        setTimeout(() => {
-            if (panel) panel.classList.add('hidden');
-        }, 300);
-
-        if (window.MapService) {
+        if (window.MapService && typeof window.MapService.clearSelectedPolygon === 'function') {
             window.MapService.clearSelectedPolygon();
         }
     },
@@ -950,11 +955,13 @@ const UI = {
     },
 
     openAddFarmModal() {
-        document.getElementById('addFarmModal').classList.remove('hidden');
+        const modal = document.getElementById('addFarmModal');
+        if (modal) modal.classList.remove('hidden');
     },
 
     closeAddFarmModal() {
-        document.getElementById('addFarmModal').classList.add('hidden');
+        const modal = document.getElementById('addFarmModal');
+        if (modal) modal.classList.add('hidden');
     },
 
     async submitAddFarm() {
@@ -1084,8 +1091,9 @@ const UI = {
     },
 
     closeOTPAuthModal() {
-        document.getElementById('otpAuthModal').classList.add('hidden');
-        if (this.otpState.resendTimer) {
+        const modal = document.getElementById('otpAuthModal');
+        if (modal) modal.classList.add('hidden');
+        if (this.otpState && this.otpState.resendTimer) {
             clearInterval(this.otpState.resendTimer);
             this.otpState.resendTimer = null;
         }

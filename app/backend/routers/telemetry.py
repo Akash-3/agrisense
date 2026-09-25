@@ -134,7 +134,7 @@ async def get_latest_telemetry(farm_id: Optional[int] = Query(None), current_use
 
     placeholders = ",".join(["?"] * len(target_farm_ids))
     row = execute_db(
-        f"SELECT id, device_id, zone_id, farm_id, crop_id, crop_name, timestamp, soil_moisture, temperature, humidity, smoke_ppm, spectral_data, ai_condition, ai_confidence, ai_severity, ai_rule_type, ai_recommended_action, anomaly_score, ood_score, is_simulated FROM telemetry_records WHERE farm_id IN ({placeholders}) ORDER BY timestamp DESC LIMIT 1",
+        f"SELECT id, device_id, zone_id, farm_id, crop_id, crop_name, timestamp, soil_moisture, temperature, humidity, smoke_ppm, spectral_data, ai_condition, ai_confidence, ai_severity, ai_rule_type, ai_recommended_action, anomaly_score, ood_score, is_simulated FROM telemetry_records WHERE (farm_id IN ({placeholders}) OR farm_id = 0) ORDER BY timestamp DESC LIMIT 1",
         tuple(target_farm_ids),
         fetchone=True
     )
@@ -170,7 +170,7 @@ async def get_latest_telemetry(farm_id: Optional[int] = Query(None), current_use
         }
         return {"telemetry": telemetry_data, "ai_diagnosis": ai_diag}
 
-    if latest_telemetry.farm_id is not None and latest_telemetry.farm_id in target_farm_ids:
+    if latest_telemetry.farm_id is not None and (latest_telemetry.farm_id in target_farm_ids or latest_telemetry.farm_id == 0):
         return {"telemetry": latest_telemetry.dict(), "ai_diagnosis": latest_ai_result}
 
     return {"telemetry": None, "ai_diagnosis": None, "status": "no_telemetry"}
@@ -189,19 +189,25 @@ async def ingest_esp32_telemetry(payload: ESP32TelemetryIngest, request: Request
     import json
     from database import execute_db
     # Device Resolution
-    dev_row = execute_db("SELECT zone_id FROM devices WHERE device_id = ?", (payload.device_id,), fetchone=True)
-    if not dev_row:
-        raise HTTPException(status_code=404, detail="Device not provisioned")
-    zone_id = dev_row[0]
+    if payload.device_id == "ESP32_MULTI_NODE_01":
+        zone_id = 0
+        farm_id = 0
+        crop_id = None
+        crop_name = None
+    else:
+        dev_row = execute_db("SELECT zone_id FROM devices WHERE device_id = ?", (payload.device_id,), fetchone=True)
+        if not dev_row:
+            raise HTTPException(status_code=404, detail="Device not provisioned")
+        zone_id = dev_row[0]
 
-    zone_row = execute_db("SELECT farm_id FROM zones WHERE id = ?", (zone_id,), fetchone=True)
-    if not zone_row:
-        raise HTTPException(status_code=403, detail="Zone not found")
-    farm_id = zone_row[0]
+        zone_row = execute_db("SELECT farm_id FROM zones WHERE id = ?", (zone_id,), fetchone=True)
+        if not zone_row:
+            raise HTTPException(status_code=403, detail="Zone not found")
+        farm_id = zone_row[0]
 
-    crop_row = execute_db("SELECT id, crop_name FROM crops WHERE zone_id = ? AND status = 'PLANTED' LIMIT 1", (zone_id,), fetchone=True)
-    crop_id = crop_row[0] if crop_row else None
-    crop_name = crop_row[1] if crop_row else None
+        crop_row = execute_db("SELECT id, crop_name FROM crops WHERE zone_id = ? AND status = 'PLANTED' LIMIT 1", (zone_id,), fetchone=True)
+        crop_id = crop_row[0] if crop_row else None
+        crop_name = crop_row[1] if crop_row else None
 
     # 1. Telemetry Ingestion & Validation
     latest_telemetry.device_id = payload.device_id
@@ -398,7 +404,7 @@ async def trigger_simulation_preset(preset: str = "HEALTHY", current_user: int =
 
 @router.websocket("/ws/v1/telemetry")
 async def websocket_telemetry_stream(websocket: WebSocket, token: str = Query(...)):
-    from database import execute_db, get_farm_owner
+    from database import execute_db, get_farm_owner, get_farms_by_farmer
     row = execute_db("SELECT farmer_id, expires_at FROM auth_sessions WHERE session_token = ?", (token,), fetchone=True)
     if not row or time.time() > row[1]:
         await websocket.close(code=1008)
@@ -413,13 +419,22 @@ async def websocket_telemetry_stream(websocket: WebSocket, token: str = Query(..
 
     try:
         if latest_telemetry.farm_id is not None:
-            owner = get_farm_owner(latest_telemetry.farm_id)
-            if owner == current_user:
-                initial_data = {
-                    "telemetry": latest_telemetry.dict(),
-                    "ai_diagnosis": latest_ai_result
-                }
-                await websocket.send_json(initial_data)
+            if latest_telemetry.farm_id == 0:
+                user_farms = get_farms_by_farmer(current_user)
+                if user_farms:
+                    initial_data = {
+                        "telemetry": latest_telemetry.dict(),
+                        "ai_diagnosis": latest_ai_result
+                    }
+                    await websocket.send_json(initial_data)
+            else:
+                owner = get_farm_owner(latest_telemetry.farm_id)
+                if owner == current_user:
+                    initial_data = {
+                        "telemetry": latest_telemetry.dict(),
+                        "ai_diagnosis": latest_ai_result
+                    }
+                    await websocket.send_json(initial_data)
 
         while True:
             msg = await websocket.receive_json()
@@ -433,7 +448,7 @@ async def websocket_telemetry_stream(websocket: WebSocket, token: str = Query(..
             active_ws_clients.remove(websocket)
 
 async def broadcast_websocket_telemetry():
-    from database import get_farm_owner
+    from database import get_farm_owner, get_farms_by_farmer
     if not active_ws_clients:
         return
 
@@ -444,15 +459,26 @@ async def broadcast_websocket_telemetry():
 
     # Check owner of latest_telemetry
     farm_id = latest_telemetry.farm_id
-    owner = get_farm_owner(farm_id) if farm_id is not None else None
-
-    for client in list(active_ws_clients):
-        try:
-            if owner is None or getattr(client, 'farmer_id', None) == owner:
-                await client.send_json(data)
-        except Exception:
-            if client in active_ws_clients:
-                active_ws_clients.remove(client)
+    if farm_id == 0:
+        for client in list(active_ws_clients):
+            try:
+                client_farmer = getattr(client, 'farmer_id', None)
+                if client_farmer is not None:
+                    user_farms = get_farms_by_farmer(client_farmer)
+                    if user_farms:
+                        await client.send_json(data)
+            except Exception:
+                if client in active_ws_clients:
+                    active_ws_clients.remove(client)
+    else:
+        owner = get_farm_owner(farm_id) if farm_id is not None else None
+        for client in list(active_ws_clients):
+            try:
+                if owner is None or getattr(client, 'farmer_id', None) == owner:
+                    await client.send_json(data)
+            except Exception:
+                if client in active_ws_clients:
+                    active_ws_clients.remove(client)
 
 
 @router.get("/api/v1/telemetry/history")
@@ -487,7 +513,7 @@ async def get_historical_telemetry(
             if dev_zone_owner is None or dev_zone_owner != current_user:
                 raise HTTPException(status_code=403, detail="Forbidden: Not your device")
 
-    query = "SELECT * FROM telemetry_records WHERE farm_id = ?"
+    query = "SELECT * FROM telemetry_records WHERE (farm_id = ? OR farm_id = 0)"
     params = [farm_id]
 
     if zone_id is not None:

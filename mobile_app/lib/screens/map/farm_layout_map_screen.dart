@@ -1,27 +1,11 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
-import 'dart:ui';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
 
-import '../../config/app_config.dart';
-import '../../models/telemetry_models.dart';
-import '../../services/websocket_service.dart';
-import '../../widgets/agri_logo_badge.dart';
-import '../../widgets/app_drawer.dart';
-import '../../widgets/farmer_avatar_widget.dart';
-import '../../widgets/top_capsule_notification.dart';
 
 class FarmLayoutMapScreen extends StatefulWidget {
   const FarmLayoutMapScreen({super.key});

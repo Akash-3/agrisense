@@ -20,7 +20,9 @@ import '../dashboard/farmer_dashboard.dart';
 import '../map/farm_layout_map_screen.dart';
 import '../drone/drone_flight_control_screen.dart';
 import '../settings/settings_and_profile_screen.dart';
-import '../auth/farm_setup_wizard_screen.dart';
+import '../chatbot/chatbot_screen.dart';
+
+
 
 class MainNavigationScreen extends StatefulWidget {
   final Map<String, dynamic> farmer;
@@ -1090,6 +1092,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       child: Scaffold(
         key: _scaffoldKey,
         backgroundColor: const Color(0xFFF8FAFC),
+        floatingActionButton: FloatingActionButton.extended(
+          backgroundColor: const Color(0xFF10B981),
+          foregroundColor: Colors.white,
+          elevation: 6,
+          icon: const Icon(Icons.smart_toy_rounded),
+          label: const Text('AI Agri Chat', style: TextStyle(fontWeight: FontWeight.bold)),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (ctx) => ChatbotScreen(farmer: _farmerData)),
+            );
+          },
+        ),
         drawer: AppDrawer(
           farmer: _farmerData,
           farms: _farms,
@@ -1104,11 +1119,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               _farmerDashboardKey.currentState?.openScannerModal();
             });
           },
+          onOpenChatbot: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (ctx) => ChatbotScreen(farmer: _farmerData)),
+            );
+          },
           onSelectScreen: (idx) {
             Navigator.pop(context);
             setState(() => _currentIndex = idx);
           },
+
         ),
+
         bottomNavigationBar: _buildFloatingBottomNavBar(),
         body: Stack(
           children: [

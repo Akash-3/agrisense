@@ -281,6 +281,14 @@ const MapService = {
         });
     },
 
+    setSelectedPolygon(polygon) {
+        this.selectedPolygon = polygon;
+    },
+
+    clearSelectedPolygon() {
+        this.selectedPolygon = null;
+    },
+
     updateDroneMarker(droneData) {
         if (this.droneMarker && droneData.lat && droneData.lng) {
             this.droneMarker.setLatLng([droneData.lat, droneData.lng]);

@@ -18,18 +18,20 @@ def load_latest_app_version():
     return "1.7.8", 33
 
 def get_existing_apk_path():
-    project_apk = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "mobile_app", "build", "app", "outputs", "flutter-apk", "app-debug.apk"))
+    project_apk = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "mobile_app", "build", "app", "outputs", "flutter-apk", "app-release.apk"))
+    if os.path.exists(project_apk) and os.path.getsize(project_apk) > 10 * 1024 * 1024:
+        return project_apk
     ver_name, _ = load_latest_app_version()
     user_downloads = os.path.expanduser("~/Downloads")
     candidates = [
-        project_apk,
         os.path.join(user_downloads, f"AgriSense_v{ver_name}.apk"),
         os.path.join(user_downloads, "AgriSense.apk"),
     ]
     for p in candidates:
         if os.path.exists(p) and os.path.getsize(p) > 10 * 1024 * 1024:
             return p
-    return candidates[0]
+    return project_apk
+
 
 def sanitize_email_or_phone(v: str) -> str:
     cleaned = sanitize_input(v)

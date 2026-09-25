@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from database import init_db
-from routers import auth, telemetry, ai, v2, zones
+from routers import auth, telemetry, ai, v2, zones, chatbot
 
 init_db()
 
@@ -89,6 +89,7 @@ app.include_router(telemetry.router)
 app.include_router(ai.router)
 app.include_router(v2.router)
 app.include_router(zones.router)
+app.include_router(chatbot.router)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

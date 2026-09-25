@@ -639,3 +639,112 @@ def test_latest_telemetry_empty_farm_response():
     data = res.json()
     assert data["telemetry"] is None
     assert data["status"] in ("no_telemetry", "no_farms")
+
+
+# --------- GLOBAL SHARED DEVICE (ESP32_MULTI_NODE_01) TESTS ---------
+
+def test_global_shared_device_ingest_without_devices_table_entry():
+    """a. ESP32_MULTI_NODE_01 ingests without a devices-table entry."""
+    res = client.post(
+        "/api/v1/telemetry/ingest",
+        headers={"X-API-Key": TEST_KEY},
+        json={"device_id": "ESP32_MULTI_NODE_01", "soil_moisture": 55.5, "temperature": 27.0, "humidity": 62.0, "smoke_ppm": 12.0}
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "success"
+    assert data["device_id"] == "ESP32_MULTI_NODE_01"
+
+def test_unknown_device_still_gets_404():
+    """b. Unknown device still gets 404."""
+    res = client.post(
+        "/api/v1/telemetry/ingest",
+        headers={"X-API-Key": TEST_KEY},
+        json={"device_id": "ESP32_UNKNOWN_NODE_99", "soil_moisture": 50.0, "temperature": 25.0, "humidity": 60.0, "smoke_ppm": 10.0}
+    )
+    assert res.status_code == 404
+    assert res.json()["detail"] == "Device not provisioned"
+
+def test_authorized_farm_a_retrieves_global_telemetry():
+    """c. Authorized Farm A can retrieve global telemetry."""
+    client.post(
+        "/api/v1/telemetry/ingest",
+        headers={"X-API-Key": TEST_KEY},
+        json={"device_id": "ESP32_MULTI_NODE_01", "soil_moisture": 55.5, "temperature": 27.0, "humidity": 62.0, "smoke_ppm": 12.0}
+    )
+    token1 = get_test_token(1)
+    res = client.get("/api/v1/telemetry/latest?farm_id=1", headers={"Authorization": f"Bearer {token1}"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["telemetry"] is not None
+    assert data["telemetry"]["device_id"] == "ESP32_MULTI_NODE_01"
+
+def test_authorized_farm_b_retrieves_same_global_telemetry():
+    """d. Authorized Farm B can retrieve the same global telemetry."""
+    token2 = get_test_token(2)
+    res = client.get("/api/v1/telemetry/latest?farm_id=2", headers={"Authorization": f"Bearer {token2}"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["telemetry"] is not None
+    assert data["telemetry"]["device_id"] == "ESP32_MULTI_NODE_01"
+
+def test_unauthorized_user_cannot_retrieve_telemetry_for_another_farm():
+    """e. Unauthorized user cannot retrieve telemetry for another farm."""
+    token1 = get_test_token(1)
+    res = client.get("/api/v1/telemetry/latest?farm_id=2", headers={"Authorization": f"Bearer {token1}"})
+    assert res.status_code == 403
+
+def test_user_with_no_farm_cannot_retrieve_global_telemetry():
+    """f. User with no farm cannot retrieve global telemetry."""
+    execute_db("INSERT OR IGNORE INTO farmers (id, full_name, phone_or_email, password_hash, created_at) VALUES (100, 'NoFarmUser', 'nofarm@test.com', 'hash', 200)", commit=True)
+    token_nofarm = get_test_token(100)
+    res = client.get("/api/v1/telemetry/latest", headers={"Authorization": f"Bearer {token_nofarm}"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["telemetry"] is None
+    assert data["status"] == "no_farms"
+
+def test_authenticated_farm_a_websocket_receives_global_telemetry():
+    """g. Authenticated Farm A WebSocket receives global telemetry."""
+    client.post(
+        "/api/v1/telemetry/ingest",
+        headers={"X-API-Key": TEST_KEY},
+        json={"device_id": "ESP32_MULTI_NODE_01", "soil_moisture": 77.7, "temperature": 26.0, "humidity": 65.0, "smoke_ppm": 15.0}
+    )
+    token1 = get_test_token(1)
+    with client.websocket_connect(f"/ws/v1/telemetry?token={token1}") as websocket:
+        msg = websocket.receive_json()
+        assert msg["telemetry"] is not None
+        assert msg["telemetry"]["device_id"] == "ESP32_MULTI_NODE_01"
+
+def test_authenticated_farm_b_websocket_receives_global_telemetry():
+    """h. Authenticated Farm B WebSocket receives global telemetry."""
+    token2 = get_test_token(2)
+    with client.websocket_connect(f"/ws/v1/telemetry?token={token2}") as websocket:
+        msg = websocket.receive_json()
+        assert msg["telemetry"] is not None
+        assert msg["telemetry"]["device_id"] == "ESP32_MULTI_NODE_01"
+
+def test_unauthenticated_websocket_does_not_receive_it():
+    """i. Unauthenticated WebSocket does not receive it."""
+    with pytest.raises(Exception):
+        with client.websocket_connect("/ws/v1/telemetry?token=invalid_token") as websocket:
+            websocket.receive_json()
+
+def test_normal_farm_specific_device_telemetry_remains_isolated():
+    """j. Normal farm-specific device telemetry remains isolated."""
+    client.post(
+        "/api/v1/telemetry/ingest",
+        headers={"X-API-Key": TEST_KEY},
+        json={"device_id": "TEST_DEVICE_01", "soil_moisture": 11.1, "temperature": 22.0, "humidity": 55.0, "smoke_ppm": 5.0}
+    )
+    token1 = get_test_token(1)
+    token2 = get_test_token(2)
+
+    res1 = client.get("/api/v1/telemetry/latest?farm_id=1", headers={"Authorization": f"Bearer {token1}"})
+    assert res1.status_code == 200
+    assert res1.json()["telemetry"]["device_id"] == "TEST_DEVICE_01"
+
+    res2 = client.get("/api/v1/telemetry/latest?farm_id=2", headers={"Authorization": f"Bearer {token2}"})
+    assert res2.status_code == 200
+    assert res2.json()["telemetry"]["device_id"] != "TEST_DEVICE_01"

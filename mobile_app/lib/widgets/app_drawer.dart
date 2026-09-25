@@ -9,6 +9,7 @@ class AppDrawer extends StatelessWidget {
   final VoidCallback onLogout;
   final VoidCallback onEditProfile;
   final VoidCallback? onOpenCropAiScanner;
+  final VoidCallback? onOpenChatbot;
   final Function(int) onSelectScreen;
 
   const AppDrawer({
@@ -19,8 +20,10 @@ class AppDrawer extends StatelessWidget {
     required this.onLogout,
     required this.onEditProfile,
     this.onOpenCropAiScanner,
+    this.onOpenChatbot,
     required this.onSelectScreen,
   });
+
 
   Widget _buildNavItem({
     required BuildContext context,
@@ -314,6 +317,20 @@ class AppDrawer extends StatelessWidget {
                       }
                     },
                   ),
+                  _buildNavItem(
+                    context: context,
+                    title: 'AgriSense Knowledge AI',
+                    subtitle: 'Multilingual chat & live web search',
+                    icon: Icons.smart_toy_rounded,
+                    isSelected: false,
+                    onTap: () {
+                      Navigator.pop(context);
+                      if (onOpenChatbot != null) {
+                        onOpenChatbot!();
+                      }
+                    },
+                  ),
+
                   _buildNavItem(
                     context: context,
                     title: 'Settings',

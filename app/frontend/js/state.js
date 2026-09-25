@@ -222,6 +222,7 @@ const AgriState = {
     startLiveTelemetryLoop(callback) {
         if (this.simInterval) clearInterval(this.simInterval);
 
+        const fetchLatest = async () => {
             if (!this.currentUser || !this.currentUser.isAuthenticated) {
                 this.hardwareStatus = "OFFLINE";
                 if (typeof callback === 'function') callback(this.telemetry);

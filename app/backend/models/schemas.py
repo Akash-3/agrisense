@@ -219,3 +219,14 @@ class DeviceAssignRequest(BaseModel):
     device_id: str
     zone_id: int
     device_type: str = "SENSOR"
+
+class ChatbotQueryRequest(BaseModel):
+    query: str
+    language: Optional[str] = "auto"
+    farm_id: Optional[int] = None
+    location: Optional[str] = ""
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    crop_type: Optional[str] = None
+    image_base64: Optional[str] = None
+    enable_web_search: Optional[bool] = True
