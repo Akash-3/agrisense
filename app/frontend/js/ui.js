@@ -927,6 +927,15 @@ const UI = {
     openFarmWizard() {
         const wizard = document.getElementById('farmWizardOverlay');
         if (wizard) wizard.classList.remove('hidden');
+        if (window.MapService && typeof window.MapService.initWizardMap === 'function') {
+            window.MapService.initWizardMap();
+        }
+    },
+
+    clearWizardMap() {
+        if (window.MapService && typeof window.MapService.clearWizardMap === 'function') {
+            window.MapService.clearWizardMap();
+        }
     },
 
     closeFarmWizard() {
@@ -1079,7 +1088,7 @@ const UI = {
         };
 
         document.getElementById('otpModalTitle').innerText = 'Reset Forgotten Password';
-        document.getElementById('otpModalSubtitle').innerText = 'Enter your registered email address to receive an OTP';
+        document.getElementById('otpModalSubtitle').innerText = 'Enter your registered email address to receive a secure password reset link';
         document.getElementById('otpDestinationLabel').innerText = 'Registered Email Address';
         document.getElementById('otpMaskedEmailBox').classList.add('hidden');
         const emailInput = document.getElementById('otpUnmaskedEmailInput');
@@ -1117,7 +1126,7 @@ const UI = {
             this.otpState.email = emailInput;
         }
 
-        this.showToast('Sending OTP verification code to email...', false);
+        this.showToast('Requesting password reset link...', false);
 
         let res;
         try {
@@ -1135,11 +1144,14 @@ const UI = {
         }
 
         if (res.status === 'success') {
-            this.showToast('✅ OTP code sent! Please check your email inbox.', false);
+            const msg = this.otpState.mode === 'forgot_password'
+                ? '✅ Password reset request sent! If your account exists, check your email inbox for the reset link.'
+                : '✅ Verification code sent! Please check your email inbox.';
+            this.showToast(msg, false);
             this.showOTPStep(2);
             this.startResendTimer();
         } else {
-            this.showToast(res.message || 'Error sending OTP', true);
+            this.showToast(res.message || 'Error requesting password reset', true);
         }
     },
 

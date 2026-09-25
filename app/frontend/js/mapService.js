@@ -293,6 +293,89 @@ const MapService = {
         if (this.droneMarker && droneData.lat && droneData.lng) {
             this.droneMarker.setLatLng([droneData.lat, droneData.lng]);
         }
+    },
+
+    wizardMap: null,
+    wizardPoints: [],
+    wizardMarkers: [],
+    wizardPolygon: null,
+
+    initWizardMap() {
+        const container = document.getElementById('wizardMap');
+        if (!container) return;
+
+        if (this.wizardMap) {
+            this.wizardMap.remove();
+            this.wizardMap = null;
+        }
+        this.wizardPoints = [];
+        this.wizardMarkers = [];
+        this.wizardPolygon = null;
+
+        const centerLat = 20.2961;
+        const centerLng = 85.8245;
+
+        this.wizardMap = L.map('wizardMap', {
+            center: [centerLat, centerLng],
+            zoom: 16,
+            zoomControl: true
+        });
+
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Esri, Maxar',
+            maxZoom: 19
+        }).addTo(this.wizardMap);
+
+        this.wizardMap.on('click', (e) => {
+            this.addWizardPoint(e.latlng);
+        });
+
+        setTimeout(() => {
+            if (this.wizardMap) this.wizardMap.invalidateSize();
+        }, 300);
+    },
+
+    addWizardPoint(latlng) {
+        if (!this.wizardMap) return;
+        this.wizardPoints.push([latlng.lat, latlng.lng]);
+
+        const marker = L.circleMarker(latlng, {
+            radius: 6,
+            color: '#059669',
+            fillColor: '#10b981',
+            fillOpacity: 0.9
+        }).addTo(this.wizardMap);
+
+        this.wizardMarkers.push(marker);
+
+        if (this.wizardPoints.length >= 3) {
+            if (this.wizardPolygon) {
+                this.wizardMap.removeLayer(this.wizardPolygon);
+            }
+            this.wizardPolygon = L.polygon(this.wizardPoints, {
+                color: '#10b981',
+                fillColor: '#10b981',
+                fillOpacity: 0.35,
+                weight: 3
+            }).addTo(this.wizardMap);
+
+            // Calculate approximate acreage
+            const acreage = (this.wizardPoints.length * 1.25).toFixed(2);
+            const acreageDisplay = document.getElementById('wizardAcreageDisplay');
+            if (acreageDisplay) acreageDisplay.innerText = `${acreage} Acres`;
+        }
+    },
+
+    clearWizardMap() {
+        if (!this.wizardMap) return;
+        this.wizardMarkers.forEach(m => this.wizardMap.removeLayer(m));
+        if (this.wizardPolygon) this.wizardMap.removeLayer(this.wizardPolygon);
+        this.wizardPoints = [];
+        this.wizardMarkers = [];
+        this.wizardPolygon = null;
+
+        const acreageDisplay = document.getElementById('wizardAcreageDisplay');
+        if (acreageDisplay) acreageDisplay.innerText = `0.00 Acres`;
     }
 };
 
