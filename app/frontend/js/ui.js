@@ -550,8 +550,9 @@ const UI = {
     },
 
     openChatbot() {
-        if (typeof AgriSenseChatbot !== "undefined") {
-            AgriSenseChatbot.openChatWindow();
+        const bot = window.AgriSenseChatbot || (typeof AgriSenseChatbot !== "undefined" ? AgriSenseChatbot : null);
+        if (bot && typeof bot.openChatWindow === "function") {
+            bot.openChatWindow();
         }
         // Update sidebar active nav highlights
         document.querySelectorAll('.nav-link').forEach(link => {

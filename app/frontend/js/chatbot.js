@@ -575,6 +575,9 @@ const AgriSenseChatbot = {
     }
 };
 
+window.AgriSenseChatbot = AgriSenseChatbot;
+console.info('[AgriSense Chatbot] loaded build: CHATBOT-FIX-20260926_01');
+
 // AUTO INITIALIZE CHATBOT ON DOM LOAD OR IMMEDIATELY IF ALREADY LOADED
 if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
