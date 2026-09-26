@@ -366,9 +366,37 @@ const AgriSenseChatbot = {
         document.head.appendChild(style);
     },
 
+    openChatWindow() {
+        const win = document.getElementById("agri-chat-window");
+        if (win) {
+            win.classList.remove("hidden");
+            const inputEl = document.getElementById("agri-chat-input");
+            if (inputEl) inputEl.focus();
+        }
+    },
+
+    closeChatWindow() {
+        const win = document.getElementById("agri-chat-window");
+        if (win) win.classList.add("hidden");
+        if (typeof UI !== "undefined" && UI.currentView) {
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('nav-item-active');
+                if (link.dataset.view === UI.currentView) {
+                    link.classList.add('nav-item-active');
+                }
+            });
+        }
+    },
+
     toggleChatWindow() {
         const win = document.getElementById("agri-chat-window");
-        if (win) win.classList.toggle("hidden");
+        if (win) {
+            if (win.classList.contains("hidden")) {
+                this.openChatWindow();
+            } else {
+                this.closeChatWindow();
+            }
+        }
     },
 
     toggleWebSearch() {

@@ -30,6 +30,9 @@ const AuthService = {
         const data = await res.json();
         if (res.ok && data.status === 'success') {
             data.isDemo = false;
+            if (data.session_token) {
+                localStorage.setItem('agrisense_session_token', data.session_token);
+            }
         }
         return data;
     },
@@ -44,6 +47,9 @@ const AuthService = {
             const data = await res.json();
             if (res.ok && data.status === 'success') {
                 data.isDemo = true;
+                if (data.session_token) {
+                    localStorage.setItem('agrisense_session_token', data.session_token);
+                }
             }
             return data;
         } catch (error) {

@@ -126,6 +126,17 @@ const UI = {
                 location: "Lat: 20.2961, Lon: 85.8245",
                 avatar: farmer.full_name ? farmer.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : "AV"
             };
+            if (farmer.farms && farmer.farms.length > 0) {
+                window.AgriState.activeFarmId = farmer.farms[0].id;
+                window.AgriState.farms = farmer.farms.map(f => ({
+                    id: f.id,
+                    name: f.farm_name,
+                    acres: f.farm_acres,
+                    crop: f.crop_type
+                }));
+                window.AgriState.currentUser.farmName = farmer.farms[0].farm_name;
+                window.AgriState.currentUser.farmSize = farmer.farms[0].farm_acres;
+            }
 
             this.renderUser();
             this.switchView('dashboard');
@@ -531,6 +542,26 @@ const UI = {
         }
 
         window.scrollTo(0, 0);
+    },
+
+    openChatbot() {
+        if (typeof AgriSenseChatbot !== "undefined") {
+            AgriSenseChatbot.openChatWindow();
+        }
+        // Update sidebar active nav highlights
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.classList.remove('nav-item-active');
+            if (link.dataset.view === 'chatbot') {
+                link.classList.add('nav-item-active');
+            }
+        });
+        // Close mobile drawer if open
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        if (sidebar && overlay) {
+            sidebar.classList.add('-translate-x-full');
+            overlay.classList.add('hidden');
+        }
     },
 
     populateProfileForm() {
