@@ -17,7 +17,7 @@ class AgriSenseVirtualUserQATest(unittest.TestCase):
         # Headless chromium launch
         cls.browser = cls.playwright.chromium.launch(headless=True)
 
-        # Ensure a QA test farmer exists in the system database
+        # Ensure a QA test farmer exists in the system database with password Password123!
         try:
             payload = json.dumps({
                 "full_name": "QA Virtual Farmer",
@@ -29,8 +29,17 @@ class AgriSenseVirtualUserQATest(unittest.TestCase):
             }).encode("utf-8")
             req = urllib.request.Request(f"{BASE_URL}/api/v1/auth/register", data=payload, headers={"Content-Type": "application/json"})
             urllib.request.urlopen(req, timeout=3)
-        except Exception as e:
-            print("[QA Setup] Pre-registration notice:", e)
+        except Exception:
+            # If account already exists, reset password directly to Password123!
+            try:
+                reset_payload = json.dumps({
+                    "phone_or_email": "qa_farmer@agrisense.io",
+                    "new_password": "Password123!"
+                }).encode("utf-8")
+                reset_req = urllib.request.Request(f"{BASE_URL}/api/v1/auth/forgot-password/reset", data=reset_payload, headers={"Content-Type": "application/json"})
+                urllib.request.urlopen(reset_req, timeout=3)
+            except Exception as e:
+                print("[QA Setup] Account reset notice:", e)
 
     @classmethod
     def tearDownClass(cls):

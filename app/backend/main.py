@@ -52,9 +52,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         }
     )
 
-raw_origins = os.getenv("CORS_ALLOWED_ORIGINS")
-if not raw_origins:
-    raise RuntimeError("FATAL: CORS_ALLOWED_ORIGINS environment variable is required.")
+raw_origins = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000,https://admin.tail4fe027.ts.net")
 allowed_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
 
 if "*" in allowed_origins:

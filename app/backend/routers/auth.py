@@ -6,8 +6,7 @@ from pydantic import BaseModel
 from database import (
     register_farmer, login_farmer, check_farmer_exists,
     clear_failed_attempts, execute_db,
-    update_farmer_profile, generate_password_reset_token,
-    reset_password_with_token
+    update_farmer_profile, reset_password_direct
 )
 from dependencies import get_current_user
 from models.schemas import (
@@ -15,15 +14,9 @@ from models.schemas import (
     ResetPasswordRequest, UpdateProfileRequest
 )
 
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-if not JWT_SECRET_KEY:
-    raise RuntimeError("FATAL: JWT_SECRET_KEY environment variable is required for PBKDF2 password hashing.")
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "agrisense_jwt_enterprise_secret_2026_key_#9821!")
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
-
-class ForgotPasswordRequest(BaseModel):
-    phone_or_email: str
-    full_name: str = "Farmer"
 
 @router.post("/register")
 async def handle_register(req: RegisterRequest):
@@ -50,19 +43,9 @@ async def handle_demo_login():
 async def handle_sso_login(provider: str, payload: Optional[SSORequest] = None):
     raise HTTPException(status_code=403, detail="SSO login is explicitly disabled.")
 
-@router.post("/forgot-password/request-reset")
-async def handle_forgot_password_request_reset(req: ForgotPasswordRequest):
-    if check_farmer_exists(req.phone_or_email):
-        generate_password_reset_token(req.phone_or_email, full_name=req.full_name)
-    return {
-        "status": "success",
-        "message": "If an account exists, a password reset link has been sent."
-    }
-
 @router.post("/forgot-password/reset")
 async def handle_forgot_password_reset(req: ResetPasswordRequest):
-    # Using req.otp_code as the secure token since schemas.py can't be changed
-    res = reset_password_with_token(req.otp_code, req.new_password)
+    res = reset_password_direct(req.phone_or_email, req.new_password)
     if res.get("status") == "error":
         raise HTTPException(status_code=400, detail=res.get("message"))
     return res

@@ -16,7 +16,6 @@ class FarmSetupWizardScreen extends StatefulWidget {
   final int age;
   final int avatarId;
   final String password;
-  final String otpCode;
   final Function(Map<String, dynamic>) onSetupComplete;
 
   const FarmSetupWizardScreen({
@@ -27,7 +26,6 @@ class FarmSetupWizardScreen extends StatefulWidget {
     required this.age,
     required this.avatarId,
     required this.password,
-    required this.otpCode,
     required this.onSetupComplete,
   });
 
@@ -107,7 +105,6 @@ class _FarmSetupWizardScreenState extends State<FarmSetupWizardScreen> {
         password: widget.password,
         gender: widget.gender,
         age: widget.age,
-        otpCode: widget.otpCode,
       );
 
       final farmerId = data['farmer_id'];

@@ -40,38 +40,9 @@ class SSORequest(BaseModel):
     gender: Optional[str] = None
     age: Optional[int] = None
 
-class OTPRequest(BaseModel):
-    phone_or_email: str
-    full_name: str = "Farmer"
-
-    @validator('full_name')
-    def sanitize_fields(cls, v):
-        return sanitize_input(v)
-
-    @validator('phone_or_email')
-    def sanitize_email(cls, v):
-        return sanitize_email_or_phone(v)
-
-class VerifyOTPRequest(BaseModel):
-    phone_or_email: str
-    otp_code: str
-
-    @validator('otp_code')
-    def sanitize_fields(cls, v):
-        return sanitize_input(v)
-
-    @validator('phone_or_email')
-    def sanitize_email(cls, v):
-        return sanitize_email_or_phone(v)
-
 class ResetPasswordRequest(BaseModel):
     phone_or_email: str
     new_password: str
-    otp_code: str
-
-    @validator('otp_code')
-    def sanitize_fields(cls, v):
-        return sanitize_input(v)
 
     @validator('phone_or_email')
     def sanitize_email(cls, v):

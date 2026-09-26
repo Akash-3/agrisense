@@ -98,6 +98,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
 
   void _showForgotPasswordDialog() {
     final emailController = TextEditingController(text: _loginIdController.text);
+    final newPassController = TextEditingController();
+    final confirmPassController = TextEditingController();
 
     showDialog(
       context: context,
@@ -116,7 +118,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Enter your registered Email or Mobile Number to receive a 6-digit verification code.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                const Text('Enter your registered Email or Mobile Number and your new password.', style: TextStyle(fontSize: 12, color: Colors.grey)),
                 const SizedBox(height: 14),
                 TextField(
                   controller: emailController,
@@ -128,6 +130,32 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                   ),
                 ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: newPassController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'New Strong Password',
+                    prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF059669)),
+                    filled: true,
+                    fillColor: const Color(0xFFF1F5F9),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: confirmPassController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Confirm New Password',
+                    prefixIcon: const Icon(Icons.lock_reset_outlined, color: Color(0xFF059669)),
+                    filled: true,
+                    fillColor: const Color(0xFFF1F5F9),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text('Must be 8+ chars (Uppercase, Lowercase, Number & Special Char)', style: TextStyle(fontSize: 9, color: Color(0xFF059669), fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -144,134 +172,22 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
               ),
               onPressed: () async {
                 final id = emailController.text.trim();
-                if (id.isEmpty) {
-                  _showMsg('Please enter your registered email or mobile.');
+                final newPass = newPassController.text.trim();
+                final confirmPass = confirmPassController.text.trim();
+                if (id.isEmpty || newPass.isEmpty) {
+                  _showMsg('Please enter your registered identifier and new password.');
                   return;
                 }
-                Navigator.pop(ctx);
-                _sendForgotPasswordOTP(id);
-              },
-              child: const Text('Send Reset OTP', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ],
-        );
-      },
-    ).whenComplete(emailController.dispose);
-  }
-
-  Future<void> _sendForgotPasswordOTP(String recipient) async {
-    final id = recipient.trim();
-
-    if (id.isEmpty) {
-      _showMsg('Please enter your registered email or mobile.');
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      final authService = AuthService();
-      await authService.sendPasswordResetOtp(phoneOrEmail: id);
-      
-      if (!mounted) return;
-      _showMsg('Verification OTP sent. Please check your email or mobile.', isError: false);
-      _showResetPasswordDialog(id);
-    } on AuthServiceException catch (e) {
-      if (mounted) _showMsg(e.message);
-    } catch (_) {
-      if (mounted) {
-        _showMsg(
-          'Unable to contact the password reset service. Please check your internet connection and try again.',
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  void _showResetPasswordDialog(String recipient) {
-    final otpController = TextEditingController();
-    final newPassController = TextEditingController();
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: const [
-              Icon(Icons.shield_outlined, color: Color(0xFF059669)),
-              SizedBox(width: 10),
-              Text('Enter OTP & New Password', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Verification code sent to $recipient.', style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: otpController,
-                  keyboardType: TextInputType.number,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 6, color: Color(0xFF059669)),
-                  decoration: InputDecoration(
-                    hintText: '• • • • • •',
-                    filled: true,
-                    fillColor: const Color(0xFFF1F5F9),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: newPassController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: 'New Strong Password',
-                    prefixIcon: const Icon(Icons.lock_reset_outlined, color: Color(0xFF059669)),
-                    filled: true,
-                    fillColor: const Color(0xFFF1F5F9),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text('Must be 8+ chars (Uppercase, Lowercase, Number & Special Char)', style: TextStyle(fontSize: 9, color: Color(0xFF059669), fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
-                Navigator.pop(ctx);
-              },
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF059669),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              onPressed: () async {
-                final otpInput = otpController.text.trim();
-                final newPass = newPassController.text.trim();
-                if (otpInput.length != 6 || newPass.isEmpty) {
-                  _showMsg('Please enter a 6-digit OTP and your new password.');
+                if (newPass != confirmPass) {
+                  _showMsg('Passwords do not match.');
                   return;
                 }
                 if (!_isStrongPassword(newPass)) {
-                  _showMsg(
-                    'Password must be 8+ characters with Uppercase, Lowercase, Number & Special Character.',
-                  );
+                  _showMsg('Password must be 8+ characters with Uppercase, Lowercase, Number & Special Character.');
                   return;
                 }
-                ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
                 Navigator.pop(ctx);
-                _executePasswordReset(recipient, newPass, otpInput);
+                _executePasswordReset(id, newPass);
               },
               child: const Text('Reset Password', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
@@ -279,17 +195,18 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
         );
       },
     ).whenComplete(() {
-      otpController.dispose();
+      emailController.dispose();
       newPassController.dispose();
+      confirmPassController.dispose();
     });
   }
 
-  Future<void> _executePasswordReset(String recipient, String newPass, String otp) async {
+  Future<void> _executePasswordReset(String recipient, String newPass) async {
     setState(() => _isLoading = true);
 
     try {
       final authService = AuthService();
-      await authService.resetPassword(phoneOrEmail: recipient, newPassword: newPass, otpCode: otp);
+      await authService.resetPassword(phoneOrEmail: recipient, newPassword: newPass);
 
       if (!mounted) return;
       _showMsg(
@@ -510,80 +427,24 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
       return;
     }
 
-    setState(() => _isLoading = true);
-    try {
-      final authService = AuthService();
-      await authService.sendRegistrationOtp(phoneOrEmail: id, fullName: name);
-
-      if (!mounted) return;
-      final otpController = TextEditingController();
-      final enteredOtp = await showDialog<String>(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Verify your account'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Enter the 6-digit OTP sent to $id.'),
-              const SizedBox(height: 12),
-              TextField(
-                controller: otpController,
-                autofocus: true,
-                keyboardType: TextInputType.number,
-                maxLength: 6,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(labelText: 'OTP', border: OutlineInputBorder()),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
-            FilledButton(
-              onPressed: () {
-                final otp = otpController.text.trim();
-                if (otp.length != 6) {
-                  _showMsg('Please enter the 6-digit OTP.');
-                  return;
-                }
-                Navigator.pop(dialogContext, otp);
-              },
-              child: const Text('Continue'),
-            ),
-          ],
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (ctx) => FarmSetupWizardScreen(
+          fullName: name,
+          emailOrPhone: id,
+          gender: _regGender!,
+          age: _regAge,
+          avatarId: _regAvatarId,
+          password: pass,
+          onSetupComplete: (farmerData) async {
+            Navigator.pop(ctx);
+            // Store session using the backend return
+            widget.onLoginSuccess(farmerData);
+          },
         ),
-      );
-      otpController.dispose();
-
-      if (!mounted || enteredOtp == null) return;
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (ctx) => FarmSetupWizardScreen(
-            fullName: name,
-            emailOrPhone: id,
-            gender: _regGender!,
-            age: _regAge,
-            avatarId: _regAvatarId,
-            password: pass,
-            otpCode: enteredOtp,
-            onSetupComplete: (farmerData) async {
-              Navigator.pop(ctx);
-              // Store session using the backend return
-              widget.onLoginSuccess(farmerData);
-            },
-          ),
-        ),
-      );
-    } on AuthServiceException catch (e) {
-      if (mounted) _showMsg(e.message);
-    } catch (_) {
-      if (mounted) _showMsg('Unable to contact the verification service. Please check your internet connection and try again.');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+      ),
+    );
   }
 
   @override

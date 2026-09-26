@@ -165,6 +165,32 @@ const UI = {
         }
     },
 
+    async logout() {
+        try {
+            await fetch('/api/v1/auth/logout', {
+                method: 'POST',
+                headers: window.AuthService.authHeaders() || {}
+            });
+        } catch (_) {}
+        localStorage.removeItem('agrisense_session_token');
+        if (window.AgriState) {
+            window.AgriState.currentUser = {
+                isAuthenticated: false,
+                isDemoMode: false,
+                name: "",
+                email: "",
+                phone: "",
+                farmName: "",
+                farmSize: 0,
+                location: "",
+                avatar: ""
+            };
+        }
+        this.switchView('auth');
+        this.switchAuthTab('login');
+        this.showToast('Logged out of AgriSense.', false);
+    },
+
     async submitRegister() {
         const name = document.getElementById('regName').value.trim();
         const email = document.getElementById('regEmail').value.trim();
@@ -1022,7 +1048,7 @@ const UI = {
         this.closeFieldDetailPanel();
         this.closeAddFarmModal();
         this.closeFarmWizard();
-        this.closeOTPAuthModal();
+        this.closeForgotPasswordModal();
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebarOverlay');
         if (sidebar && overlay) {
@@ -1113,178 +1139,32 @@ const UI = {
         this.showToast(`Temperature unit set to °${window.AgriState.settings.tempUnit}.`, false);
     },
 
-    // ==================== EMAIL OTP & ACCOUNT SECURITY FLOWS ====================
-    otpState: {
-        mode: 'change_password', // 'change_password' | 'forgot_password'
-        email: '',
-        fullName: '',
-        step: 1,
-        verifiedOtp: null,
-        resendTimer: null,
-        resendSeconds: 45
-    },
-
-    openChangePasswordModal() {
-        const u = window.AgriState.currentUser;
-        this.otpState = {
-            mode: 'change_password',
-            email: u.email || 'demo.farmer@agrisense.io',
-            fullName: u.name || 'Farmer',
-            step: 1,
-            verifiedOtp: null,
-            resendTimer: null,
-            resendSeconds: 45
-        };
-
-        document.getElementById('otpModalTitle').innerText = 'Account Security Verification';
-        document.getElementById('otpModalSubtitle').innerText = 'Verify email to modify account password';
-        document.getElementById('otpDestinationLabel').innerText = 'Verification Code Destination';
-        document.getElementById('otpMaskedEmailBox').classList.remove('hidden');
-        const emailStr = this.otpState.email || '';
-        const emailParts = emailStr.split('@');
-        const maskedEmail = emailParts.length === 2 ? `${emailParts[0][0]}***@${emailParts[1]}` : emailStr;
-        document.getElementById('otpMaskedEmailBox').innerText = maskedEmail;
-        document.getElementById('otpUnmaskedEmailInput').classList.add('hidden');
-
-        this.showOTPStep(1);
-        document.getElementById('otpAuthModal').classList.remove('hidden');
-    },
-
+    // ==================== ACCOUNT PASSWORD RESET FLOW (OTP-FREE) ====================
     openForgotPasswordModal() {
         const prefilledEmail = document.getElementById('loginIdInput')?.value.trim() || '';
-        this.otpState = {
-            mode: 'forgot_password',
-            email: prefilledEmail,
-            fullName: 'Farmer',
-            step: 1,
-            verifiedOtp: null,
-            resendTimer: null,
-            resendSeconds: 45
-        };
+        const modal = document.getElementById('forgotPasswordModal');
+        const resetIdInput = document.getElementById('resetIdInput');
+        const newPassInput = document.getElementById('resetNewPasswordInput');
+        const confPassInput = document.getElementById('resetConfirmPasswordInput');
 
-        document.getElementById('otpModalTitle').innerText = 'Reset Forgotten Password';
-        document.getElementById('otpModalSubtitle').innerText = 'Enter your registered email address to receive a secure password reset link';
-        document.getElementById('otpDestinationLabel').innerText = 'Registered Email Address';
-        document.getElementById('otpMaskedEmailBox').classList.add('hidden');
-        const emailInput = document.getElementById('otpUnmaskedEmailInput');
-        emailInput.classList.remove('hidden');
-        emailInput.value = prefilledEmail;
+        if (resetIdInput) resetIdInput.value = prefilledEmail;
+        if (newPassInput) newPassInput.value = '';
+        if (confPassInput) confPassInput.value = '';
+        this.checkResetPasswordStrength();
 
-        this.showOTPStep(1);
-        document.getElementById('otpAuthModal').classList.remove('hidden');
+        if (modal) modal.classList.remove('hidden');
+        if (resetIdInput) setTimeout(() => resetIdInput.focus(), 100);
     },
 
-    closeOTPAuthModal() {
-        const modal = document.getElementById('otpAuthModal');
+    closeForgotPasswordModal() {
+        const modal = document.getElementById('forgotPasswordModal');
         if (modal) modal.classList.add('hidden');
-        if (this.otpState && this.otpState.resendTimer) {
-            clearInterval(this.otpState.resendTimer);
-            this.otpState.resendTimer = null;
-        }
     },
 
-    showOTPStep(stepNum) {
-        this.otpState.step = stepNum;
-        [1, 2, 3, 4].forEach(s => {
-            const el = document.getElementById(`otpStep${s}`);
-            if (el) el.classList.toggle('hidden', s !== stepNum);
-        });
-    },
-
-    async sendOTPCode() {
-        if (this.otpState.mode === 'forgot_password') {
-            const emailInput = document.getElementById('otpUnmaskedEmailInput').value.trim();
-            if (!emailInput) {
-                this.showToast('Please enter your registered email address.', true);
-                return;
-            }
-            this.otpState.email = emailInput;
-        }
-
-        this.showToast('Requesting password reset link...', false);
-
-        let res;
-        try {
-            const response = await fetch('/api/v1/auth/forgot-password/request-reset', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    phone_or_email: this.otpState.email,
-                    full_name: this.otpState.fullName || 'Farmer'
-                })
-            });
-            res = await response.json();
-        } catch (e) {
-            res = { status: 'error', message: 'Failed to connect to authentication server.' };
-        }
-
-        if (res.status === 'success') {
-            const msg = this.otpState.mode === 'forgot_password'
-                ? '✅ Password reset request sent! If your account exists, check your email inbox for the reset link.'
-                : '✅ Verification code sent! Please check your email inbox.';
-            this.showToast(msg, false);
-            this.showOTPStep(2);
-            this.startResendTimer();
-        } else {
-            this.showToast(res.message || 'Error requesting password reset', true);
-        }
-    },
-
-    async resendOTPCode() {
-        if (this.otpState.resendSeconds > 0) return;
-        this.showToast('Resending OTP verification code...', false);
-        await this.sendOTPCode();
-    },
-
-    startResendTimer() {
-        if (this.otpState.resendTimer) clearInterval(this.otpState.resendTimer);
-        this.otpState.resendSeconds = 45;
-
-        const timerSecEl = document.getElementById('otpTimerSeconds');
-        const resendBtn = document.getElementById('btnResendOTP');
-        const countdownText = document.getElementById('otpCountdownText');
-
-        if (timerSecEl) timerSecEl.innerText = '45';
-        if (resendBtn) resendBtn.disabled = true;
-        if (countdownText) countdownText.classList.remove('hidden');
-
-        this.otpState.resendTimer = setInterval(() => {
-            this.otpState.resendSeconds--;
-            if (timerSecEl) timerSecEl.innerText = this.otpState.resendSeconds;
-
-            if (this.otpState.resendSeconds <= 0) {
-                clearInterval(this.otpState.resendTimer);
-                this.otpState.resendTimer = null;
-                if (resendBtn) resendBtn.disabled = false;
-                if (countdownText) countdownText.classList.add('hidden');
-            }
-        }, 1000);
-    },
-
-    closeAllModalsAndDrawers() {
-        const wizard = document.getElementById('farmWizardOverlay');
-        if (wizard) wizard.classList.add('hidden');
-
-        const otpModal = document.getElementById('otpAuthModal');
-        if (otpModal) otpModal.classList.add('hidden');
-
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('sidebarOverlay');
-        if (sidebar && overlay) {
-            sidebar.classList.add('-translate-x-full');
-            overlay.classList.add('hidden');
-        }
-    },
-
-    async verifyOTPCode() {
-        this.showToast('Password reset is managed securely via standard account login.', false);
-        this.showOTPStep(3);
-    },
-
-    checkPasswordStrength() {
-        const pass = document.getElementById('otpNewPasswordInput') ? document.getElementById('otpNewPasswordInput').value : '';
-        const labelEl = document.getElementById('otpStrengthLabel');
-        const barEl = document.getElementById('otpStrengthBar');
+    checkResetPasswordStrength() {
+        const pass = document.getElementById('resetNewPasswordInput') ? document.getElementById('resetNewPasswordInput').value : '';
+        const labelEl = document.getElementById('resetStrengthLabel');
+        const barEl = document.getElementById('resetStrengthBar');
 
         let score = 0;
         let label = 'Weak';
@@ -1313,7 +1193,7 @@ const UI = {
         }
     },
 
-    toggleOTPPassVisibility(inputId, iconId) {
+    toggleResetPassVisibility(inputId, iconId) {
         const input = document.getElementById(inputId);
         const icon = document.getElementById(iconId);
         if (input && icon) {
@@ -1327,12 +1207,17 @@ const UI = {
         }
     },
 
-    async submitNewPassword() {
-        const newPass = document.getElementById('otpNewPasswordInput') ? document.getElementById('otpNewPasswordInput').value : '';
-        const confPass = document.getElementById('otpConfirmPasswordInput') ? document.getElementById('otpConfirmPasswordInput').value : '';
+    async submitDirectPasswordReset() {
+        const identifier = document.getElementById('resetIdInput') ? document.getElementById('resetIdInput').value.trim() : '';
+        const newPass = document.getElementById('resetNewPasswordInput') ? document.getElementById('resetNewPasswordInput').value : '';
+        const confPass = document.getElementById('resetConfirmPasswordInput') ? document.getElementById('resetConfirmPasswordInput').value : '';
 
-        if (!newPass || newPass.length < 6) {
-            this.showToast('Password must be at least 6 characters long.', true);
+        if (!identifier) {
+            this.showToast('Please enter your registered email address or phone number.', true);
+            return;
+        }
+        if (!newPass || newPass.length < 8) {
+            this.showToast('Password must be at least 8 characters long.', true);
             return;
         }
         if (newPass !== confPass) {
@@ -1340,20 +1225,33 @@ const UI = {
             return;
         }
 
-        this.showToast('✅ Password updated successfully! Please log in with your new password.', false);
-        this.showOTPStep(4);
-    },
+        this.showToast('Verifying account & updating password...', false);
 
-    finishOTPPasswordFlow() {
-        this.closeOTPAuthModal();
-        if (this.otpState.mode === 'change_password') {
-            this.populateProfileForm();
-        } else {
-            // Return to login screen
-            this.switchView('auth');
-            document.getElementById('loginIdInput').value = this.otpState.email;
-            document.getElementById('loginPassInput').value = '';
-            document.getElementById('loginPassInput').focus();
+        try {
+            const response = await fetch('/api/v1/auth/forgot-password/reset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    phone_or_email: identifier,
+                    new_password: newPass
+                })
+            });
+            const data = await response.json();
+            if (response.ok && data.status === 'success') {
+                this.showToast('✅ Password updated successfully! Please log in with your new password.', false);
+                this.closeForgotPasswordModal();
+                this.switchView('auth');
+                this.switchAuthTab('login');
+                if (document.getElementById('loginIdInput')) document.getElementById('loginIdInput').value = identifier;
+                if (document.getElementById('loginPassInput')) {
+                    document.getElementById('loginPassInput').value = '';
+                    document.getElementById('loginPassInput').focus();
+                }
+            } else {
+                this.showToast(data.detail || data.message || 'Password reset failed.', true);
+            }
+        } catch (e) {
+            this.showToast('Error connecting to authentication server.', true);
         }
     },
 

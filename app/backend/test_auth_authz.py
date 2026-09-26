@@ -1,4 +1,4 @@
-﻿import sys
+import sys
 import os
 import time
 import pytest
@@ -52,6 +52,19 @@ def test_logout_invalidates_session():
     response = client.post("/api/v1/auth/profile/update", headers={"Authorization": f"Bearer {token}"}, json={"full_name": "Test Valid"})
     assert response.status_code == 401
 
-def test_registration_missing_otp():
-    response = client.post("/api/v1/auth/register", json={"full_name": "Test", "phone_or_email": "x@x.com", "password": "pass", "otp_code": ""})
-    assert response.status_code in [400, 422]
+def test_direct_password_reset_success():
+    # Insert test farmer with PBKDF2 hash
+    from database import hash_password
+    h = hash_password("OldPassword123!", salt="testsalt123")
+    farmer_id = execute_db("INSERT INTO farmers (full_name, phone_or_email, password_hash, salt, created_at) VALUES (?, ?, ?, ?, ?)", ("Reset Test", "reset_test_unit@test.com", h, "testsalt123", time.time()), return_lastrowid=True)
+    
+    # Direct password reset
+    response = client.post("/api/v1/auth/forgot-password/reset", json={"phone_or_email": "reset_test_unit@test.com", "new_password": "NewStrongPassword123!"})
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
+
+def test_direct_password_reset_nonexistent_account():
+    response = client.post("/api/v1/auth/forgot-password/reset", json={"phone_or_email": "nonexistent_999@test.com", "new_password": "NewStrongPassword123!"})
+    assert response.status_code == 400
+
+

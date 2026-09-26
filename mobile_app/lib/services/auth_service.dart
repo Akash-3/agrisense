@@ -64,22 +64,6 @@ class AuthService {
     return data;
   }
 
-  Future<Map<String, dynamic>> sendRegistrationOtp({
-    required String phoneOrEmail,
-    required String fullName,
-  }) async {
-    final response = await _post(
-      '/api/v1/auth/send-otp',
-      {
-        'phone_or_email': phoneOrEmail.trim(),
-        'full_name': fullName.trim(),
-      },
-      timeout: const Duration(seconds: 8),
-    );
-
-    return _decodeSuccess(response, expectedStatus: 200);
-  }
-
   Future<Map<String, dynamic>> register({
     required String fullName,
     required String phoneOrEmail,
@@ -88,7 +72,6 @@ class AuthService {
     required String password,
     String? gender,
     int? age,
-    required String otpCode,
   }) async {
     final body = <String, dynamic>{
       'full_name': fullName.trim(),
@@ -96,7 +79,6 @@ class AuthService {
       'farm_name': farmName.trim(),
       'farm_acres': farmAcres,
       'password': password,
-      'otp_code': otpCode.trim(),
     };
 
     if (gender != null && gender.trim().isNotEmpty) {
@@ -116,29 +98,15 @@ class AuthService {
     return data;
   }
 
-  Future<Map<String, dynamic>> sendPasswordResetOtp({
-    required String phoneOrEmail,
-  }) async {
-    final response = await _post(
-      '/api/v1/auth/forgot-password/send-otp',
-      {'phone_or_email': phoneOrEmail.trim()},
-      timeout: const Duration(seconds: 8),
-    );
-
-    return _decodeSuccess(response, expectedStatus: 200);
-  }
-
   Future<Map<String, dynamic>> resetPassword({
     required String phoneOrEmail,
     required String newPassword,
-    required String otpCode,
   }) async {
     final response = await _post(
       '/api/v1/auth/forgot-password/reset',
       {
         'phone_or_email': phoneOrEmail.trim(),
         'new_password': newPassword,
-        'otp_code': otpCode.trim(),
       },
       timeout: const Duration(seconds: 10),
     );

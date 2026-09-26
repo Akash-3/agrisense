@@ -1739,138 +1739,65 @@
         </div>
     </div>
 
-    <!-- ==================== UNIFIED EMAIL OTP AUTH MODAL ==================== -->
-    <div id="otpAuthModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4">
+    <!-- ==================== RESET PASSWORD MODAL (OTP-FREE) ==================== -->
+    <div id="forgotPasswordModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 border border-slate-100 relative">
-            <button onclick="UI.closeOTPAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition">
+            <button onclick="UI.closeForgotPasswordModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
 
-            <!-- STEP 1: EMAIL VERIFICATION -->
-            <div id="otpStep1" class="space-y-4">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-xl bg-emerald-100 text-agri-primary flex items-center justify-center font-bold">
-                        <i class="fa-solid fa-shield-halved text-lg"></i>
-                    </div>
-                    <div>
-                        <h3 id="otpModalTitle" class="font-black text-slate-900 text-base">Account Security Verification</h3>
-                        <p id="otpModalSubtitle" class="text-xs text-slate-500">Verify email to modify account password</p>
-                    </div>
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-agri-primary flex items-center justify-center font-bold">
+                    <i class="fa-solid fa-key text-lg"></i>
                 </div>
-
-                <!-- MASKED EMAIL OR UNMASKED INPUT -->
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                    <label id="otpDestinationLabel" class="block text-xs font-bold text-slate-600 uppercase">Verification Code Destination</label>
-                    <div id="otpMaskedEmailBox" class="font-mono text-center py-2.5 px-3 bg-white border border-slate-300 rounded-lg text-slate-800 font-bold text-sm">
-                        a****@gmail.com
-                    </div>
-                    <input type="email" id="otpUnmaskedEmailInput" placeholder="Enter registered email address" class="input-agri w-full hidden text-xs">
-                    <p class="text-[11px] text-slate-500 flex items-center space-x-1 pt-1">
-                        <i class="fa-solid fa-circle-info text-agri-primary"></i>
-                        <span>A 6-digit OTP verification code will be sent to this email.</span>
-                    </p>
+                <div>
+                    <h3 class="font-black text-slate-900 text-base">Reset Account Password</h3>
+                    <p class="text-xs text-slate-500">Enter your registered email or phone and set a new password</p>
                 </div>
-
-                <button onclick="UI.sendOTPCode()" class="btn-agri-primary w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center space-x-2 shadow-md">
-                    <span>Send OTP Code</span>
-                    <i class="fa-solid fa-paper-plane text-xs"></i>
-                </button>
             </div>
 
-            <!-- STEP 2: ENTER OTP CODE -->
-            <div id="otpStep2" class="space-y-4 hidden">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold">
-                        <i class="fa-solid fa-key text-lg"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-black text-slate-900 text-base">Enter Verification Code</h3>
-                        <p class="text-xs text-slate-500">Check your inbox for the 6-digit code</p>
-                    </div>
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 uppercase mb-1">Registered Mobile or Email</label>
+                    <input type="text" id="resetIdInput" placeholder="e.g. farmer@agrisense.io or +15550192834" class="input-agri w-full">
                 </div>
 
-                <div class="space-y-2">
-                    <label class="block text-xs font-bold text-slate-600 uppercase">6-Digit OTP Code</label>
-                    <input type="text" id="otpCodeInput" maxlength="6" placeholder="• • • • • •" class="input-agri w-full text-center text-xl font-mono tracking-widest py-3">
-                    <div class="flex items-center justify-between text-xs pt-1">
-                        <span id="otpCountdownText" class="text-slate-500 font-medium">Resend available in <strong id="otpTimerSeconds">45</strong>s</span>
-                        <button id="btnResendOTP" onclick="UI.resendOTPCode()" disabled class="font-bold text-agri-primary hover:underline disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed">
-                            Resend Code
+                <div>
+                    <label class="block font-bold text-slate-700 uppercase mb-1">New Password</label>
+                    <div class="relative">
+                        <input type="password" id="resetNewPasswordInput" oninput="UI.checkResetPasswordStrength()" placeholder="At least 8 characters" class="input-agri w-full pr-10">
+                        <button type="button" onclick="UI.toggleResetPassVisibility('resetNewPasswordInput', 'eyeIconNew')" class="absolute right-3 top-3 text-slate-400 hover:text-slate-600">
+                            <i id="eyeIconNew" class="fa-solid fa-eye-slash text-xs"></i>
                         </button>
                     </div>
                 </div>
 
-                <button onclick="UI.verifyOTPCode()" class="btn-agri-primary w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center space-x-2 shadow-md">
-                    <span>Verify Code</span>
-                    <i class="fa-solid fa-check text-xs"></i>
-                </button>
-            </div>
-
-            <!-- STEP 3: CREATE NEW PASSWORD -->
-            <div id="otpStep3" class="space-y-4 hidden">
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-xl bg-emerald-100 text-agri-primary flex items-center justify-center font-bold">
-                        <i class="fa-solid fa-lock text-lg"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-black text-slate-900 text-base">Create New Password</h3>
-                        <p class="text-xs text-slate-500">Choose a secure password for your account</p>
-                    </div>
-                </div>
-
-                <div class="space-y-3 text-xs">
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">New Password</label>
-                        <div class="relative">
-                            <input type="password" id="otpNewPasswordInput" oninput="UI.checkPasswordStrength()" placeholder="At least 6 characters" class="input-agri w-full pr-10">
-                            <button type="button" onclick="UI.toggleOTPPassVisibility('otpNewPasswordInput', 'eyeIconNew')" class="absolute right-3 top-3 text-slate-400 hover:text-slate-600">
-                                <i id="eyeIconNew" class="fa-solid fa-eye-slash text-xs"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block font-bold text-slate-700 mb-1">Confirm New Password</label>
-                        <div class="relative">
-                            <input type="password" id="otpConfirmPasswordInput" placeholder="Repeat new password" class="input-agri w-full pr-10">
-                            <button type="button" onclick="UI.toggleOTPPassVisibility('otpConfirmPasswordInput', 'eyeIconConf')" class="absolute right-3 top-3 text-slate-400 hover:text-slate-600">
-                                <i id="eyeIconConf" class="fa-solid fa-eye-slash text-xs"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- STRENGTH INDICATOR -->
-                    <div class="space-y-1 pt-1">
-                        <div class="flex justify-between items-center text-[11px]">
-                            <span class="text-slate-500">Password Strength</span>
-                            <span id="otpStrengthLabel" class="font-bold text-slate-400">Too Short</span>
-                        </div>
-                        <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                            <div id="otpStrengthBar" class="h-full bg-slate-300 w-0 transition-all duration-300"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <button onclick="UI.submitNewPassword()" class="btn-agri-primary w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center space-x-2 shadow-md">
-                    <span>Update Password</span>
-                    <i class="fa-solid fa-shield-check text-xs"></i>
-                </button>
-            </div>
-
-            <!-- STEP 4: SUCCESS CONFIRMATION -->
-            <div id="otpStep4" class="space-y-4 hidden text-center py-2">
-                <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold shadow-lg shadow-emerald-500/20">
-                    <i class="fa-solid fa-check"></i>
-                </div>
                 <div>
-                    <h3 class="font-black text-slate-900 text-lg">Password Updated Successfully</h3>
-                    <p class="text-xs text-slate-500 mt-1">Your account password has been updated. You can now log in with your new password.</p>
+                    <label class="block font-bold text-slate-700 uppercase mb-1">Confirm New Password</label>
+                    <div class="relative">
+                        <input type="password" id="resetConfirmPasswordInput" placeholder="Repeat new password" class="input-agri w-full pr-10">
+                        <button type="button" onclick="UI.toggleResetPassVisibility('resetConfirmPasswordInput', 'eyeIconConf')" class="absolute right-3 top-3 text-slate-400 hover:text-slate-600">
+                            <i id="eyeIconConf" class="fa-solid fa-eye-slash text-xs"></i>
+                        </button>
+                    </div>
                 </div>
-                <button onclick="UI.finishOTPPasswordFlow()" class="btn-agri-primary w-full py-3 rounded-xl font-bold text-xs shadow-md">
-                    Return to Account
-                </button>
+
+                <!-- STRENGTH INDICATOR -->
+                <div class="space-y-1 pt-1">
+                    <div class="flex justify-between items-center text-[11px]">
+                        <span class="text-slate-500">Password Strength</span>
+                        <span id="resetStrengthLabel" class="font-bold text-slate-400">Too Short</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div id="resetStrengthBar" class="h-full bg-slate-300 w-0 transition-all duration-300"></div>
+                    </div>
+                </div>
             </div>
 
+            <button onclick="UI.submitDirectPasswordReset()" class="btn-agri-primary w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center space-x-2 shadow-md">
+                <span>Update & Reset Password</span>
+                <i class="fa-solid fa-shield-check text-xs"></i>
+            </button>
         </div>
     </div>
 

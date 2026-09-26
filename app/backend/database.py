@@ -393,89 +393,15 @@ def clear_failed_attempts(identifier: str):
 
 def check_farmer_exists(phone_or_email: str) -> bool:
     clean_id = phone_or_email.strip().lower()
-    row = execute_db("SELECT id FROM farmers WHERE LOWER(phone_or_email) = ?", (clean_id,), fetchone=True)
+    raw_digits = re.sub(r'\D', '', clean_id)
+    row = execute_db(
+        "SELECT id FROM farmers WHERE LOWER(phone_or_email) = ? OR LOWER(phone) = ? OR (length(?) >= 7 AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '(', ''), ')', '') LIKE ?)",
+        (clean_id, clean_id, raw_digits, f"%{raw_digits}%"),
+        fetchone=True
+    )
     return row is not None
 
-def send_real_email_otp(to_email: str, otp_code: str, full_name: str = "Farmer"):
-    greeting_name = full_name.strip() if full_name and full_name.strip() else "Farmer"
-    print(f"\n[GMAIL SMTP SERVICE] Sending Personalized OTP Email to: {greeting_name} ({to_email}) | Code: {otp_code}")
 
-    if not SMTP_EMAIL or not SMTP_APP_PASSWORD:
-        print("[SMTP FATAL ERROR] Missing SMTP_EMAIL or SMTP_APP_PASSWORD in environment.")
-        raise ValueError("Server configuration error: Email functionality is currently unavailable.")
-
-    msg = MIMEMultipart()
-    msg['From'] = f"AgriSense Support <{SMTP_EMAIL}>"
-    msg['To'] = to_email
-    msg['Subject'] = f"Hello {greeting_name}, Your AgriSense Verification Code is: {otp_code}"
-
-    html_content = f"""
-    <html>
-      <body style="font-family: Arial, sans-serif; background-color: #f8fafc; padding: 20px;">
-        <div style="max-width: 500px; background: #ffffff; padding: 24px; border-radius: 14px; border: 1px solid #e2e8f0; margin: auto;">
-          <h2 style="color: #059669; margin-top: 0;">AgriSense -- Email Verification</h2>
-          <p style="color: #334155; font-size: 15px; font-weight: bold;">Hello {greeting_name},</p>
-          <p style="color: #334155;">Your 6-digit email verification code for account registration is:</p>
-          <div style="background: #f1f5f9; padding: 18px; text-align: center; border-radius: 10px; margin: 20px 0;">
-            <span style="font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #059669;">{otp_code}</span>
-          </div>
-          <p style="font-size: 12px; color: #64748b;">This OTP code is valid for 10 minutes. Enter it into your AgriSense app to complete registration.</p>
-        </div>
-      </body>
-    </html>
-    """
-    msg.attach(MIMEText(html_content, 'html'))
-
-    try:
-        server = smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=12)
-        server.login(SMTP_EMAIL, SMTP_APP_PASSWORD)
-        server.sendmail(SMTP_EMAIL, [to_email], msg.as_string())
-        server.quit()
-        print(f"[GMAIL SMTP SUCCESS] REAL PERSONALIZED OTP EMAIL DISPATCHED TO GMAIL INBOX: {to_email}")
-    except Exception as e:
-        print(f"[GMAIL SMTP ERROR] {e}")
-
-def generate_otp(email_or_phone: str, full_name: str = "Farmer") -> str:
-    clean_id = email_or_phone.strip().lower()
-    otp = str(random.randint(100000, 999999))
-    expires = time.time() + 600
-    if IS_POSTGRES:
-        execute_db(
-            "INSERT INTO otp_codes (email_or_phone, otp_code, expires_at, attempts) VALUES (?, ?, ?, 0) ON CONFLICT (email_or_phone) DO UPDATE SET otp_code = EXCLUDED.otp_code, expires_at = EXCLUDED.expires_at, attempts = 0",
-            (clean_id, otp, expires),
-            commit=True
-        )
-    else:
-        execute_db(
-            "REPLACE INTO otp_codes (email_or_phone, otp_code, expires_at, attempts) VALUES (?, ?, ?, 0)",
-            (clean_id, otp, expires),
-            commit=True
-        )
-
-    if "@" in clean_id:
-        send_real_email_otp(clean_id, otp, full_name=full_name)
-
-    return otp
-
-def verify_otp(email_or_phone: str, otp_code: str) -> bool:
-    clean_id = email_or_phone.strip().lower()
-    row = execute_db("SELECT otp_code, expires_at, attempts FROM otp_codes WHERE LOWER(email_or_phone) = ?", (clean_id,), fetchone=True)
-
-    if not row:
-        return False
-
-    stored_otp, expires_at, attempts = row[0], row[1], row[2]
-
-    if time.time() > expires_at or attempts >= 5:
-        return False
-
-    execute_db("UPDATE otp_codes SET attempts = attempts + 1 WHERE LOWER(email_or_phone) = ?", (clean_id,), commit=True)
-
-    if stored_otp == otp_code:
-        execute_db("DELETE FROM otp_codes WHERE LOWER(email_or_phone) = ?", (clean_id,), commit=True)
-        return True
-
-    return False
 
 def register_farmer(full_name: str, phone_or_email: str, farm_name: str = "Main Farm", farm_acres: float = 10.0, password: str = "", gender: str = "Farmer", age: int = 32, avatar_id: int = 1, crop_type: str = "Wheat & Paddy", phone: str = "+1 (555) 019-2834"):
     clean_id = phone_or_email.strip().lower()
@@ -550,9 +476,10 @@ def login_farmer(phone_or_email: str, password: str):
             "message": f"Account Locked: Too many failed attempts. Try again in {remaining_mins} minutes."
         }
 
+    raw_digits = re.sub(r'\D', '', clean_id)
     row = execute_db(
-        "SELECT id, full_name, password_hash, salt, gender, age, avatar_id, password_updated_at, phone, country, country_code, address, city, state, postal_code FROM farmers WHERE LOWER(phone_or_email) = ?",
-        (clean_id,),
+        "SELECT id, full_name, password_hash, salt, gender, age, avatar_id, password_updated_at, phone, country, country_code, address, city, state, postal_code FROM farmers WHERE LOWER(phone_or_email) = ? OR LOWER(phone) = ? OR (length(?) >= 7 AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '(', ''), ')', '') LIKE ?)",
+        (clean_id, clean_id, raw_digits, f"%{raw_digits}%"),
         fetchone=True
     )
 
@@ -608,25 +535,29 @@ def login_farmer(phone_or_email: str, password: str):
     record_failed_attempt(clean_id)
     return {"status": "error", "message": "Invalid mobile number/email or password!"}
 
-def reset_password_with_otp(phone_or_email: str, new_password: str, otp_code: str) -> dict:
+def reset_password_direct(phone_or_email: str, new_password: str) -> dict:
     clean_id = phone_or_email.strip().lower()
-
-    if not verify_otp(clean_id, otp_code):
-        return {"status": "error", "message": "Invalid or expired OTP code!"}
 
     valid, msg = validate_password_strength(new_password)
     if not valid:
         return {"status": "error", "message": msg}
 
-    row = execute_db("SELECT id FROM farmers WHERE LOWER(phone_or_email) = ?", (clean_id,), fetchone=True)
+    raw_digits = re.sub(r'\D', '', clean_id)
+    row = execute_db(
+        "SELECT id FROM farmers WHERE LOWER(phone_or_email) = ? OR LOWER(phone) = ? OR (length(?) >= 7 AND REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '(', ''), ')', '') LIKE ?)",
+        (clean_id, clean_id, raw_digits, f"%{raw_digits}%"),
+        fetchone=True
+    )
     if not row:
-        return {"status": "error", "message": f"No account registered with '{clean_id}'."}
+        return {"status": "error", "message": f"No account registered with '{phone_or_email.strip()}'."}
 
+    farmer_id = row[0]
     salt = generate_salt()
     pwd_hash = hash_password(new_password, salt)
     now = time.time()
 
-    execute_db("UPDATE farmers SET password_hash = ?, salt = ?, password_updated_at = ? WHERE LOWER(phone_or_email) = ?", (pwd_hash, salt, now, clean_id), commit=True)
+    execute_db("UPDATE farmers SET password_hash = ?, salt = ?, password_updated_at = ? WHERE id = ?", (pwd_hash, salt, now, farmer_id), commit=True)
+    execute_db("DELETE FROM auth_sessions WHERE farmer_id = ?", (farmer_id,), commit=True)
     clear_failed_attempts(clean_id)
     return {"status": "success", "message": "Password reset successfully! You can now log in with your new password.", "password_updated_at": now}
 
