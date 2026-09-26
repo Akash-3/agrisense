@@ -463,6 +463,11 @@ const UI = {
     },
 
     switchView(viewName) {
+        if (viewName === 'chatbot') {
+            this.openChatbot();
+            return;
+        }
+
         this.currentView = viewName;
         this.closeFieldDetailPanel();
 

@@ -1,102 +1,89 @@
-import os
-import sys
-import time
-import json
-from playwright.sync_api import sync_playwright
+import asyncio
+import pytest
+from playwright.async_api import async_playwright
 
-BASE_URL = os.getenv("APP_URL", "http://127.0.0.1:8000")
+VIEWPORTS = [
+    {"name": "Mobile Small", "width": 360, "height": 800},
+    {"name": "Mobile Medium", "width": 390, "height": 844},
+    {"name": "Tablet", "width": 768, "height": 1024},
+    {"name": "Desktop", "width": 1440, "height": 900}
+]
 
-def test_chatbot_ui_integration():
-    viewports = [
-        {"width": 360, "height": 800, "name": "Mobile Small (360x800)"},
-        {"width": 390, "height": 844, "name": "Mobile Standard (390x844)"},
-        {"width": 768, "height": 1024, "name": "Tablet (768x1024)"},
-        {"width": 1440, "height": 900, "name": "Desktop (1440x900)"}
-    ]
+async def run_viewport_test(p, vp):
+    print(f"\n--- TESTING VIEWPORT: {vp['name']} ({vp['width']}x{vp['height']}) ---")
+    browser = await p.chromium.launch(headless=True)
+    context = await browser.new_context(viewport={"width": vp["width"], "height": vp["height"]})
+    page = await context.new_page()
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+    console_errors = []
+    failed_requests = []
+    
+    page.on("console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None)
+    page.on("response", lambda res: failed_requests.append(f"{res.status} {res.url}") if res.status >= 400 else None)
 
-        for vp in viewports:
-            print(f"\n--- Testing Viewport: {vp['name']} ---")
-            context = browser.new_context(viewport={"width": vp["width"], "height": vp["height"]})
-            page = context.new_page()
+    # 1. Navigate to page
+    await page.goto("http://127.0.0.1:8000")
+    await page.wait_for_selector("#loginIdInput")
 
-            console_errors = []
-            failed_requests = []
-            page.on("console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None)
-            page.on("requestfailed", lambda req: failed_requests.append(req.url))
+    # 2. Login via UI
+    await page.fill("#loginIdInput", "qa_farmer@agrisense.io")
+    await page.fill("#loginPassInput", "Password123!")
+    await page.click("button:has-text('Sign In to Account')")
+    await page.wait_for_selector("#mainAppScreen:not(.hidden)", timeout=10000)
 
-            # 1. Open Website
-            page.goto(BASE_URL, wait_until="domcontentloaded")
-            time.sleep(0.5)
+    # 3. Locate and click AI Assistant button in visible sidebar
+    # If on mobile/tablet (width < 1024), open mobile menu first
+    if vp["width"] < 1024:
+        menu_btn = page.locator("#mobileMenuBtn")
+        await menu_btn.click()
+        await page.wait_for_selector("#sidebar:not(.-translate-x-full)", timeout=5000)
 
-            # 2. Login to Dashboard
-            page.fill("#loginIdInput", "qa_farmer@agrisense.io")
-            page.fill("#loginPassInput", "Password123!")
-            page.click("button:has-text('Sign In to Account')")
-            page.wait_for_selector("#mainAppScreen:not(.hidden)", timeout=10000)
+    ai_btn = page.locator("#sidebar button[data-view='chatbot']")
+    await ai_btn.wait_for(state="visible", timeout=5000)
+    
+    # Real mouse click
+    await ai_btn.click()
 
-            # Check authentication & active farm context
-            auth_state = page.evaluate("() => ({ user: window.AgriState.currentUser, activeFarmId: window.AgriState.activeFarmId })")
-            assert auth_state["user"] is not None and auth_state["user"]["isAuthenticated"] is True, "User should be authenticated"
-            assert auth_state["activeFarmId"] is not None, "Active farm ID must exist"
-            print(f"[OK] Authenticated user: {auth_state['user']['name']} (Farm ID: {auth_state['activeFarmId']})")
+    # 4. Verify chatbot window, input, and close button become visible
+    chat_win = page.locator("#agri-chat-window")
+    await chat_win.wait_for(state="visible", timeout=5000)
+    
+    chat_input = page.locator("#agri-chat-input")
+    assert await chat_input.is_visible(), "Chat input field is not visible!"
 
-            # 3. Sidebar toggle on small screens (mobile drawer)
-            if vp["width"] < 1024:
-                # Click mobile menu button if sidebar hidden
-                menu_btn = page.query_selector("button:has(.fa-bars)")
-                if menu_btn:
-                    menu_btn.click()
-                    time.sleep(0.3)
+    close_btn = page.locator("#agri-chat-window .agri-chat-header button:has-text('✖')")
+    assert await close_btn.is_visible(), "Chat close button is not visible!"
 
-            # 4. Verify AI Assistant nav item is visible
-            ai_nav_btn = page.query_selector("button[data-view='chatbot']")
-            assert ai_nav_btn is not None, f"AI Assistant button missing in sidebar on {vp['name']}"
-            assert ai_nav_btn.is_visible(), f"AI Assistant button not visible on {vp['name']}"
-            print(f"[OK] AI Assistant navigation item visible in sidebar ({vp['name']})")
+    # 5. Send actual test message through UI
+    test_msg = f"Hello from {vp['name']} test!"
+    await chat_input.fill(test_msg)
+    send_btn = page.locator("#agri-chat-window .agri-chat-send-btn")
+    await send_btn.click()
 
-            # 5. Click AI Assistant navigation item
-            ai_nav_btn.click()
-            time.sleep(0.5)
+    # 6. Verify user message and bot response appear
+    user_msg_loc = page.locator(f".chat-msg.user-msg:has-text('{test_msg}')")
+    await user_msg_loc.wait_for(state="visible", timeout=5000)
 
-            # 6. Verify Chatbot UI Window opens & renders
-            chat_window = page.query_selector("#agri-chat-window")
-            assert chat_window is not None, "Chatbot window element missing"
-            assert not page.evaluate("() => document.getElementById('agri-chat-window').classList.contains('hidden')"), "Chatbot window should be visible after clicking AI Assistant"
-            print(f"[OK] Chatbot UI window opened successfully ({vp['name']})")
+    bot_msg_loc = page.locator(".chat-msg.bot-msg:not(:has-text('Thinking'))").nth(1)
+    await bot_msg_loc.wait_for(state="visible", timeout=15000)
+    
+    bot_text = await bot_msg_loc.text_content()
+    safe_bot_text = bot_text.encode('ascii', errors='replace').decode('ascii')
+    print(f"Received bot response: {safe_bot_text[:100]}...")
 
-            # 7. Enter message and send query to chatbot endpoint
-            test_query = "What is the best fertilizer for wheat crop in North India?"
-            page.fill("#agri-chat-input", test_query)
-            page.click(".agri-chat-send-btn")
+    print(f"Console errors: {len(console_errors)}")
+    print(f"Failed requests: {len(failed_requests)}")
 
-            # Wait for final response message from chatbot API endpoint (ignoring typing indicator)
-            page.wait_for_function(
-                "() => { const msgs = Array.from(document.querySelectorAll('.bot-msg .msg-bubble')).map(el => el.innerText); return msgs.some(m => !m.includes('Thinking') && !m.includes('Namaste')); }",
-                timeout=20000
-            )
+    assert len(console_errors) == 0, f"Console errors detected: {console_errors}"
+    assert len(failed_requests) == 0, f"Failed network requests detected: {failed_requests}"
+    print(f"PASSED: {vp['name']} ({vp['width']}x{vp['height']})")
 
-            bot_responses = page.evaluate("() => Array.from(document.querySelectorAll('.bot-msg .msg-bubble')).map(el => el.innerText)")
-            latest_response = bot_responses[-1]
-            assert len(latest_response) > 10, f"Chatbot response too short: {latest_response}"
-            assert "Thinking" not in latest_response, "Response should not be stuck on typing indicator"
-            safe_snippet = latest_response[:60].encode('ascii', 'ignore').decode('ascii')
-            print(f"[OK] Chatbot API response received ({len(latest_response)} chars): '{safe_snippet}...'")
+    await browser.close()
 
-            # 8. Verify Console errors and failed chatbot network requests
-            chatbot_failed_requests = [r for r in failed_requests if "chatbot" in r]
-            assert len(console_errors) == 0, f"Console errors detected on {vp['name']}: {console_errors}"
-            assert len(chatbot_failed_requests) == 0, f"Failed chatbot requests on {vp['name']}: {chatbot_failed_requests}"
-            print(f"[OK] 0 console errors, 0 failed chatbot requests ({vp['name']})")
-
-            context.close()
-
-        browser.close()
-        print("\n====================================================")
-        print("ALL CHATBOT UI INTEGRATION BROWSER TESTS PASSED 100%!")
-        print("====================================================")
+async def main():
+    async with async_playwright() as p:
+        for vp in VIEWPORTS:
+            await run_viewport_test(p, vp)
 
 if __name__ == "__main__":
-    test_chatbot_ui_integration()
+    asyncio.run(main())

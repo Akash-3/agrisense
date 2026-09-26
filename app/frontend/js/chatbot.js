@@ -367,7 +367,11 @@ const AgriSenseChatbot = {
     },
 
     openChatWindow() {
-        const win = document.getElementById("agri-chat-window");
+        let win = document.getElementById("agri-chat-window");
+        if (!win) {
+            this.init();
+            win = document.getElementById("agri-chat-window");
+        }
         if (win) {
             win.classList.remove("hidden");
             const inputEl = document.getElementById("agri-chat-input");
@@ -571,7 +575,11 @@ const AgriSenseChatbot = {
     }
 };
 
-// AUTO INITIALIZE CHATBOT ON DOM LOAD
-document.addEventListener("DOMContentLoaded", () => {
+// AUTO INITIALIZE CHATBOT ON DOM LOAD OR IMMEDIATELY IF ALREADY LOADED
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+        AgriSenseChatbot.init();
+    });
+} else {
     AgriSenseChatbot.init();
-});
+}
