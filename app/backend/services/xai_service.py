@@ -1,7 +1,9 @@
 import torch
 import torch.nn.functional as F
-import numpy as np
-from services.ai_service import ai_service
+try:
+    from services.ai_service import ai_service
+except ImportError:
+    from .ai_service import ai_service
 
 class XAIService:
     """

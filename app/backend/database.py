@@ -327,6 +327,25 @@ def init_db():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_telemetry_zone_time ON telemetry_records (zone_id, timestamp DESC)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_telemetry_device_time ON telemetry_records (device_id, timestamp DESC)")
 
+        cursor.execute("PRAGMA table_info(telemetry_records)")
+        t_cols = [col[1] for col in cursor.fetchall()]
+        for col, col_def in [
+            ('spectral_data', 'TEXT'),
+            ('ai_condition', 'TEXT'),
+            ('ai_confidence', 'REAL'),
+            ('ai_severity', 'REAL'),
+            ('ai_rule_type', 'TEXT'),
+            ('ai_recommended_action', 'TEXT'),
+            ('anomaly_score', 'REAL'),
+            ('ood_score', 'REAL'),
+            ('is_simulated', 'INTEGER DEFAULT 0')
+        ]:
+            if col not in t_cols:
+                try:
+                    cursor.execute(f"ALTER TABLE telemetry_records ADD COLUMN {col} {col_def}")
+                except Exception:
+                    pass
+
 
 
     conn.commit()

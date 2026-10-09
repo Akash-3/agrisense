@@ -108,7 +108,8 @@ async def process_chat(payload: ChatbotQueryRequest, current_user: int = Depends
             longitude=payload.longitude,
             crop_type=payload.crop_type,
             image_base64=payload.image_base64,
-            enable_web_search=payload.enable_web_search if payload.enable_web_search is not None else True
+            enable_web_search=payload.enable_web_search if payload.enable_web_search is not None else True,
+            history=payload.history
         )
         return res
     except Exception as e:

@@ -4,6 +4,12 @@ import socket
 import webbrowser
 import uvicorn
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # Add project root and backend directory to sys.path
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 backend_dir = os.path.join(os.path.dirname(__file__), "backend")

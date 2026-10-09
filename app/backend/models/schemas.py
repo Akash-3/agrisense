@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, validator
 from database import sanitize_input
 from config import sanitize_email_or_phone
@@ -201,3 +201,4 @@ class ChatbotQueryRequest(BaseModel):
     crop_type: Optional[str] = None
     image_base64: Optional[str] = None
     enable_web_search: Optional[bool] = True
+    history: Optional[List[Dict[str, Any]]] = None

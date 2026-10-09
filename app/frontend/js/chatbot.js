@@ -13,6 +13,7 @@ const AgriSenseChatbot = {
     attachedImageBase64: null,
     speechRecognition: null,
     isListening: false,
+    conversationHistory: [],
 
     init() {
         this.detectUserLocation();
@@ -225,7 +226,7 @@ const AgriSenseChatbot = {
                 position: fixed;
                 bottom: 96px;
                 right: 24px;
-                width: 400px;
+                width: 420px;
                 max-width: calc(100vw - 32px);
                 height: 580px;
                 max-height: calc(100vh - 120px);
@@ -237,41 +238,66 @@ const AgriSenseChatbot = {
                 display: flex;
                 flex-direction: column;
                 z-index: 99999;
-                overflow: hidden;
+                overflow: hidden !important;
+                box-sizing: border-box !important;
                 font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            }
+            .agri-chat-card * {
+                box-sizing: border-box;
             }
             .agri-chat-card.hidden { display: none !important; }
 
+            @media (max-width: 480px) {
+                .agri-chat-card {
+                    bottom: 0 !important;
+                    right: 0 !important;
+                    left: 0 !important;
+                    top: 0 !important;
+                    width: 100vw !important;
+                    height: 100vh !important;
+                    max-width: 100vw !important;
+                    max-height: 100vh !important;
+                    border-radius: 0 !important;
+                    border: none !important;
+                }
+            }
+
             .agri-chat-header {
-                padding: 12px 16px;
+                padding: 10px 12px;
                 background: #1E293B;
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
                 border-bottom: 1px solid #334155;
+                flex-shrink: 0;
+                width: 100%;
+                min-width: 0;
             }
-            .agri-chat-title-group { display: flex; align-items: center; gap: 10px; }
-            .agri-bot-avatar { font-size: 24px; background: #065F46; padding: 6px; border-radius: 50%; }
-            .agri-bot-name { margin: 0; font-size: 15px; font-weight: 600; color: #10B981; }
-            .agri-chat-loc { font-size: 11px; color: #94A3B8; }
+            .agri-chat-title-group { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+            .agri-bot-avatar { font-size: 20px; background: #065F46; padding: 4px 6px; border-radius: 50%; flex-shrink: 0; }
+            .agri-bot-name { margin: 0; font-size: 14px; font-weight: 700; color: #10B981; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .agri-chat-loc { font-size: 10px; color: #94A3B8; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-            .agri-chat-controls { display: flex; align-items: center; gap: 6px; }
+            .agri-chat-controls { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
             .agri-chat-select {
                 background: #0F172A;
                 color: #E2E8F0;
                 border: 1px solid #475569;
                 border-radius: 6px;
-                padding: 4px 6px;
-                font-size: 12px;
+                padding: 4px 4px;
+                font-size: 11px;
+                max-width: 105px;
+                text-overflow: ellipsis;
             }
             .agri-chat-icon-btn {
                 background: #334155;
                 color: #E2E8F0;
                 border: none;
                 border-radius: 6px;
-                padding: 4px 8px;
-                font-size: 12px;
+                padding: 4px 6px;
+                font-size: 11px;
                 cursor: pointer;
+                white-space: nowrap;
             }
             .agri-chat-icon-btn.active { background: #059669; color: white; font-weight: bold; }
 
@@ -280,9 +306,23 @@ const AgriSenseChatbot = {
                 gap: 8px;
                 padding: 8px 12px;
                 background: #0B1329;
-                overflow-x: auto;
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
                 white-space: nowrap;
                 border-bottom: 1px solid #1E293B;
+                flex-shrink: 0;
+                width: 100%;
+                scrollbar-width: thin;
+            }
+            .agri-chat-chips-scroll::-webkit-scrollbar {
+                height: 4px;
+            }
+            .agri-chat-chips-scroll::-webkit-scrollbar-thumb {
+                background: #334155;
+                border-radius: 4px;
+            }
+            .agri-chat-chips-scroll::-webkit-scrollbar-track {
+                background: transparent;
             }
             .agri-chip {
                 background: #1E293B;
@@ -292,27 +332,55 @@ const AgriSenseChatbot = {
                 padding: 4px 10px;
                 font-size: 11px;
                 cursor: pointer;
+                white-space: nowrap;
+                flex-shrink: 0;
             }
             .agri-chip:hover { background: #0284C7; color: white; }
 
             .agri-chat-body {
                 flex: 1;
-                padding: 16px;
-                overflow-y: auto;
+                padding: 14px;
+                overflow-y: auto !important;
+                overflow-x: hidden !important;
                 display: flex;
                 flex-direction: column;
                 gap: 12px;
+                width: 100%;
+                word-break: break-word !important;
+                overflow-wrap: break-word !important;
+                scrollbar-width: thin;
             }
-            .chat-msg { display: flex; flex-direction: column; }
+            .agri-chat-body::-webkit-scrollbar {
+                width: 6px;
+            }
+            .agri-chat-body::-webkit-scrollbar-thumb {
+                background: #334155;
+                border-radius: 4px;
+            }
+            .chat-msg { display: flex; flex-direction: column; max-width: 100%; width: 100%; }
             .bot-msg { align-items: flex-start; }
             .user-msg { align-items: flex-end; }
             .msg-bubble {
-                max-width: 85%;
+                max-width: 90%;
                 padding: 10px 14px;
                 border-radius: 12px;
                 font-size: 13px;
                 line-height: 1.5;
                 white-space: pre-wrap;
+                overflow-wrap: break-word !important;
+                word-break: break-word !important;
+                hyphens: auto;
+            }
+            .msg-bubble a {
+                color: #38BDF8;
+                word-break: break-all !important;
+                text-decoration: underline;
+            }
+            .msg-bubble pre, .msg-bubble code {
+                max-width: 100%;
+                white-space: pre-wrap;
+                word-break: break-word !important;
+                overflow-x: auto;
             }
             .bot-msg .msg-bubble { background: #1E293B; color: #F1F5F9; border-top-left-radius: 2px; border: 1px solid #334155; }
             .user-msg .msg-bubble { background: #059669; color: white; border-top-right-radius: 2px; }
@@ -324,6 +392,8 @@ const AgriSenseChatbot = {
                 padding: 6px 12px;
                 background: #1E293B;
                 border-top: 1px solid #334155;
+                flex-shrink: 0;
+                width: 100%;
             }
             .agri-img-preview-bar.hidden { display: none; }
             #agri-preview-thumb { width: 32px; height: 32px; border-radius: 4px; object-fit: cover; }
@@ -331,21 +401,24 @@ const AgriSenseChatbot = {
             .remove-img-btn { background: none; border: none; color: #EF4444; font-size: 14px; cursor: pointer; }
 
             .agri-chat-footer {
-                padding: 10px;
+                padding: 10px 12px;
                 background: #1E293B;
                 display: flex;
                 align-items: center;
                 gap: 8px;
                 border-top: 1px solid #334155;
+                flex-shrink: 0;
+                width: 100%;
             }
-            .agri-attach-btn { cursor: pointer; font-size: 18px; padding: 4px; }
+            .agri-attach-btn { cursor: pointer; font-size: 18px; padding: 4px; flex-shrink: 0; }
             .agri-attach-btn input { display: none; }
-            .agri-voice-btn { background: none; border: none; font-size: 18px; cursor: pointer; padding: 4px; }
+            .agri-voice-btn { background: none; border: none; font-size: 18px; cursor: pointer; padding: 4px; flex-shrink: 0; }
             .agri-voice-btn.listening-pulse { animation: pulse-red 1s infinite; }
             @keyframes pulse-red { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
 
             .agri-chat-input-field {
                 flex: 1;
+                min-width: 0;
                 background: #0F172A;
                 border: 1px solid #475569;
                 border-radius: 8px;
@@ -361,6 +434,7 @@ const AgriSenseChatbot = {
                 padding: 8px 12px;
                 cursor: pointer;
                 font-size: 14px;
+                flex-shrink: 0;
             }
         `;
         document.head.appendChild(style);
@@ -424,7 +498,7 @@ const AgriSenseChatbot = {
             if (data.status === "success" && data.languages) {
                 const selectEl = document.getElementById("agri-chat-lang-select");
                 if (selectEl) {
-                    selectEl.innerHTML = data.languages.map(l => 
+                    selectEl.innerHTML = data.languages.map(l =>
                         `<option value="${l.code}">${l.flag} ${l.native}</option>`
                     ).join("");
                 }
@@ -441,7 +515,7 @@ const AgriSenseChatbot = {
             if (data.status === "success" && data.suggestions) {
                 const container = document.getElementById("agri-chat-chips");
                 if (container) {
-                    container.innerHTML = data.suggestions.map(s => 
+                    container.innerHTML = data.suggestions.map(s =>
                         `<span class="agri-chip" onclick="AgriSenseChatbot.clickSuggestion('${s.replace(/'/g, "\\'")}')">${s}</span>`
                     ).join("");
                 }
@@ -498,14 +572,18 @@ const AgriSenseChatbot = {
 
         try {
             const headers = { "Content-Type": "application/json" };
-            const token = (typeof AuthService !== "undefined" && AuthService.getToken) 
-                ? AuthService.getToken() 
+            const token = (typeof AuthService !== "undefined" && AuthService.getToken)
+                ? AuthService.getToken()
                 : localStorage.getItem("agrisense_session_token");
             if (token) {
                 headers["Authorization"] = `Bearer ${token}`;
             }
 
-            const activeFarmId = window.AgriState ? window.AgriState.activeFarmId : null;
+            if (!this.conversationHistory) this.conversationHistory = [];
+
+            const activeFarmId = (typeof AgriState !== "undefined" && AgriState.activeFarmId)
+                ? AgriState.activeFarmId
+                : null;
 
             const payload = {
                 query: query || "Diagnose this crop leaf image for pests or diseases.",
@@ -516,7 +594,8 @@ const AgriSenseChatbot = {
                 crop_type: this.userCrop,
                 farm_id: activeFarmId,
                 image_base64: this.attachedImageBase64,
-                enable_web_search: this.webSearchEnabled
+                enable_web_search: this.webSearchEnabled,
+                history: this.conversationHistory.slice(-6)
             };
 
             const response = await fetch("/api/v1/chatbot/chat", {
@@ -532,19 +611,43 @@ const AgriSenseChatbot = {
                 return;
             }
 
+            if (!response.ok) {
+                this.removeMessage(typingId);
+                this.clearImageAttachment();
+                let detailMsg = `HTTP ${response.status} ${response.statusText}`;
+                try {
+                    const errData = await response.json();
+                    detailMsg = errData.detail || errData.message || detailMsg;
+                } catch (_) {}
+                this.appendMessage(`⚠️ Server error (${response.status}): ${detailMsg}`, "bot");
+                return;
+            }
+
             const data = await response.json();
             this.removeMessage(typingId);
             this.clearImageAttachment();
 
             if (data.status === "success") {
+                if (query) {
+                    this.conversationHistory.push({ role: "user", content: query });
+                }
+                this.conversationHistory.push({ role: "assistant", content: data.answer });
+                if (this.conversationHistory.length > 12) {
+                    this.conversationHistory = this.conversationHistory.slice(-12);
+                }
                 this.appendMessage(data.answer, "bot");
             } else {
-                const errorMsg = data.detail || "Sorry, I could not process your query at this moment. Please try again.";
+                const errorMsg = data.detail || data.message || "Sorry, I could not process your query at this moment. Please try again.";
                 this.appendMessage(`⚠️ ${errorMsg}`, "bot");
             }
         } catch (err) {
+            console.error("[AgriSense Chatbot Error]", err);
             this.removeMessage(typingId);
-            this.appendMessage("❌ Network error connecting to AgriSense AI. Please check your internet connection.", "bot");
+            if (err instanceof TypeError && err.message.includes("fetch")) {
+                this.appendMessage("📡 Network Connection Error: Unable to reach AgriSense server at /api/v1/chatbot/chat. Please check your network connection.", "bot");
+            } else {
+                this.appendMessage(`❌ Client Error: ${err.message || String(err)}`, "bot");
+            }
         }
     },
 

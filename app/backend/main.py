@@ -5,6 +5,12 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 from database import init_db
 from routers import auth, telemetry, ai, v2, zones, chatbot
 
@@ -83,6 +89,20 @@ async def serve_web_dashboard():
     if os.path.exists(index_path):
         return FileResponse(index_path)
     return JSONResponse(status_code=404, content={"error": "index.html not found", "path": index_path})
+
+@app.get("/sw.js")
+async def serve_sw():
+    sw_path = os.path.join(frontend_dir, "sw.js")
+    if os.path.exists(sw_path):
+        return FileResponse(sw_path, media_type="application/javascript")
+    return JSONResponse(status_code=404, content={"error": "sw.js not found"})
+
+@app.get("/manifest.json")
+async def serve_manifest():
+    manifest_path = os.path.join(frontend_dir, "manifest.json")
+    if os.path.exists(manifest_path):
+        return FileResponse(manifest_path, media_type="application/json")
+    return JSONResponse(status_code=404, content={"error": "manifest.json not found"})
 
 # MOUNT MODULAR ROUTERS
 app.include_router(auth.router)
