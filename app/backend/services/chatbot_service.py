@@ -244,7 +244,165 @@ class ProductionAgriculturalChatbotService:
             return "or"
         elif re.search(r'[\u0600-\u06FF]', text):
             return "ur"
+
+        # Check Latin / Romanized text for Hinglish or Odia keywords
+        t_lower = text.lower()
+        odia_roman_words = {
+            "kemiti", "dhanyabad", "mora", "amate", "chasa", "fasala", "kahantu", "kie", "tume", "apana"
+        }
+        hinglish_words = {
+            "kya", "kaise", "kripya", "namaste", "dhanyawad", "shukriya", "mera", "meri", "mere",
+            "hai", "hain", "karo", "kare", "karna", "batao", "bataiye", "aap", "tum", "chahiye",
+            "paani", "pani", "fasal", "kisan", "kheti", "gehu", "chawal", "khad", "madad",
+            "theek", "accha", "namaskar", "namashkar"
+        }
+        words = set(re.findall(r'[a-zA-Z]+', t_lower))
+        if words & odia_roman_words:
+            return "or"
+        if len(words & hinglish_words) >= 1:
+            return "hi"
+
         return "en"
+
+    def classify_intent(self, query: str) -> str:
+        """Classifies farmer query into specific conversational or agricultural intents."""
+        q_lower = (query or "").strip().lower()
+        clean_q = re.sub(r'[^\w\s]', ' ', q_lower).strip()
+        tokens = clean_q.split()
+
+        agri_keywords = [
+            "crop", "crops", "wheat", "rice", "paddy", "cotton", "maize", "sugarcane", "potato",
+            "onion", "mustard", "pulses", "soybean", "ragi", "tomato", "chilli", "banana", "groundnut",
+            "fertilizer", "fertilizers", "npk", "urea", "dap", "potash", "manure", "nitrogen", "phosphorus",
+            "potassium", "nutrient", "nutrients", "deficiency", "chlorosis",
+            "disease", "diseases", "pest", "pests", "blight", "rust", "fungus", "fungicide", "insect",
+            "insecticide", "caterpillar", "leaf", "leaves", "stem", "root", "plant", "plants",
+            "soil", "ph", "irrigate", "irrigation", "water", "moisture", "drip", "sprinkler",
+            "mandi", "price", "prices", "rate", "rates", "market", "msp", "yield", "sowing", "harvest",
+            "scheme", "schemes", "pm-kisan", "pmfby", "kcc", "subsidy", "subsidies", "telemetry", "sensor",
+            "khad", "paani", "fasal", "kheti", "gehu", "dhan", "chawal", "keeda", "rog", "beemari", "dawai"
+        ]
+        has_agri = any(re.search(r'\b' + re.escape(k) + r'\b', clean_q) for k in agri_keywords)
+
+        greeting_keywords = [
+            "hi", "hello", "hey", "namaste", "namaskar", "namaskaram", "vanakkam", "pranam",
+            "kem cho", "adaab", "salam", "salaam", "good morning", "good afternoon", "good evening"
+        ]
+        is_greeting = any(clean_q == g or clean_q.startswith(g + " ") for g in greeting_keywords)
+
+        if is_greeting and has_agri:
+            return "AGRICULTURAL_WITH_GREETING"
+        if is_greeting:
+            return "GREETING"
+
+        if has_agri:
+            return "AGRICULTURAL"
+
+        # Identity & Capability
+        identity_patterns = [
+            "who are you", "what is your name", "what are you", "what can you do", "help me",
+            "tum kaun ho", "aap kaun ho", "tera naam kya hai", "aapka naam kya hai",
+            "who created you", "what do you do", "tume kie", "apana kie", "tell me about yourself"
+        ]
+        if any(p in clean_q for p in identity_patterns):
+            return "IDENTITY_CAPABILITY"
+
+        # Gratitude
+        gratitude_words = ["thanks", "thank you", "dhanyawad", "shukriya", "dhanyabad", "nandri", "dhanyavad"]
+        if any(w in clean_q for w in gratitude_words):
+            return "GRATITUDE"
+
+        # Farewell
+        farewell_words = ["bye", "goodbye", "see you", "alvida", "phir milenge", "tata", "take care"]
+        if any(w in clean_q for w in farewell_words):
+            return "FAREWELL"
+
+        # Acknowledgement
+        ack_words = ["ok", "okay", "understood", "theek hai", "got it", "sure", "fine", "accha", "thik achi", "yes"]
+        if clean_q in ack_words or (len(tokens) <= 2 and any(t in ack_words for t in tokens)):
+            return "ACKNOWLEDGEMENT"
+
+        # Confusion
+        confusion_patterns = ["what?", "i don't understand", "samajh nahi aaya", "explain again", "repeat", "can you repeat", "kya?"]
+        if any(p in clean_q for p in confusion_patterns):
+            return "CONFUSION"
+
+        return "GENERAL_CONVERSATION"
+
+    def get_conversational_response(self, intent: str, target_lang: str, farmer_name: Optional[str] = None) -> str:
+        """Returns high-quality, concise conversational responses (strictly under 100 words) in the target language."""
+        has_name = bool(farmer_name and str(farmer_name).strip())
+        name = str(farmer_name).strip() if has_name else ""
+
+        responses = {
+            "GREETING": {
+                "en": f"Hello {name}! How can I assist you with your farming today?" if has_name else "Hello! How can I assist you with your farming today?",
+                "hi": f"नमस्ते {name}! मैं आपकी खेती और फसलों में क्या मदद कर सकता हूँ?" if has_name else "नमस्ते! मैं आपकी खेती और फसलों में क्या मदद कर सकता हूँ?",
+                "or": f"ନମସ୍କାର {name}! ଆପଣଙ୍କ ଚାଷ କାର୍ଯ୍ୟରେ ମୁଁ କିପରି ସାହାଯ୍ୟ କରିପାରିବି?" if has_name else "ନମସ୍କାର! ଆପଣଙ୍କ ଚାଷ କାର୍ଯ୍ୟରେ ମୁଁ କିପରି ସାହାଯ୍ୟ କରିପାରିବି?",
+                "ta": f"வணக்கம் {name}! உங்கள் விவசாயப் பணிகளுக்கு நான் எவ்வாறு உதவ முடியும்?" if has_name else "வணக்கம்! உங்கள் விவசாயப் பணிகளுக்கு நான் எவ்வாறு உதவ முடியும்?",
+                "te": f"నమస్కారం {name}! మీ వ్యవసాయ పనుల్లో నేను ఎలా సహాయపడగలను?" if has_name else "నమస్కారం! మీ వ్యవసాయ పనుల్లో నేను ఎలా సహాయపడగలను?",
+                "kn": f"ನಮಸ್ಕಾರ {name}! ನಿಮ್ಮ ಕೃಷಿ ಕೆಲಸದಲ್ಲಿ ನಾನು ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?" if has_name else "ನಮಸ್ಕಾರ! ನಿಮ್ಮ ಕೃಷಿ ಕೆಲಸದಲ್ಲಿ ನಾನು ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?",
+                "mr": f"नमस्कार {name}! मी तुमच्या शेती कामात कशी मदत करू शकतो?" if has_name else "नमस्कार! मी तुमच्या शेती कामात कशी मदत करू शकतो?",
+                "bn": f"নমস্কার {name}! আপনার চাষের কাজে আমি কীভাবে সাহায্য করতে পারি?" if has_name else "নমস্কার! আপনার চাষের কাজে আমি কীভাবে সাহায্য করতে পারি?",
+                "gu": f"નમસ્તે {name}! તમારી ખેતીમાં હું કેવી રીતે મદદ કરી શકું?" if has_name else "નમસ્તે! તમારી ખેતીમાં હું કેવી રીતે મદદ કરી શકું?",
+                "pa": f"ਸਤਿ ਸ਼੍ਰੀ ਅਕਾਲ {name}! ਮੈਂ ਤੁਹਾਡੀ ਖੇਤੀਬਾੜੀ ਵਿੱਚ ਕੀ ਮਦਦ ਕਰ ਸਕਦਾ ਹਾਂ?" if has_name else "ਸਤਿ ਸ਼੍ਰੀ ਅਕਾਲ! ਮੈਂ ਤੁਹਾਡੀ ਖੇਤੀਬਾੜੀ ਵਿੱਚ ਕੀ ਮਦਦ ਕਰ ਸਕਦਾ ਹਾਂ?",
+                "ml": f"നമസ്കാരം {name}! നിങ്ങളുടെ കൃഷിയിൽ എനിക്ക് എങ്ങനെ സഹായിക്കാനാകും?" if has_name else "നമസ്കാരം! നിങ്ങളുടെ കൃഷിയിൽ എനിക്ക് എങ്ങനെ സഹായിക്കാനാകും?",
+                "as": f"নমস্কাৰ {name}! আপোনাৰ খেতিৰ কামত মই কেনেকৈ সহায় কৰিব পাৰোঁ?" if has_name else "নমস্কাৰ! আপোনাৰ খেতিৰ কামত মই কেনেকৈ সহায় কৰিব পাৰোঁ?",
+                "ur": f"السلام علیکم {name}! میں آپ کی زراعت اور فصلوں میں کیا مدد کر سکتا ہوں؟" if has_name else "السلام علیکم! میں آپ کی زراعت اور فصلوں میں کیا مدد कर सकता हूँ؟"
+            },
+            "IDENTITY_CAPABILITY": {
+                "en": "I am AgriSense AI, your intelligent farming assistant. I help you with crop health, fertilizer advice, pest control, weather, and market updates to support your harvest.",
+                "hi": "मैं एग्रीसेंस एआई हूँ, आपका स्मार्ट कृषि सहायक। मैं फसल प्रबंधन, उर्वरक सलाह, कीट व रोग निदान और मंडी भाव की सटीक जानकारी प्रदान करता हूँ।",
+                "or": "ମୁଁ ଏଗ୍ରିସେନ୍ସ AI, ଆପଣଙ୍କ ସ୍ମାର୍ଟ କୃଷି ସହାୟକ | ମୁଁ ଫସଲ ପରାମର୍ଶ, ସାର NPK ପରିଚାଳନା, ରୋଗ ନିୟନ୍ତ୍ରଣ ଏବଂ ବଜାର ଦର ବିଷୟରେ ସଠିକ୍ ସୂଚନା ପ୍ରଦାନ କରେ |",
+                "ta": "நான் அக்ரிசென்ஸ் AI, உங்கள் விவசாய உதவியாளர். பயிர் நலம், உர ஆலோசனை, பூச்சி மேலாண்மை மற்றும் சந்தை விலை தகவல்களை வழங்குகிறேன்.",
+                "te": "నేను అగ్రిసెన్స్ AI, మీ వ్యవసాయ సహాయకుడిని. పంటల ఆరోగ్యం, ఎరువుల సలహాలు, తెగుళ్ల నివారణ మరియు మార్కెట్ ధరల సమాచారాన్ని అందిస్తాను.",
+                "mr": "मी ॲग्रीसेन्स AI आहे, तुमचा स्मार्ट कृषी सहाय्यक. मी पिकांचे आरोग्य, खत सल्ला, कीड नियंत्रण आणि बाजार भावाची माहिती देतो."
+            },
+            "GRATITUDE": {
+                "en": "You're very welcome! Feel free to ask anytime you need advice on your crops or soil health.",
+                "hi": "आपका बहुत-बहुत स्वागत है! फसलों या मिट्टी के स्वास्थ्य संबंधी किसी भी प्रश्न के लिए कभी भी पूछ सकते हैं।",
+                "or": "ଆପଣଙ୍କୁ ଅଶେଷ ଧନ୍ୟବାଦ! ଆପଣଙ୍କ ଫସଲ କିମ୍ବା ମାଟି ବିଷୟରେ କୌଣସି ପରାମର୍ଶ ପାଇଁ ନିଃସଙ୍କୋଚରେ ପଚାରିପାରିବେ |",
+                "ta": "மிக்க மகிழ்ச்சி! பயிர் அல்லது மண் நலம் குறித்த கேள்விகள் இருந்தால் எப்போதும் கேட்கலாம்.",
+                "te": "స్వాగతం! పంటలు లేదా నేల ఆరోగ్యంపై ఏవైనా సందేహాలు ఉంటే ఎప్పుడైనా అడగవచ్చు.",
+                "mr": "तुमचे मनःपूर्वक स्वागत आहे! पिके किंवा जमिनीच्या आरोग्याबाबत कधीही विचारू शकता."
+            },
+            "FAREWELL": {
+                "en": "Goodbye! Wishing you a healthy and prosperous harvest. Feel free to return whenever you need assistance.",
+                "hi": "अलविदा! आपकी फसल अच्छी और समृद्ध हो। जब भी जरूरत हो, आप बेझिझक वापस आ सकते हैं।",
+                "or": "ବିଦାୟ! ଆପଣଙ୍କର ଫସଲ ଉନ୍ନତ ଓ ସମୃଦ୍ଧ ହେଉ | ଆବଶ୍ୟକ ହେଲେ ପୁଣି ଯୋଗାଯୋଗ କରନ୍ତୁ |",
+                "ta": "விடைபெறுகிறேன்! உங்கள் விளைச்சல் செழிக்க வாழ்த்துகள். தேவைப்படும்போது மீண்டும் வாருங்கள்.",
+                "te": "సెలవు! మీ పంటలు సమృద్ధిగా పండాలని కోరుకుంటున్నాను. అవసరమైనప్పుడు మళ్ళీ రండి.",
+                "mr": "निरोप घेतो! उत्तम पीक आणि समृद्धीसाठी शुभेच्छा. गरज भासल्यास पुन्हा नक्की या."
+            },
+            "ACKNOWLEDGEMENT": {
+                "en": "Understood! Let me know if you have any questions about your crops or farming practices.",
+                "hi": "बिल्कुल समझ गया! अपनी फसलों या खेती के तरीकों के बारे में जब भी कोई सवाल हो, जरूर बताएं।",
+                "or": "ବୁଝିପାରିଲି! ଆପଣଙ୍କ ଫସଲ କିମ୍ବା କୃଷି କାର୍ଯ୍ୟ ସମ୍ବନ୍ଧୀୟ କୌଣସି ପ୍ରଶ୍ନ ଥିଲେ ନିଶ୍ଚୟ ଜଣାନ୍ତୁ |",
+                "ta": "புரிந்து கொண்டேன்! பயிர் மேலாண்மை குறித்த கேள்விகள் இருந்தால் கேளுங்கள்.",
+                "te": "అర్థమైంది! పంటల నిర్వహణ గురించి ఏవైనా సందేహాలు ఉంటే తప్పక అడగండి.",
+                "mr": "समजले! पिके किंवा शेती पद्धतींबद्दल काही शंका असल्यास नक्की सांगा."
+            },
+            "CONFUSION": {
+                "en": "I would be glad to clarify! Please let me know which crop, pest symptom, or farming practice you would like more details about.",
+                "hi": "मैं इसे और स्पष्ट कर सकता हूँ! कृपया बताएं कि आप किस फसल, लक्षण या कृषि विषय पर अधिक जानकारी चाहते हैं।",
+                "or": "ମୁଁ ଏହାକୁ ଆହୁରି ସ୍ପଷ୍ଟ କରି କହିପାରିବି! ଆପଣ କେଉଁ ଫସଲ, ରୋଗର ଲକ୍ଷଣ କିମ୍ବା କୃଷି ବିଷୟରେ ଅଧିକ ଜାଣିବାକୁ ଚାହାଁନ୍ତି ଦୟାକରି ଜଣାନ୍ତୁ |",
+                "ta": "விளக்கப்படுத்துவதில் மகிழ்ச்சி! எந்தப் பயிர் அல்லது நோய் அறிகுறி பற்றி மேலும் அறிய விரும்புகிறீர்கள் என்று தெரிவியுங்கள்.",
+                "te": "స్పష్టంగా చెప్పగలను! మీరు ఏ పంట లేదా సమస్య గురించి మరింత సమాచారం తెలుసుకోవాలనుకుంటున్నారో తెలియజేయండి.",
+                "mr": "मी अधिक स्पष्ट करू शकेन! तुम्हाला कोणत्या पिकाबद्दल किंवा समस्येबद्दल अधिक माहिती हवी आहे ते सांगा."
+            },
+            "GENERAL_CONVERSATION": {
+                "en": "I am here to assist with all your agricultural questions. How can I help with your crops or farm today?",
+                "hi": "मैं आपकी सभी कृषि संबंधी शंकाओं के समाधान के लिए उपलब्ध हूँ। आज आपकी फसलों में क्या सहायता चाहिए?",
+                "or": "ମୁଁ ଆପଣଙ୍କର ସମସ୍ତ କୃଷି ପ୍ରଶ୍ନର ଉତ୍ତର ଦେବାକୁ ପ୍ରସ୍ତୁତ | ଆଜି ଆପଣଙ୍କ ଫସଲ ବିଷୟରେ କି ସାହାଯ୍ୟ ଦରକାର?",
+                "ta": "உங்கள் விவசாய கேள்விகளுக்கு உதவ நான் தயாராக உள்ளேன். இன்று உங்களுக்கு என்ன உதவி தேவை?",
+                "te": "మీ వ్యవసాయ సంబంధిత సందేహాలకు సమాధానమివ్వడానికి నేను సిద్ధంగా ఉన్నాను. నేడు ఏమి సహాయం కావాలి?",
+                "mr": "मी तुमच्या शेतीविषयक सर्व प्रश्नांची उत्तरे देण्यासाठी सज्ज आहे. आज काय मदत हवी आहे?"
+            }
+        }
+
+        intent_dict = responses.get(intent, responses["GENERAL_CONVERSATION"])
+        res_text = intent_dict.get(target_lang, intent_dict.get("en", "How can I assist you with your farming today?"))
+        return res_text
 
     def sanitize_untrusted_input(self, text: str) -> str:
         """Sanitizes prompt input and retrieved web content against injection attempts."""
@@ -794,6 +952,7 @@ class ProductionAgriculturalChatbotService:
         query: str,
         authenticated_farmer_id: int,
         authorized_farm_context: Optional[Dict[str, Any]] = None,
+        farmer_name: Optional[str] = None,
         language: str = "auto",
         location: str = "",
         latitude: Optional[float] = None,
@@ -803,11 +962,15 @@ class ProductionAgriculturalChatbotService:
         enable_web_search: bool = True,
         history: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
-        """Process farmer query with strict farm context resolution, history context, evidence boundaries, and dynamic response generation."""
+        """Process farmer query with strict farm context resolution, history context, evidence boundaries, intent handling, and dynamic response generation."""
 
         # 1. Sanitize user input against prompt injection
         sanitized_query = self.sanitize_untrusted_input(query)
         target_lang = self.detect_language(sanitized_query, language)
+        intent = self.classify_intent(sanitized_query)
+        resolved_farmer_name = farmer_name
+        if not resolved_farmer_name and authorized_farm_context:
+            resolved_farmer_name = authorized_farm_context.get("farmer_name")
 
         # 2. Extract & sanitize recent conversation history (last 10 messages)
         resolved_history = []
@@ -844,20 +1007,25 @@ class ProductionAgriculturalChatbotService:
         evidence_state = "HIGH EVIDENCE"
         web_citations = []
 
-        temporal_web_keywords = [
-            "price", "prices", "mandi", "mandis", "rate", "rates", "market", "markets", "sell", "selling",
-            "weather", "forecast", "news", "scheme", "schemes", "subsidy", "subsidies", "today", "latest",
-            "current", "government", "policy", "pm-kisan", "pmfby", "kcc", "agmarknet", "e-nam"
-        ]
-        has_web_intent = any(re.search(r'\b' + re.escape(w) + r'\b', q_lower) is not None for w in temporal_web_keywords) or \
-                         any(re.search(r'\b' + re.escape(w) + r'\b', q_lower) is not None for w in ["search", "internet", "lookup"])
+        is_conversational = intent in ["GREETING", "IDENTITY_CAPABILITY", "GRATITUDE", "FAREWELL", "ACKNOWLEDGEMENT", "CONFUSION"]
 
-        is_live_search_attempted = bool(enable_web_search) and has_web_intent
+        if is_conversational:
+            is_live_search_attempted = False
+        else:
+            temporal_web_keywords = [
+                "price", "prices", "mandi", "mandis", "rate", "rates", "market", "markets", "sell", "selling",
+                "weather", "forecast", "news", "scheme", "schemes", "subsidy", "subsidies", "today", "latest",
+                "current", "government", "policy", "pm-kisan", "pmfby", "kcc", "agmarknet", "e-nam"
+            ]
+            has_web_intent = any(re.search(r'\b' + re.escape(w) + r'\b', q_lower) is not None for w in temporal_web_keywords) or \
+                             any(re.search(r'\b' + re.escape(w) + r'\b', q_lower) is not None for w in ["search", "internet", "lookup"])
 
-        if is_live_search_attempted:
-            web_citations = self.search_internet_agricultural_data(sanitized_query, region_info["state"])
-            if not web_citations:
-                evidence_state = "MODERATE EVIDENCE (LIVE RETRIEVAL UNAVAILABLE)"
+            is_live_search_attempted = bool(enable_web_search) and has_web_intent
+
+            if is_live_search_attempted:
+                web_citations = self.search_internet_agricultural_data(sanitized_query, region_info["state"])
+                if not web_citations:
+                    evidence_state = "MODERATE EVIDENCE (LIVE RETRIEVAL UNAVAILABLE)"
 
         # 5. Process Leaf Diagnosis Image Payload if Attached
         vision_diagnosis = None
@@ -896,14 +1064,21 @@ class ProductionAgriculturalChatbotService:
             except Exception as e:
                 print(f"[Chatbot Vision Processing Notice] Image scan note: {e}")
 
-        # 6. Dynamic Agronomic Answer Generation (LLM First with Rule Fallback)
+        # 6. Dynamic Agronomic & Conversational Answer Generation (LLM First with Rule Fallback)
         start_time = time.time()
         context_str = f"Crop: {resolved_crop}, State: {region_info['state']}, Farm: {farm_info.get('farm_name', 'None')}"
 
-        llm_res, failure_status, failure_reason = self._call_external_llm_provider(sanitized_query, context_str, resolved_history)
+        llm_res, failure_status, failure_reason = self._call_external_llm_provider(
+            sanitized_query,
+            context_str,
+            resolved_history,
+            intent=intent,
+            target_lang=target_lang,
+            farmer_name=resolved_farmer_name
+        )
 
         if llm_res and llm_res.get("answer"):
-            full_answer_en = self.enforce_word_limit(llm_res["answer"], max_words=100)
+            full_answer = self.enforce_word_limit(llm_res["answer"], max_words=100)
             strategy = "LLM_GENERATIVE_AI"
             provider_name = llm_res.get("provider", "External LLM")
             model_name = llm_res.get("model", "generative_model")
@@ -913,21 +1088,27 @@ class ProductionAgriculturalChatbotService:
             llm_configured = True
             print(f"[Chatbot AI Engine] Invoked LLM Provider: {provider_name} ({model_name}) | Provider Latency: {provider_latency}ms | Status: SUCCESS")
         else:
-            full_answer_en = self._generate_dynamic_agronomic_answer(
-                query=sanitized_query,
-                q_lower=q_lower,
-                context_topic=context_topic,
-                context_crop=context_crop,
-                resolved_crop=resolved_crop,
-                farm_info=farm_info,
-                region_info=region_info,
-                web_citations=web_citations,
-                evidence_state=evidence_state,
-                vision_diagnosis=vision_diagnosis,
-                resolved_history=resolved_history,
-                is_live_search_attempted=is_live_search_attempted
-            )
-            full_answer_en = self.enforce_word_limit(full_answer_en, max_words=100)
+            if is_conversational:
+                full_answer = self.get_conversational_response(intent, target_lang, resolved_farmer_name)
+                full_answer = self.enforce_word_limit(full_answer, max_words=100)
+            else:
+                full_answer_en = self._generate_dynamic_agronomic_answer(
+                    query=sanitized_query,
+                    q_lower=q_lower,
+                    context_topic=context_topic,
+                    context_crop=context_crop,
+                    resolved_crop=resolved_crop,
+                    farm_info=farm_info,
+                    region_info=region_info,
+                    web_citations=web_citations,
+                    evidence_state=evidence_state,
+                    vision_diagnosis=vision_diagnosis,
+                    resolved_history=resolved_history,
+                    is_live_search_attempted=is_live_search_attempted
+                )
+                translated_answer = self._translate_response(full_answer_en, target_lang)
+                full_answer = self.enforce_word_limit(translated_answer, max_words=100)
+
             strategy = "LOCAL_DOMAIN_KNOWLEDGE_ENGINE"
             provider_name = "AgriSense ICAR/KVK Agronomic Knowledge Matrix v3.0"
             model_name = "local_rule_based_synthesis"
@@ -939,9 +1120,8 @@ class ProductionAgriculturalChatbotService:
 
         total_latency = round((time.time() - start_time) * 1000, 2)
 
-        # 7. Final Assembly & Native Translation
-        translated_answer = self._translate_response(full_answer_en, target_lang)
-        final_answer = self.enforce_word_limit(translated_answer, max_words=100)
+        # 7. Final Assembly
+        final_answer = self.enforce_word_limit(full_answer, max_words=100)
         lang_info = SUPPORTED_LANGUAGES.get(target_lang, SUPPORTED_LANGUAGES["en"])
 
         return {
@@ -1014,7 +1194,15 @@ class ProductionAgriculturalChatbotService:
             print(f"[Chatbot Gemini Discovery Notice] Models list note: {str(e)[:100]}")
         return discovered
 
-    def _call_external_llm_provider(self, query: str, context_str: str, history: List[Dict[str, str]]) -> tuple[Optional[Dict[str, Any]], Optional[str], Optional[str]]:
+    def _call_external_llm_provider(
+        self,
+        query: str,
+        context_str: str,
+        history: List[Dict[str, str]],
+        intent: str = "AGRICULTURAL",
+        target_lang: str = "en",
+        farmer_name: Optional[str] = None
+    ) -> tuple[Optional[Dict[str, Any]], Optional[str], Optional[str]]:
         """
         Invokes external LLM API (Google Gemini or OpenAI) if API key is present in environment.
         Supports GEMINI_MODEL env var with default 'gemini-1.5-flash' and models.list discovery.
@@ -1027,6 +1215,49 @@ class ProductionAgriculturalChatbotService:
 
         if not gemini_key and not openai_key and not groq_key:
             return None, "LLM_NOT_CONFIGURED", "No GEMINI_API_KEY or OPENAI_API_KEY present in environment variables"
+
+        lang_name = SUPPORTED_LANGUAGES.get(target_lang, {}).get("name", "English")
+        name_clause = f"The farmer's name is {farmer_name}. Address them politely by name. " if (farmer_name and str(farmer_name).strip()) else "Do not invent or assume any person name. "
+
+        if intent == "GREETING":
+            system_instruction = (
+                f"You are AgriSense AI, a helpful agricultural assistant for Indian farmers. "
+                f"The user is greeting you. Respond with a warm, natural, friendly 1-sentence greeting (10 to 25 words). "
+                f"{name_clause}"
+                f"Respond in {lang_name} ({target_lang}). "
+                f"Do NOT include any rigid agricultural headers (such as Answer:, Action:, Caution:), and do NOT assume any crop."
+            )
+        elif intent == "IDENTITY_CAPABILITY":
+            system_instruction = (
+                f"You are AgriSense AI, an intelligent agricultural assistant. "
+                f"Briefly explain who you are and how you help Indian farmers in under 50 words. "
+                f"Respond in {lang_name} ({target_lang})."
+            )
+        elif intent in ["GRATITUDE", "FAREWELL", "ACKNOWLEDGEMENT", "CONFUSION"]:
+            system_instruction = (
+                f"You are AgriSense AI, a friendly agricultural assistant. "
+                f"Respond conversationally and politely in under 30 words in {lang_name} ({target_lang}). "
+                f"Do NOT include agricultural headers."
+            )
+        elif intent == "AGRICULTURAL_WITH_GREETING":
+            system_instruction = (
+                f"You are AgriSense AI, an expert agricultural assistant for Indian farmers. "
+                f"Every response must be strictly concise, under 100 words (aim for 40 to 80 words). "
+                f"{name_clause}"
+                f"Give a brief polite greeting, then directly answer the agricultural request factually in {lang_name} ({target_lang}). "
+                f"Where appropriate, structure advice with Answer (direct response), Action (1-3 practical steps), and Caution (essential safety warning only if needed).\n"
+                f"Farm Context: {context_str}"
+            )
+        else:
+            system_instruction = (
+                f"You are AgriSense AI, an expert agricultural assistant for Indian farmers. "
+                f"Every response must be strictly concise, under 100 words (aim for 40 to 80 words). "
+                f"Answer the user's specific request directly and factually without fluff or greetings. "
+                f"Respond in {lang_name} ({target_lang}). "
+                f"Where appropriate, structure response with short points or: Answer (direct response), Action (1-3 practical steps), Caution (essential safety/health warning, only if needed). "
+                f"If uncertain or lacking crop data, state it immediately and advise consulting the nearest Krishi Vigyan Kendra (KVK) or agronomist.\n"
+                f"Farm Context: {context_str}"
+            )
 
         # 1. Google Gemini API Integration
         if gemini_key:
@@ -1055,15 +1286,6 @@ class ProductionAgriculturalChatbotService:
                         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_id}:generateContent?key={gemini_key}"
 
                         contents = []
-                        system_instruction = (
-                            "You are AgriSense AI, an expert agricultural assistant for Indian farmers. "
-                            "Every response must be strictly concise, under 100 words (aim for 40 to 80 words). "
-                            "Answer the user's specific request directly and factually without fluff or greetings. "
-                            "Where appropriate, structure response with short points or: Answer (direct response), Action (1-3 practical steps), Caution (essential safety/health warning, only if needed). "
-                            "If uncertain or lacking crop data, state it immediately and advise consulting the nearest Krishi Vigyan Kendra (KVK) or agronomist.\n"
-                            f"Farm Context: {context_str}"
-                        )
-
                         for h in history[-6:]:
                             role = "user" if h.get("role") in ["user", "farmer"] else "model"
                             contents.append({"role": role, "parts": [{"text": h.get("content", "")}]})
@@ -1151,12 +1373,7 @@ class ProductionAgriculturalChatbotService:
             t0 = time.time()
             try:
                 url = "https://api.openai.com/v1/chat/completions"
-                openai_sys = (
-                    "You are AgriSense AI, an expert agricultural assistant for Indian farmers. "
-                    "Every response must be strictly concise, under 100 words (aim for 40 to 80 words). "
-                    "Answer directly without greetings or fluff. Use short points or Answer/Action/Caution structure where appropriate. "
-                    f"Farm Context: {context_str}"
-                )
+                openai_sys = system_instruction
                 messages = [{"role": "system", "content": openai_sys}]
                 for h in history[-6:]:
                     r = "user" if h.get("role") in ["user", "farmer"] else "assistant"

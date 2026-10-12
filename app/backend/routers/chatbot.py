@@ -97,11 +97,21 @@ async def process_chat(payload: ChatbotQueryRequest, current_user: int = Depends
             "has_real_telemetry": has_telem
         }
 
+    # Retrieve authenticated farmer's display name
+    farmer_display_name = None
+    try:
+        user_row = execute_db("SELECT full_name FROM farmers WHERE id = ?", (current_user,), fetchone=True)
+        if user_row and user_row[0] and str(user_row[0]).strip():
+            farmer_display_name = str(user_row[0]).strip()
+    except Exception:
+        farmer_display_name = None
+
     try:
         res = chatbot_service.process_chat_query(
             query=payload.query.strip(),
             authenticated_farmer_id=current_user,
             authorized_farm_context=authorized_farm_info,
+            farmer_name=farmer_display_name,
             language=payload.language or "auto",
             location=payload.location or "",
             latitude=payload.latitude,

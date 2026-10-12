@@ -575,9 +575,11 @@ const AgriSenseChatbot = {
             if (data.status === "success" && data.languages) {
                 const selectEl = document.getElementById("agri-chat-lang-select");
                 if (selectEl) {
-                    selectEl.innerHTML = data.languages.map(l =>
-                        `<option value="${l.code}">${l.flag} ${l.native}</option>`
+                    const autoOption = `<option value="auto">🌐 Auto Language</option>`;
+                    selectEl.innerHTML = autoOption + data.languages.map(l =>
+                        `<option value="${l.code}">${l.flag} ${l.native} (${l.name})</option>`
                     ).join("");
+                    selectEl.value = this.selectedLanguage || "auto";
                 }
             }
         } catch (e) {

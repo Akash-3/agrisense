@@ -269,3 +269,106 @@ def test_multilingual_answers_under_100_words(monkeypatch):
         res = chatbot_service.process_chat_query(query=q, authenticated_farmer_id=1, language=lang)
         word_count = chatbot_service.count_words(res["answer"])
         assert word_count <= 100, f"Language '{lang}' exceeded 100 words ({word_count}): {res['answer']}"
+
+def test_intent_classification():
+    """Verifies that user queries are categorized into appropriate conversational or agricultural intents."""
+    assert chatbot_service.classify_intent("hi") == "GREETING"
+    assert chatbot_service.classify_intent("hello") == "GREETING"
+    assert chatbot_service.classify_intent("namaste") == "GREETING"
+    assert chatbot_service.classify_intent("good morning") == "GREETING"
+    assert chatbot_service.classify_intent("Hi, can you explain nitrogen deficiency?") == "AGRICULTURAL_WITH_GREETING"
+    assert chatbot_service.classify_intent("Namaste, gehu me khad kab dale?") == "AGRICULTURAL_WITH_GREETING"
+    assert chatbot_service.classify_intent("Who are you?") == "IDENTITY_CAPABILITY"
+    assert chatbot_service.classify_intent("What can you do?") == "IDENTITY_CAPABILITY"
+    assert chatbot_service.classify_intent("Thank you so much") == "GRATITUDE"
+    assert chatbot_service.classify_intent("Bye") == "FAREWELL"
+    assert chatbot_service.classify_intent("Okay") == "ACKNOWLEDGEMENT"
+    assert chatbot_service.classify_intent("Explain again") == "CONFUSION"
+    assert chatbot_service.classify_intent("What is the NPK ratio for Wheat?") == "AGRICULTURAL"
+
+def test_pure_greeting_response_quality_and_name_handling(monkeypatch):
+    """Verifies that pure greetings return short, warm greetings with farmer's name when known, and no invented names when unknown."""
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    # 1. Greeting with known farmer name
+    res_with_name = chatbot_service.process_chat_query(
+        query="Hello",
+        authenticated_farmer_id=1,
+        farmer_name="Suresh Kumar",
+        language="en"
+    )
+    ans1 = res_with_name["answer"]
+    w1 = chatbot_service.count_words(ans1)
+    assert "Suresh Kumar" in ans1, f"Expected name 'Suresh Kumar' in greeting: {ans1}"
+    assert w1 <= 30, f"Greeting should be concise (10-30 words), got {w1}: {ans1}"
+    assert "Answer:" not in ans1 and "Action:" not in ans1 and "Caution:" not in ans1, "Greetings must not contain rigid headers"
+    assert "Krishi Vigyan Kendra" not in ans1, "Greetings must not contain KVK warnings"
+    assert "Wheat in Punjab" not in ans1, "Greetings must not assume crops or locations"
+    assert res_with_name["web_citations"] == [], "Web citations should not be retrieved for pure greetings"
+
+    # 2. Greeting without farmer name (should not invent names like Akash or Kavya or Farmer)
+    res_no_name = chatbot_service.process_chat_query(
+        query="Hi",
+        authenticated_farmer_id=2,
+        farmer_name=None,
+        language="en"
+    )
+    ans2 = res_no_name["answer"]
+    w2 = chatbot_service.count_words(ans2)
+    assert "Akash" not in ans2 and "Kavya" not in ans2 and "Farmer" not in ans2, f"Should not invent names: {ans2}"
+    assert w2 <= 30, f"Greeting should be concise, got {w2}: {ans2}"
+    assert "Answer:" not in ans2 and "Action:" not in ans2 and "Caution:" not in ans2
+
+def test_compound_greeting_and_agricultural_query(monkeypatch):
+    """Verifies that compound queries answer the agricultural question rather than only saying hello."""
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    res = chatbot_service.process_chat_query(
+        query="Hi, can you explain nitrogen deficiency in wheat?",
+        authenticated_farmer_id=1,
+        farmer_name="Ramesh",
+        language="en"
+    )
+    ans = res["answer"]
+    assert "nitrogen" in ans.lower() or "wheat" in ans.lower() or "urea" in ans.lower()
+    assert chatbot_service.count_words(ans) <= 100
+
+def test_language_detection_and_matching(monkeypatch):
+    """Verifies language matching: UI override, Devanagari Hindi, Odia, Hinglish, and Romanized Odia."""
+    # 1. Devanagari Hindi detection
+    assert chatbot_service.detect_language("गेहूं में खाद कब डालें?", "auto") == "hi"
+
+    # 2. Odia script detection
+    assert chatbot_service.detect_language("ଧାନ ଫସଲରେ କେଉଁ ସାର ପ୍ରୟୋଗ କରିବେ?", "auto") == "or"
+
+    # 3. Romanized Hinglish detection
+    assert chatbot_service.detect_language("gehu me khad kab dale", "auto") == "hi"
+    assert chatbot_service.detect_language("namaste mera naam ramesh hai", "auto") == "hi"
+
+    # 4. Romanized Odia detection
+    assert chatbot_service.detect_language("namaskar mora chasa kemiti heba", "auto") == "or"
+
+    # 5. UI selection overrides message text
+    assert chatbot_service.detect_language("Hello, how are you?", "hi") == "hi"
+    assert chatbot_service.detect_language("Hello, how are you?", "or") == "or"
+
+def test_conversational_responses_multilingual(monkeypatch):
+    """Verifies greetings and identity responses across Hindi, Odia, and English."""
+    # Hindi greeting
+    res_hi = chatbot_service.get_conversational_response("GREETING", "hi", "रमेश")
+    assert "रमेश" in res_hi and "नमस्ते" in res_hi
+    assert chatbot_service.count_words(res_hi) <= 30
+
+    # Odia greeting
+    res_or = chatbot_service.get_conversational_response("GREETING", "or", "ସୁରେଶ")
+    assert "ସୁରେଶ" in res_or and "ନମସ୍କାର" in res_or
+    assert chatbot_service.count_words(res_or) <= 30
+
+    # Identity explanation
+    res_id = chatbot_service.get_conversational_response("IDENTITY_CAPABILITY", "en")
+    assert "AgriSense AI" in res_id
+    assert chatbot_service.count_words(res_id) <= 50
