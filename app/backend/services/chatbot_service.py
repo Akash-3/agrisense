@@ -425,6 +425,119 @@ class ProductionAgriculturalChatbotService:
 
         return translated_text
 
+    @staticmethod
+    def count_words(text: str) -> int:
+        """Counts whitespace-delimited words in text."""
+        if not text:
+            return 0
+        return len(text.split())
+
+    def enforce_word_limit(self, text: str, max_words: int = 100) -> str:
+        """
+        Enforces a strict maximum word limit (default 100 words, aiming for 40-80 words).
+        Preserves direct Answer, actionable steps, and essential Caution/Safety warnings.
+        Avoids blind truncation at the 100th word by using structural and sentence-level compression.
+        """
+        if not text or self.count_words(text) <= max_words:
+            return text
+
+        # 1. Strip conversational fluff/filler
+        fluff_patterns = [
+            r'^(?:Hello|Namaste|Greetings|Hi)\s*(?:from\s+AgriSense\s*AI!?)?[,\.\s]*',
+            r'(?:As an AI agricultural assistant|I am here to help you with|In summary|In conclusion)[,\.\s]*',
+            r'(?:Please let me know if you need any further assistance|Feel free to ask more questions)[,\.\s]*'
+        ]
+        cleaned = text.strip()
+        for pat in fluff_patterns:
+            cleaned = re.sub(pat, '', cleaned, flags=re.IGNORECASE).strip()
+
+        if self.count_words(cleaned) <= max_words:
+            return cleaned
+
+        # 2. Check for distinct Caution/Warning/Safety lines
+        caution_lines = []
+        other_lines = []
+        lines = [line.strip() for line in cleaned.split('\n') if line.strip()]
+        for line in lines:
+            line_lower = line.lower()
+            if any(k in line_lower for k in ['**caution', 'caution:', '⚠️', '**warning', 'warning:', 'safety precaution', 'do not apply', 'avoid excess', 'avoid waterlogging']):
+                caution_lines.append(line)
+            else:
+                other_lines.append(line)
+
+        caution_block = '\n'.join(caution_lines)
+        caution_words = self.count_words(caution_block)
+        allowed_other_words = max_words - caution_words if caution_words < max_words else max_words
+
+        # 3. Line & section budget building
+        selected_lines = []
+        current_words = 0
+        for line in other_lines:
+            line_w = self.count_words(line)
+            if current_words + line_w <= allowed_other_words:
+                selected_lines.append(line)
+                current_words += line_w
+            else:
+                sentences = re.split(r'(?<=[.!?])\s+', line)
+                for s in sentences:
+                    s_w = self.count_words(s)
+                    if current_words + s_w <= allowed_other_words:
+                        selected_lines.append(s)
+                        current_words += s_w
+                    else:
+                        break
+                break
+
+        if selected_lines:
+            candidate = '\n'.join(selected_lines)
+            if caution_block and caution_block not in candidate:
+                candidate = candidate + '\n' + caution_block
+            if self.count_words(candidate) <= max_words:
+                return candidate.strip()
+
+        # 4. Sentence-level compression across full text
+        sentences = re.split(r'(?<=[.!?])\s+', cleaned)
+        selected_sentences = []
+        current_count = 0
+        caution_sentences = [
+            s for s in sentences
+            if any(k in s.lower() for k in ['caution', 'warning', '⚠️', 'danger', 'avoid', 'do not', 'safety'])
+        ]
+        key_caution = caution_sentences[0] if caution_sentences else ''
+        key_caution_words = self.count_words(key_caution)
+        target_budget = max_words - key_caution_words if key_caution_words < 30 else max_words
+
+        for s in sentences:
+            if s == key_caution:
+                continue
+            s_w = self.count_words(s)
+            if current_count + s_w <= target_budget:
+                selected_sentences.append(s)
+                current_count += s_w
+            else:
+                break
+
+        if key_caution and key_caution not in selected_sentences:
+            selected_sentences.append(key_caution)
+
+        result = ' '.join(selected_sentences).strip()
+        if result and self.count_words(result) <= max_words:
+            return result
+
+        # 5. Safe clause boundary fallback if single sentence exceeds limit
+        tokens = cleaned.split()
+        if len(tokens) > max_words:
+            truncated_tokens = tokens[:max_words]
+            joined = ' '.join(truncated_tokens)
+            last_punc = max(joined.rfind('.'), joined.rfind('!'), joined.rfind('?'), joined.rfind(';'))
+            if last_punc > len(joined) // 2:
+                joined = joined[:last_punc + 1]
+            elif not joined.endswith('.'):
+                joined += '.'
+            return joined
+
+        return cleaned
+
     def _generate_dynamic_agronomic_answer(
         self,
         query: str,
@@ -440,19 +553,16 @@ class ProductionAgriculturalChatbotService:
         resolved_history: List[Dict[str, str]],
         is_live_search_attempted: bool = False
     ) -> str:
-        """Generates dynamic, query-tailored agronomic responses for domain questions, follow-ups, and general inquiries."""
+        """Generates concise, query-tailored agronomic responses strictly under 100 words (aiming for 40-80 words)."""
         sections = []
 
         # 1. Vision Diagnosis Payload (if leaf image was attached)
         if vision_diagnosis:
             remedy = self.knowledge_base["disease_remedies"].get("leaf_blight")
             sections.append(
-                f"🔬 **Crop Health Visual Diagnosis (PyTorch MM-SSNet Visual Scan)**:\n"
-                f"- **Condition**: {vision_diagnosis['condition']} ({vision_diagnosis['probabilistic_certainty']})\n"
-                f"- **Confidence Score**: {vision_diagnosis['confidence_pct']}%\n"
-                f"- **Severity Rating**: {vision_diagnosis['severity_score']}/100\n"
-                f"- **Attributing Band**: {vision_diagnosis['top_spectral_band']}\n"
-                f"- **ICAR / KVK Advisory Remedy**: {remedy}"
+                f"🔬 **Visual Scan ({vision_diagnosis['condition']}):**\n"
+                f"- **Confidence**: {vision_diagnosis['confidence_pct']}% | Severity: {vision_diagnosis['severity_score']}/100\n"
+                f"- **Treatment**: {remedy}"
             )
 
         # Detect crop explicitly mentioned in current query first
@@ -467,8 +577,7 @@ class ProductionAgriculturalChatbotService:
             target_crop = "Paddy"
         crop_key = target_crop.lower()
 
-        # 2. Query Intent Analysis & Direct Knowledge Synthesis
-
+        # 2. Query Intent Analysis & Direct Knowledge Synthesis (Concise Answer, Action, Caution)
         is_nitrogen_query = any(w in q_lower for w in ["nitrogen", "n deficiency", "nitrate", "ammonium"]) or re.search(r'\b(n)\b', q_lower) is not None or context_topic == "nitrogen"
         is_deficiency_query = any(w in q_lower for w in ["deficiency", "chlorosis", "yellowing", "yellow", "deficient", "symptom", "symptoms", "look for"])
         is_remedy_query = any(w in q_lower for w in ["what should i do", "how to treat", "remedy", "cure", "fix", "solution", "action", "manage", "treat", "next step", "what next", "do next"])
@@ -481,23 +590,36 @@ class ProductionAgriculturalChatbotService:
 
         if is_child_prompt:
             sections.append(
-                "🌱 **Understanding Soil & Plants (For Young Learners)**:\n"
-                "Think of soil as a super kitchen for plants! Soil is made of tiny bits of rocks, old leaves, air, water, and millions of friendly little bugs.\n\n"
-                "Just like you need food, water, and vitamins to grow strong and run around, plants put their roots down into the soil to drink water and eat nutrients like Nitrogen, Phosphorus, and Potassium. Healthy soil makes happy, green plants!"
+                "🌱 **Soil & Plants (Simple Explanation):**\n"
+                "**Answer:** Soil is a natural kitchen for plants, providing air, water, and food.\n"
+                "**Action:** Roots take up Nitrogen, Phosphorus, and Potassium to grow strong stems and green leaves.\n"
+                "**Caution:** Keep soil moist and fertile with organic compost so plants thrive."
             )
 
         elif is_one_sentence:
             if "water" in q_lower:
-                sections.append("Plants need water to transport nutrients from the soil to their leaves and carry out photosynthesis to produce energy and survive.")
+                sections.append(
+                    "**Answer:** Plants need water to transport nutrients from roots to leaves and perform photosynthesis for energy and survival."
+                )
             else:
-                sections.append("Plants require balanced soil nutrients and water to synthesize chlorophyll, build cellular structures, and achieve healthy growth.")
+                sections.append(
+                    "**Answer:** Plants require balanced soil nutrients and water to synthesize chlorophyll, build cellular structures, and achieve healthy growth."
+                )
 
         elif is_nitrogen_vs_iron:
             sections.append(
-                "🍃 **Comparing Nitrogen Deficiency vs. Iron Deficiency in Plants**:\n\n"
-                "1. **Affected Leaf Location & Mobility**: Nitrogen ($N$) is mobile inside the plant, so deficiency symptoms appear first on **older lower leaves** (yellowing from tip inward). Iron ($Fe$) is immobile, so deficiency symptoms appear first on **youngest top leaves**.\n"
-                "2. **Pattern of Leaf Yellowing (Chlorosis)**: Nitrogen deficiency causes uniform yellowing across the entire lower leaf blade and veins. Iron deficiency causes distinct **interveinal chlorosis**, where leaf tissue between veins turns pale yellow or white while veins stay dark green.\n"
-                "3. **Soil Conditions & Correction**: Nitrogen deficiency is caused by low soil organic matter or insufficient fertilizer (corrected with Urea top-dressing/Nano Urea spray). Iron deficiency occurs mainly in high-pH alkaline/calcareous soils (corrected with foliar spray of 0.5% Ferrous Sulphate $FeSO_4$ + 0.1% Citric Acid)."
+                "🍃 **Nitrogen vs. Iron Deficiency Comparison:**\n"
+                "**Answer:** Both cause leaf yellowing, but differ in plant mobility and location.\n"
+                "- **1. Location:** Nitrogen is mobile; deficiency yellowing starts on older lower leaves. Iron is immobile; yellowing appears on youngest top leaves.\n"
+                "- **2. Pattern:** Nitrogen produces uniform chlorosis across the leaf blade. Iron causes distinct interveinal chlorosis (yellow tissue, dark green veins).\n"
+                "- **3. Action:** Apply Urea or Nano Urea for Nitrogen; foliar spray 0.5% Ferrous Sulphate ($FeSO_4$) for Iron."
+            )
+
+        elif is_photosynthesis_query:
+            sections.append(
+                "🌿 **Photosynthesis in Plants:**\n"
+                "**Answer:** Photosynthesis is the biological process where green leaves convert sunlight, water ($H_2O$), and carbon dioxide ($CO_2$) into glucose energy and oxygen ($O_2$).\n"
+                "**Action:** Maintain adequate sunlight and balanced Nitrogen and Magnesium nutrition to support active chlorophyll molecules."
             )
 
         is_potassium_query = any(w in q_lower for w in ["potassium", "potash"]) or re.search(r'\b(k)\b', q_lower) is not None
@@ -506,130 +628,97 @@ class ProductionAgriculturalChatbotService:
         is_soil_ph = "ph" in q_lower and ("soil" in q_lower or "acid" in q_lower or "alkaline" in q_lower or "absorption" in q_lower)
         is_safety = any(w in q_lower for w in ["safety", "precaution", "precautions", "handling", "protective", "ppe"])
 
-        if is_photosynthesis_query:
+        if is_npk_vs_single:
             sections.append(
-                "🌿 **Photosynthesis in Plants**:\n"
-                "Photosynthesis is the primary biological process by which green plants convert light energy, carbon dioxide ($CO_2$), and water ($H_2O$) into oxygen ($O_2$) and chemical energy stored in glucose.\n\n"
-                "**Key Components & Function:**\n"
-                "- **Chlorophyll Pigments**: Chlorophyll molecules inside plant chloroplasts absorb sunlight energy.\n"
-                "- **Nutrient Requirement**: Nitrogen, Magnesium (the core atom in chlorophyll), and Iron are critical for synthesizing and maintaining active chlorophyll molecules."
-            )
-
-        elif is_npk_vs_single:
-            sections.append(
-                "🧪 **NPK Complex Fertilizers vs. Single-Nutrient Fertilizers**:\n"
-                "Understanding the difference between compound NPK fertilizers and straight single-nutrient fertilizers:\n\n"
-                "- **NPK Fertilizers (Complex)**: Contain two or three primary nutrients in fixed balanced ratios (e.g., NPK 19-19-19 or 12-32-16). They ensure balanced nutrient distribution during basal application or fertigation.\n"
-                "- **Single-Nutrient Fertilizers (Straight)**: Supply only one primary element (e.g., Urea for 46% N, Single Super Phosphate / SSP for 16% P₂O₅, Muriate of Potash / MOP for 60% K₂O). They allow precise top-dressing targeted at specific nutrient deficiencies."
+                "🧪 **NPK Complex vs. Single-Nutrient Fertilizers:**\n"
+                "**Answer:** NPK complex fertilizers supply multiple primary nutrients (N, P, K) in a balanced ratio for basal application. Single-nutrient fertilizers (Urea for N, SSP for P, MOP for K) deliver one specific element.\n"
+                "**Action:** Use NPK for balanced base fertilization and single fertilizers for targeted deficiency correction."
             )
 
         elif is_organic_matter:
             sections.append(
-                "🪱 **Importance of Soil Organic Matter for Soil Health**:\n"
-                "Soil Organic Matter (SOM) is the biological foundation of healthy, resilient agricultural soils:\n\n"
-                "- **Nutrient Retention & CEC**: Enhances Cation Exchange Capacity (CEC), storing nutrients (N, P, K, Ca, Mg) and preventing leaching.\n"
-                "- **Water Holding Capacity**: Increases soil moisture retention and drought resilience by forming stable soil aggregates.\n"
-                "- **Microbial Activity**: Provides carbon energy for beneficial soil microbes, mycorrhizal fungi, and earthworms.\n"
-                "- **Soil Structure**: Improves soil aeration, root penetration, and prevents surface crusting and erosion."
+                "🪱 **Soil Organic Matter (SOM) & Soil Health:**\n"
+                "**Answer:** Soil Organic Matter improves soil structure, water retention, and microbial activity.\n"
+                "- **Action 1:** Apply 10–15 tonnes/ha FYM or compost during land preparation.\n"
+                "- **Action 2:** Retain crop residues and plant green manure crops.\n"
+                "- **Benefit:** Prevents nutrient leaching and boosts crop drought resilience."
             )
 
         elif is_soil_ph:
             sections.append(
-                "🧪 **Importance of Soil pH in Plant Nutrient Absorption**:\n"
-                "Soil pH measures the acidity or alkalinity of soil, directly controlling chemical nutrient availability to plant roots:\n\n"
-                "- **Optimal Range**: A pH between **6.0 and 7.5** allows maximum availability of essential macro and micronutrients.\n"
-                "- **Acidic Soils (pH < 6.0)**: Fixes Phosphorus and makes Aluminum/Manganese toxic while reducing Calcium and Magnesium availability.\n"
-                "- **Alkaline Soils (pH > 7.5)**: Locks up Iron, Zinc, Boron, and Manganese, causing interveinal leaf chlorosis.\n"
-                "- **Correction**: Apply agricultural lime (calcium carbonate) to raise pH in acidic soils, or gypsum/sulfur to lower pH in sodic/alkaline soils."
+                "🧪 **Soil pH & Nutrient Absorption:**\n"
+                "**Answer:** Soil pH governs nutrient availability to plant roots. The optimal range for most field crops is 6.0–7.5.\n"
+                "- **Action:** Apply agricultural lime to raise acidic pH (<6.0), or gypsum to lower alkaline pH (>7.5).\n"
+                "- **Caution:** Extreme soil pH locks up essential Phosphorus, Iron, and Zinc."
             )
 
         elif is_safety:
             sections.append(
-                "⚠️ **Safety Precautions for Handling Chemical Fertilizers**:\n"
-                "Follow these essential safety practices when storing, mixing, and applying chemical fertilizers:\n\n"
-                "1. **Personal Protective Equipment (PPE)**: Wear protective rubber gloves, safety goggles, a dust mask, and long-sleeved clothing during handling.\n"
-                "2. **Prevent Contact & Inhalation**: Avoid direct skin contact or inhaling fertilizer dust, especially when opening bags of concentrated Urea or DAP.\n"
-                "3. **Proper Storage**: Store fertilizer bags off the ground on wooden pallets in a dry, well-ventilated, locked shed away from direct sunlight, seeds, food, and children.\n"
-                "4. **Hygiene & Washup**: Thoroughly wash hands, arms, and face with soap and clean water immediately after application."
+                "⚠️ **Safety Precautions for Fertilizer Handling:**\n"
+                "**Answer:** Follow these safety practices when storing and applying fertilizers:\n"
+                "- **Action 1:** Wear protective rubber gloves, safety goggles, and a dust mask when handling Urea or DAP.\n"
+                "- **Action 2:** Store bags off the ground in a dry, ventilated, locked shed away from children.\n"
+                "- **Caution:** Wash hands and face thoroughly with soap and clean water immediately after application."
             )
 
         elif is_nitrogen_query or ("npk" in q_lower and "ratio" not in q_lower and "dose" not in q_lower):
             if is_confirm_query:
                 sections.append(
-                    f"🧪 **Confirming Nitrogen Deficiency in {target_crop}**:\n"
-                    f"While visual symptoms (lower leaf yellowing in a V-shape) provide strong initial indicators, visual observation alone is not 100% conclusive. To definitively confirm nitrogen deficiency in your **{target_crop}** crop:\n\n"
-                    f"1. **Soil Health Card / Soil Testing**: Perform a laboratory soil test to measure available Nitrogen ($N$), Organic Carbon ($OC$), and soil pH.\n"
-                    f"2. **Leaf Tissue / SPAD Meter Analysis**: Use a SPAD chlorophyll meter or leaf tissue test to measure active chlorophyll levels in flag leaves.\n"
-                    f"3. **Rule Out Confounding Factors**: Verify that yellowing is not caused by waterlogging, root damage, soil salinity, or Sulfur/Iron deficiency.\n"
-                    f"4. **KVK Specialist Consultation**: Consult your local Krishi Vigyan Kendra (KVK) or extension officer for field verification."
+                    f"🧪 **Confirming Nitrogen Deficiency in {target_crop}:**\n"
+                    f"**Answer:** V-shaped lower leaf yellowing indicates nitrogen deficiency, but laboratory confirmation is recommended.\n"
+                    f"- **Action 1:** Perform a Soil Health Card laboratory test to measure available Nitrogen ($N$).\n"
+                    f"- **Action 2:** Test leaf chlorophyll levels using a SPAD chlorophyll meter.\n"
+                    f"- **Caution:** Rule out waterlogging and Sulfur deficiency, which cause similar yellowing."
                 )
             elif is_remedy_query or ("do" in q_lower and "deficiency" in q_lower) or ("next" in q_lower and "do" in q_lower):
-                # Remedy / Action for Nitrogen Deficiency
                 sections.append(
-                    f"💊 **Remedial Actions & Next Steps for Nitrogen Deficiency in {target_crop}**:\n"
-                    f"If your **{target_crop}** crop shows signs of nitrogen deficiency, take the following ICAR/KVK corrective measures:\n\n"
-                    f"1. **Evaluate Growth Stage & Records**: Check crop growth stage, previous fertilizer applications, and soil moisture levels.\n"
-                    f"2. **Top-Dressing Urea**: Apply Urea (46% N) @ **25–30 kg per acre** (~60 kg/ha) as a top-dressing during critical growth stages (such as Crown Root Initiation or first irrigation for wheat).\n"
-                    f"3. **Foliar Spray for Rapid Absorption**: Spray a **2% Urea solution** (20g Urea per liter of water) or **Nano Urea @ 2–4 mL per liter** of water during early morning or late afternoon for quick canopy recovery.\n"
-                    f"4. **Ensure Soil Moisture**: Always apply top-dressed urea when adequate soil moisture is present to avoid root burn and ammonia loss.\n"
-                    f"5. **Soil Health Card Guidelines**: Follow ICAR recommendations (120:60:40 kg N:P₂O₅:K₂O per hectare for irrigated wheat) adjusted for your soil test values."
+                    f"💊 **Remedial Actions for Nitrogen Deficiency in {target_crop}:**\n"
+                    f"**Answer:** Address nitrogen deficiency promptly to prevent tillering loss and stunted growth.\n"
+                    f"- **Action 1:** Top-dress Urea (46% N) @ 25–30 kg per acre (~60 kg/ha) with adequate soil moisture.\n"
+                    f"- **Action 2:** Spray 2% Urea solution (20g/L water) or Nano Urea @ 2–4 mL/L for rapid foliar absorption.\n"
+                    f"- **Caution:** Never apply dry urea on parched soil to avoid root burn."
                 )
             elif is_deficiency_query or "identify" in q_lower or "symptom" in q_lower or "look for" in q_lower:
-                # Identifying Nitrogen Deficiency
                 sections.append(
-                    f"🔍 **Identifying Nitrogen Deficiency Symptoms in {target_crop}**:\n"
-                    f"Nitrogen deficiency in **{target_crop}** presents distinct visual diagnostic symptoms:\n\n"
-                    f"- **Older Leaves Yellow First**: Nitrogen is mobile within plant tissues, so the plant translocates nitrogen to younger growth, causing yellowing (chlorosis) to appear on older, lower leaves first.\n"
-                    f"- **V-Shaped Yellowing**: Chlorosis typically develops in a characteristic V-shape, starting at the leaf tip and advancing down the midrib.\n"
-                    f"- **Stunted Growth & Reduced Tillering**: Plants remain short, develop fewer tillers or stems, and leaves appear narrow and pale green.\n"
-                    f"- **Early Leaf Death**: Under severe deficiency, lower leaves turn light brown and dry up prematurely.\n\n"
-                    f"*Diagnostic Tip*: Symptoms alone provide an initial indicator. Confirm via soil testing or KVK guidance, as yellowing can also stem from waterlogging or Sulfur deficiency."
+                    f"🔍 **Identifying Nitrogen Deficiency in {target_crop}:**\n"
+                    f"**Answer:** Nitrogen deficiency symptoms appear distinctly on foliage:\n"
+                    f"- **Symptoms:** Older lower leaves turn yellow first in a V-shape from leaf tip down the midrib, with stunted tillering.\n"
+                    f"- **Action:** Top-dress Urea or spray foliar Nano Urea with irrigation.\n"
+                    f"- **Caution:** Confirm via soil test, as waterlogged roots cause similar yellowing."
                 )
             elif is_importance_query or "important" in q_lower or "why" in q_lower:
-                # Importance of Nitrogen
                 sections.append(
-                    f"🌾 **Importance of Nitrogen for {target_crop}**:\n"
-                    f"Nitrogen (N) is a vital macronutrient essential for achieving optimal growth and yield in **{target_crop}**:\n\n"
-                    f"- **Tillering & Canopy Expansion**: Promotes rapid tiller formation, stem elongation, and active leaf area index (LAI).\n"
-                    f"- **Chlorophyll & Photosynthesis**: Increases chlorophyll density, ensuring high photosynthetic rates during vegetative and boot stages.\n"
-                    f"- **Protein Synthesis**: Essential for constructing plant amino acids, structural proteins, and enzymes.\n"
-                    f"- **Grain Filling & Quality**: Directly influences grain head size, kernel density, and grain protein content."
+                    f"🌾 **Importance of Nitrogen for {target_crop}:**\n"
+                    f"**Answer:** Nitrogen is an essential macronutrient that drives chlorophyll production, vegetative vigor, and tillering in {target_crop}.\n"
+                    f"- **Action 1:** Provides protein building blocks for cell division and grain filling.\n"
+                    f"- **Action 2:** Follow balanced ICAR-recommended NPK ratios (e.g. 120:60:40 kg/ha for Wheat).\n"
+                    f"- **Caution:** Avoid excess nitrogen, which induces lodging and pest susceptibility."
                 )
             else:
-                # General Explanation of What Nitrogen Is
-                crop_note = f" For your **{target_crop}** crop, maintaining adequate nitrogen supply is crucial during early tillering and growth." if target_crop else ""
+                crop_note = f" In {target_crop}, maintain adequate nitrogen during early tillering." if target_crop else ""
                 sections.append(
                     f"🌱 **What is Nitrogen in Plants?**\n"
-                    f"Nitrogen (N) is an essential primary macronutrient required in large quantities by plants for healthy vegetative growth, cellular development, and reproduction.{crop_note}\n\n"
-                    f"**Key Functions of Nitrogen in Plants:**\n"
-                    f"- **Chlorophyll Production**: Nitrogen is a core component of chlorophyll, the green pigment that absorbs sunlight for photosynthesis.\n"
-                    f"- **Protein & Enzyme Synthesis**: It forms amino acids, which are the fundamental building blocks of plant proteins and enzymes.\n"
-                    f"- **Genetic Code (DNA & RNA)**: Nitrogen is a key structural constituent of nucleic acids required for cell division.\n"
-                    f"- **Vegetative Vigor**: Drives active stem elongation, leaf canopy expansion, and tillering.\n\n"
-                    f"**Sufficiency vs. Deficiency Indicators:**\n"
-                    f"- *Sufficient*: Dark green, lush foliage with rapid shoot and tiller development.\n"
-                    f"- *Deficient*: Pale green to yellowing leaves starting on older lower foliage, short plant height, and poor tillering."
+                    f"**Answer:** Nitrogen (N) is a primary macronutrient essential for chlorophyll synthesis, protein formation, and vigorous vegetative growth.{crop_note}\n"
+                    f"- **Action:** Apply recommended nitrogen in split doses: half basal at sowing and half top-dressed.\n"
+                    f"- **Caution:** Avoid over-fertilization to prevent vegetative lodging and aphid infestations."
                 )
 
         elif is_potassium_query:
             sections.append(
-                f"🧪 **Potassium (K) in Plants & {target_crop}**:\n"
-                f"Potassium (K) is an essential primary macronutrient responsible for enzyme activation, water regulation, and stress tolerance in **{target_crop}**.\n\n"
-                f"**Key Functions:**\n"
-                f"- **Stomatal Regulation**: Controls the opening and closing of stomata, managing water transpiration during heat or drought.\n"
-                f"- **Disease & Lodging Resistance**: Strengthens plant cell walls, reducing vulnerability to lodging, drought, and fungal pathogens.\n"
-                f"- **Grain Quality**: Enhances starch translocation, grain plumpness, and test weight during grain filling.\n\n"
-                f"**Application Tip**: Apply MOP (Muriate of Potash - 60% K₂O) as a basal dose at sowing according to ICAR recommendations."
+                f"🧪 **Potassium (K) in {target_crop}:**\n"
+                f"**Answer:** Potassium regulates stomatal water balance, activates enzymes, and improves disease and lodging resistance in {target_crop}.\n"
+                f"- **Action:** Apply MOP (Muriate of Potash - 60% K₂O) @ 20–30 kg/acre as a basal application at sowing.\n"
+                f"- **Caution:** Potassium deficiency leads to weak stems, lodging, and reduced grain test weight."
             )
 
         elif any(w in q_lower for w in ["fertilizer", "npk", "urea", "dap", "potash", "manure", "dose", "dosage"]):
             remedy = self.knowledge_base["npk_ratios"].get(crop_key, self.knowledge_base["npk_ratios"].get(resolved_crop.lower(), self.knowledge_base["npk_ratios"]["wheat"]))
             sections.append(
-                f"🧪 **Fertilizer NPK Recommendation for {target_crop}**:\n"
-                f"- **Recommended Protocol**: {remedy}\n"
-                f"- **Soil Preparation**: Incorporate FYM (10-15 tonnes/ha) during field preparation.\n"
-                f"- **Application Safety**: Ensure adequate soil moisture before top-dressing nitrogenous fertilizers.\n\n"
-                f"❓ *To calculate an exact fertilizer dose for your field, could you specify your current growth stage, field size in acres, or recent soil test results?*"
+                f"🧪 **Fertilizer NPK Recommendation for {target_crop}:**\n"
+                f"**Answer:** Recommended ICAR fertilizer dose: {remedy}.\n"
+                f"- **Action 1:** Apply full P and K and 50% N as a basal application at sowing.\n"
+                f"- **Action 2:** Top-dress remaining 50% N at first irrigation/tillering.\n"
+                f"- **Caution:** Ensure adequate soil moisture before top-dressing nitrogen fertilizers."
             )
 
         elif any(w in q_lower for w in ["disease", "pest", "blight", "rust", "fungus", "insect", "caterpillar", "chlorosis", "spot"]):
@@ -642,67 +731,63 @@ class ProductionAgriculturalChatbotService:
                 matched_remedy = "Spray Neem Oil (10,000 PPM) @ 3ml/L water or consult local KVK agronomic specialist."
 
             sections.append(
-                f"🛡️ **Pest & Disease Advisory for {target_crop}**:\n"
-                f"- **Target Problem**: {query}\n"
-                f"- **Recommended Treatment**: {matched_remedy}\n"
-                f"- **Cultural Practice**: Maintain proper field drainage, crop rotation, and inspect lower leaf undersides regularly."
+                f"🛡️ **Pest & Disease Advisory for {target_crop}:**\n"
+                f"**Answer:** For {query} in {target_crop}, prompt preventive management is recommended.\n"
+                f"- **Action:** {matched_remedy}\n"
+                f"- **Practice:** Maintain proper field drainage and inspect lower leaf undersides regularly.\n"
+                f"- **Caution:** Follow recommended chemical dilution rates; avoid spraying in strong wind."
             )
 
         elif any(w in q_lower for w in ["price", "mandi", "rate", "market", "sell", "msp"]):
-            if web_citations and any(c.get("source_status") == "LIVE_VERIFIED_PAGE" for c in web_citations):
-                sections.append(
-                    f"📊 **Mandi Market Update (Live Data)**:\n"
-                    f"- **Crop**: {target_crop}\n"
-                    f"- **State**: {region_info['state']}\n"
-                    f"- **Major Mandis**: {', '.join(region_info['major_mandis'])}\n"
-                    f"- **Market Status**: Mandi prices verified via e-NAM / AgMarkNet live portal queries."
-                )
-            else:
-                sections.append(
-                    f"📊 **Mandi Market Update for {target_crop} ({region_info['state']})**:\n"
-                    f"- **Target Crop**: {target_crop}\n"
-                    f"- **Major Regional Mandis**: {', '.join(region_info['major_mandis'])}\n"
-                    f"- **Official Portals**: Track daily MSP rates via e-NAM (National Agriculture Market) and AgMarkNet."
-                )
+            mandi_list = ', '.join(region_info['major_mandis'][:2])
+            sections.append(
+                f"📊 **Mandi Market Rates for {target_crop} ({region_info['state']}):**\n"
+                f"**Answer:** Track daily market arrivals and MSP modal rates on official agricultural portals.\n"
+                f"- **Action:** Visit e-NAM (enam.gov.in) or AgMarkNet (agmarknet.gov.in) for live prices.\n"
+                f"- **Key Mandis:** {mandi_list}."
+            )
 
         elif any(w in q_lower for w in ["scheme", "pm-kisan", "pmfby", "subsid", "loan", "kcc"]):
-            schemes_text = "\n".join([f"- **{s}**: {self.knowledge_base['govt_schemes'].get(s.lower().replace('-', '_'), 'State agricultural welfare benefit scheme.')}" for s in region_info["schemes"]])
-            sections.append(f"🏛️ **Government Schemes & Subsidies ({region_info['state']})**:\n{schemes_text}")
+            schemes_text = ", ".join([f"{s}" for s in region_info["schemes"][:3]])
+            sections.append(
+                f"🏛️ **Government Agricultural Schemes ({region_info['state']}):**\n"
+                f"**Answer:** Key government welfare schemes available: {schemes_text}.\n"
+                f"- **Action:** Apply at your local Common Service Center (CSC) or state agriculture office with your Aadhaar and land records.\n"
+                f"- **Support:** Access PM-KISAN (Rs 6,000/yr) and PMFBY crop insurance."
+            )
 
         elif any(w in q_lower for w in ["water", "irrigate", "irrigation", "moisture", "drip", "telemetry", "sensor"]):
             telemetry_text = ""
             if farm_info.get("has_real_telemetry") and farm_info.get("telemetry_status_text"):
-                telemetry_text = f"\n- **Real Sensor Telemetry**: {farm_info['telemetry_status_text']}"
-            elif farm_info.get("farm_id"):
-                telemetry_text = "\n- **Sensor Telemetry**: Real-time soil moisture telemetry is currently unavailable for this farm node."
+                telemetry_text = f" Sensor data: {farm_info['telemetry_status_text']}."
 
             sections.append(
-                f"💧 **Irrigation & Water Management for {target_crop}**:\n"
-                f"- **Irrigation Advisory**: Irrigate early morning or late evening to minimize evapotranspiration losses.{telemetry_text}\n"
-                f"- **Recommended Method**: Drip or sprinkler irrigation is recommended for optimal water efficiency."
+                f"💧 **Irrigation Advisory for {target_crop}:**\n"
+                f"**Answer:** Irrigate during critical growth stages like crown root initiation and flowering.{telemetry_text}\n"
+                f"- **Action:** Irrigate early morning or evening to minimize evaporation. Use drip or sprinkler methods for water savings.\n"
+                f"- **Caution:** Avoid waterlogging in the root zone to prevent root rot."
             )
 
         else:
             clean_q = query.rstrip("?.!")
             sections.append(
-                f"🌾 **Agronomic Advice for '{clean_q}'**:\n"
-                f"Regarding **{target_crop}** in {region_info['state']}:\n\n"
-                f"- Follow balanced ICAR-recommended plant nutrition and crop management guidelines.\n"
-                f"- Inspect your field regularly for early signs of nutrient deficiency or pest vectors.\n"
-                f"- Ensure adequate soil moisture before applying top-dressed fertilizers."
+                f"🌾 **Agronomic Advice for '{clean_q}':**\n"
+                f"**Answer:** For {target_crop} in {region_info['state']}, follow balanced ICAR crop management practices.\n"
+                f"- **Action 1:** Maintain balanced soil nutrients and test soil health every two years.\n"
+                f"- **Action 2:** Inspect fields weekly for early symptoms of pests or nutrient deficiency.\n"
+                f"- **Caution:** Always ensure soil moisture before applying top-dressed fertilizers."
             )
 
-        # 3. Append Web Citations ONLY if Web Search was Intentional & Active
+        # 3. Append Web Citations ONLY if Web Search was Intentional & Active (Compact)
         if web_citations and is_live_search_attempted:
             citations_list = []
-            for c in web_citations:
-                status_label = "Live Verified Page" if c.get("source_status") == "LIVE_VERIFIED_PAGE" else "Live Search Snippet"
-                citations_list.append(f"- [{c['title']}]({c['url']}) ({status_label}): {c['snippet']}")
-
+            for c in web_citations[:2]:
+                citations_list.append(f"- [{c['title']}]({c['url']})")
             citations_text = "\n".join(citations_list)
-            sections.append(f"\n🌐 **Web Retrieval Sources**:\n{citations_text}")
+            sections.append(f"🌐 **Sources:**\n{citations_text}")
 
-        return "\n\n".join(sections)
+        raw_combined = "\n\n".join(sections)
+        return self.enforce_word_limit(raw_combined, max_words=100)
 
     def process_chat_query(
         self,
@@ -818,7 +903,7 @@ class ProductionAgriculturalChatbotService:
         llm_res, failure_status, failure_reason = self._call_external_llm_provider(sanitized_query, context_str, resolved_history)
 
         if llm_res and llm_res.get("answer"):
-            full_answer_en = llm_res["answer"]
+            full_answer_en = self.enforce_word_limit(llm_res["answer"], max_words=100)
             strategy = "LLM_GENERATIVE_AI"
             provider_name = llm_res.get("provider", "External LLM")
             model_name = llm_res.get("model", "generative_model")
@@ -842,6 +927,7 @@ class ProductionAgriculturalChatbotService:
                 resolved_history=resolved_history,
                 is_live_search_attempted=is_live_search_attempted
             )
+            full_answer_en = self.enforce_word_limit(full_answer_en, max_words=100)
             strategy = "LOCAL_DOMAIN_KNOWLEDGE_ENGINE"
             provider_name = "AgriSense ICAR/KVK Agronomic Knowledge Matrix v3.0"
             model_name = "local_rule_based_synthesis"
@@ -854,7 +940,8 @@ class ProductionAgriculturalChatbotService:
         total_latency = round((time.time() - start_time) * 1000, 2)
 
         # 7. Final Assembly & Native Translation
-        final_answer = self._translate_response(full_answer_en, target_lang)
+        translated_answer = self._translate_response(full_answer_en, target_lang)
+        final_answer = self.enforce_word_limit(translated_answer, max_words=100)
         lang_info = SUPPORTED_LANGUAGES.get(target_lang, SUPPORTED_LANGUAGES["en"])
 
         return {
@@ -969,9 +1056,12 @@ class ProductionAgriculturalChatbotService:
 
                         contents = []
                         system_instruction = (
-                            "You are AgriSense AI, an expert agricultural assistant specializing in Indian crops, soil science, "
-                            "pest management, and farming best practices. Provide accurate, clear, helpful responses. "
-                            f"Context: {context_str}"
+                            "You are AgriSense AI, an expert agricultural assistant for Indian farmers. "
+                            "Every response must be strictly concise, under 100 words (aim for 40 to 80 words). "
+                            "Answer the user's specific request directly and factually without fluff or greetings. "
+                            "Where appropriate, structure response with short points or: Answer (direct response), Action (1-3 practical steps), Caution (essential safety/health warning, only if needed). "
+                            "If uncertain or lacking crop data, state it immediately and advise consulting the nearest Krishi Vigyan Kendra (KVK) or agronomist.\n"
+                            f"Farm Context: {context_str}"
                         )
 
                         for h in history[-6:]:
@@ -983,7 +1073,7 @@ class ProductionAgriculturalChatbotService:
                         payload = {
                             "system_instruction": {"parts": [{"text": system_instruction}]},
                             "contents": contents,
-                            "generationConfig": {"temperature": 0.3, "maxOutputTokens": 1000}
+                            "generationConfig": {"temperature": 0.2, "maxOutputTokens": 350}
                         }
 
                         req = urllib.request.Request(
@@ -1061,7 +1151,13 @@ class ProductionAgriculturalChatbotService:
             t0 = time.time()
             try:
                 url = "https://api.openai.com/v1/chat/completions"
-                messages = [{"role": "system", "content": f"You are AgriSense AI. Context: {context_str}"}]
+                openai_sys = (
+                    "You are AgriSense AI, an expert agricultural assistant for Indian farmers. "
+                    "Every response must be strictly concise, under 100 words (aim for 40 to 80 words). "
+                    "Answer directly without greetings or fluff. Use short points or Answer/Action/Caution structure where appropriate. "
+                    f"Farm Context: {context_str}"
+                )
+                messages = [{"role": "system", "content": openai_sys}]
                 for h in history[-6:]:
                     r = "user" if h.get("role") in ["user", "farmer"] else "assistant"
                     messages.append({"role": r, "content": h.get("content", "")})
@@ -1070,8 +1166,8 @@ class ProductionAgriculturalChatbotService:
                 payload = {
                     "model": "gpt-4o-mini",
                     "messages": messages,
-                    "temperature": 0.3,
-                    "max_tokens": 1000
+                    "temperature": 0.2,
+                    "max_tokens": 250
                 }
 
                 req = urllib.request.Request(

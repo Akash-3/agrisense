@@ -47,19 +47,52 @@ const AgriSenseChatbot = {
             const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
             this.speechRecognition = new SpeechRec();
             this.speechRecognition.continuous = false;
-            this.speechRecognition.interimResults = false;
+            this.speechRecognition.interimResults = true;
+
+            this.speechRecognition.onstart = () => {
+                this.isListening = true;
+                const voiceBtn = document.getElementById("agri-chat-voice-btn");
+                const inputEl = document.getElementById("agri-chat-input");
+                if (voiceBtn) {
+                    voiceBtn.classList.add("listening-pulse");
+                    voiceBtn.title = "Listening... Click to stop recording";
+                }
+                if (inputEl && !inputEl.value) {
+                    inputEl.placeholder = "🎙️ Listening... speak now in your language";
+                }
+            };
 
             this.speechRecognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                const inputEl = document.getElementById("agri-chat-input");
-                if (inputEl) {
-                    inputEl.value = transcript;
+                let interimTranscript = "";
+                let finalTranscript = "";
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
                 }
-                this.stopListening();
+
+                const resultText = finalTranscript || interimTranscript;
+                const inputEl = document.getElementById("agri-chat-input");
+                if (inputEl && resultText) {
+                    inputEl.value = resultText;
+                }
             };
 
             this.speechRecognition.onerror = (err) => {
-                console.error("[Speech Error]", err);
+                console.warn("[Chatbot Voice Recognition Warning]", err.error);
+                let msg = "Speech recognition error. Please try again.";
+                if (err.error === "not-allowed" || err.error === "service-not-allowed") {
+                    msg = "Microphone permission denied. Please allow microphone access in browser settings.";
+                } else if (err.error === "no-speech") {
+                    msg = "No speech detected. Please click the mic and speak clearly.";
+                } else if (err.error === "network") {
+                    msg = "Speech recognition network error. Please check your connection.";
+                }
+                this.showNotice(msg);
                 this.stopListening();
             };
 
@@ -71,32 +104,76 @@ const AgriSenseChatbot = {
 
     toggleVoiceInput() {
         if (!this.speechRecognition) {
-            alert("Voice input is not supported by your browser. Please type your message.");
+            this.showNotice("Voice input is not supported by your browser. Please type your query.");
             return;
         }
 
-        const voiceBtn = document.getElementById("agri-chat-voice-btn");
         if (this.isListening) {
-            this.speechRecognition.stop();
+            try {
+                this.speechRecognition.stop();
+            } catch (e) {
+                console.log("[Voice Stop Warning]", e);
+            }
             this.stopListening();
         } else {
-            // Set speech language mapping
             const langMap = {
                 "hi": "hi-IN", "ta": "ta-IN", "te": "te-IN", "kn": "kn-IN",
                 "mr": "mr-IN", "bn": "bn-IN", "gu": "gu-IN", "pa": "pa-IN",
                 "ml": "ml-IN", "or": "or-IN", "en": "en-IN"
             };
-            this.speechRecognition.lang = langMap[this.selectedLanguage] || "hi-IN";
-            this.speechRecognition.start();
-            this.isListening = true;
-            if (voiceBtn) voiceBtn.classList.add("listening-pulse");
+
+            let targetLang = langMap[this.selectedLanguage];
+            if (!targetLang || this.selectedLanguage === "auto") {
+                targetLang = navigator.language || "hi-IN";
+            }
+
+            try {
+                this.speechRecognition.lang = targetLang;
+                this.speechRecognition.start();
+            } catch (err) {
+                console.warn("[Voice Start Warning]", err);
+                if (err.name === "InvalidStateError") {
+                    this.stopListening();
+                    try {
+                        this.speechRecognition.start();
+                    } catch (e) {
+                        this.showNotice("Voice recognition starting. Please wait...");
+                    }
+                } else {
+                    this.showNotice("Could not access microphone. Please check permissions.");
+                }
+            }
         }
     },
 
     stopListening() {
         this.isListening = false;
         const voiceBtn = document.getElementById("agri-chat-voice-btn");
-        if (voiceBtn) voiceBtn.classList.remove("listening-pulse");
+        const inputEl = document.getElementById("agri-chat-input");
+        if (voiceBtn) {
+            voiceBtn.classList.remove("listening-pulse");
+            voiceBtn.title = "Voice Input (Speak in Indian Language)";
+        }
+        if (inputEl && inputEl.placeholder.includes("Listening")) {
+            inputEl.placeholder = "Ask in Hindi, Tamil, Telugu, English...";
+        }
+    },
+
+    showNotice(text) {
+        const msgContainer = document.getElementById("agri-chat-messages");
+        if (!msgContainer) return;
+
+        const noticeDiv = document.createElement("div");
+        noticeDiv.className = "chat-msg bot-msg system-notice";
+        noticeDiv.innerHTML = `<div class="msg-bubble" style="background:#334155; color:#F1F5F9; font-size:12px; font-style:italic;">⚠️ ${text}</div>`;
+        msgContainer.appendChild(noticeDiv);
+        msgContainer.scrollTop = msgContainer.scrollHeight;
+
+        setTimeout(() => {
+            if (noticeDiv.parentNode) {
+                noticeDiv.parentNode.removeChild(noticeDiv);
+            }
+        }, 4000);
     },
 
     injectChatbotUI() {
