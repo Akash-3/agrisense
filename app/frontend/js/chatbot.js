@@ -195,14 +195,14 @@ const AgriSenseChatbot = {
                     <div class="agri-chat-title-group">
                         <div class="agri-bot-avatar">🌱</div>
                         <div>
-                            <h4 class="agri-bot-name">AgriSense Knowledge AI</h4>
+                            <h4 class="agri-bot-name">AgriSense AI</h4>
                             <span id="agri-chat-loc-label" class="agri-chat-loc">📍 India</span>
                         </div>
                     </div>
                     <div class="agri-chat-controls">
                         <!-- LANGUAGE SELECTOR -->
                         <select id="agri-chat-lang-select" class="agri-chat-select" onchange="AgriSenseChatbot.onLanguageChange(this.value)">
-                            <option value="auto">🌐 Auto Language</option>
+                            <option value="auto">🌐 Auto</option>
                             <option value="hi">🇮🇳 हिंदी (Hindi)</option>
                             <option value="en">🇬🇧 English</option>
                             <option value="ta">🇮🇳 தமிழ் (Tamil)</option>
@@ -231,9 +231,9 @@ const AgriSenseChatbot = {
                 <div id="agri-chat-messages" class="agri-chat-body">
                     <div class="chat-msg bot-msg">
                         <div class="msg-bubble">
-                            🙏 <strong>Namaste & Welcome to AgriSense AI!</strong><br/>
-                            Ask me any question about crops, fertilizers, pest control, Mandi market rates, or government schemes.<br/>
-                            <em>I speak all major Indian languages & can search the live internet for you!</em>
+                            <div class="agri-welcome-title">🙏 <strong>Namaste & Welcome to AgriSense AI!</strong></div>
+                            <div class="agri-welcome-desc">Ask me any question about crops, fertilizers, pest control, Mandi market rates, or government schemes.</div>
+                            <div class="agri-welcome-lang">I speak all major Indian languages & can search the live internet for you!</div>
                         </div>
                     </div>
                 </div>
@@ -259,6 +259,16 @@ const AgriSenseChatbot = {
         `;
         document.body.appendChild(container);
         this.injectCSS();
+
+        const chipsEl = document.getElementById("agri-chat-chips");
+        if (chipsEl) {
+            chipsEl.addEventListener("wheel", (e) => {
+                if (e.deltaY !== 0) {
+                    e.preventDefault();
+                    chipsEl.scrollLeft += e.deltaY;
+                }
+            }, { passive: false });
+        }
     },
 
     injectCSS() {
@@ -349,39 +359,79 @@ const AgriSenseChatbot = {
                 flex-shrink: 0;
                 width: 100%;
                 min-width: 0;
+                gap: 8px;
             }
-            .agri-chat-title-group { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
-            .agri-bot-avatar { font-size: 20px; background: #065F46; padding: 4px 6px; border-radius: 50%; flex-shrink: 0; }
-            .agri-bot-name { margin: 0; font-size: 14px; font-weight: 700; color: #10B981; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-            .agri-chat-loc { font-size: 10px; color: #94A3B8; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .agri-chat-title-group {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                min-width: 0;
+                flex: 1 1 auto;
+            }
+            .agri-bot-avatar {
+                font-size: 18px;
+                background: #065F46;
+                width: 32px;
+                height: 32px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                flex-shrink: 0;
+            }
+            .agri-bot-name {
+                margin: 0;
+                font-size: 13.5px;
+                font-weight: 700;
+                color: #10B981;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                line-height: 1.2;
+            }
+            .agri-chat-loc {
+                font-size: 10.5px;
+                color: #94A3B8;
+                display: block;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
 
-            .agri-chat-controls { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+            .agri-chat-controls { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
             .agri-chat-select {
                 background: #0F172A;
                 color: #E2E8F0;
-                border: 1px solid #475569;
+                border: 1px solid #334155;
                 border-radius: 6px;
-                padding: 4px 4px;
+                padding: 4px 6px;
                 font-size: 11px;
-                max-width: 105px;
+                max-width: 112px;
+                cursor: pointer;
+                outline: none;
                 text-overflow: ellipsis;
+            }
+            .agri-chat-select:focus {
+                border-color: #10B981;
             }
             .agri-chat-icon-btn {
                 background: #334155;
                 color: #E2E8F0;
                 border: none;
                 border-radius: 6px;
-                padding: 4px 6px;
+                padding: 4px 7px;
                 font-size: 11px;
                 cursor: pointer;
                 white-space: nowrap;
+                transition: background 0.15s ease;
             }
+            .agri-chat-icon-btn:hover { background: #475569; }
             .agri-chat-icon-btn.active { background: #059669; color: white; font-weight: bold; }
 
             .agri-chat-chips-scroll {
                 display: flex;
                 gap: 8px;
-                padding: 8px 12px;
+                padding: 9px 12px;
                 background: #0B1329;
                 overflow-x: auto !important;
                 overflow-y: hidden !important;
@@ -389,17 +439,13 @@ const AgriSenseChatbot = {
                 border-bottom: 1px solid #1E293B;
                 flex-shrink: 0;
                 width: 100%;
-                scrollbar-width: thin;
+                scrollbar-width: none !important;
+                -ms-overflow-style: none !important;
             }
             .agri-chat-chips-scroll::-webkit-scrollbar {
-                height: 4px;
-            }
-            .agri-chat-chips-scroll::-webkit-scrollbar-thumb {
-                background: #334155;
-                border-radius: 4px;
-            }
-            .agri-chat-chips-scroll::-webkit-scrollbar-track {
-                background: transparent;
+                display: none !important;
+                width: 0 !important;
+                height: 0 !important;
             }
             .agri-chip {
                 background: #1E293B;
@@ -411,6 +457,7 @@ const AgriSenseChatbot = {
                 cursor: pointer;
                 white-space: nowrap;
                 flex-shrink: 0;
+                transition: background 0.15s ease, color 0.15s ease;
             }
             .agri-chip:hover { background: #0284C7; color: white; }
 
@@ -425,28 +472,59 @@ const AgriSenseChatbot = {
                 width: 100%;
                 word-break: break-word !important;
                 overflow-wrap: break-word !important;
-                scrollbar-width: thin;
+                scrollbar-width: thin !important;
+                scrollbar-color: #334155 transparent !important;
             }
             .agri-chat-body::-webkit-scrollbar {
-                width: 6px;
+                width: 6px !important;
+            }
+            .agri-chat-body::-webkit-scrollbar-track {
+                background: transparent !important;
             }
             .agri-chat-body::-webkit-scrollbar-thumb {
-                background: #334155;
-                border-radius: 4px;
+                background: #334155 !important;
+                border-radius: 9999px !important;
             }
+            .agri-chat-body::-webkit-scrollbar-thumb:hover {
+                background: #10B981 !important;
+            }
+
             .chat-msg { display: flex; flex-direction: column; max-width: 100%; width: 100%; }
-            .bot-msg { align-items: flex-start; }
-            .user-msg { align-items: flex-end; }
+            .bot-msg { align-items: flex-start; text-align: left; }
+            .user-msg { align-items: flex-end; text-align: left; }
             .msg-bubble {
                 max-width: 90%;
-                padding: 10px 14px;
-                border-radius: 12px;
-                font-size: 13px;
-                line-height: 1.5;
-                white-space: pre-wrap;
+                padding: 11px 15px;
+                border-radius: 14px;
+                font-size: 13.5px;
+                line-height: 1.55;
+                text-align: left !important;
                 overflow-wrap: break-word !important;
                 word-break: break-word !important;
-                hyphens: auto;
+                hyphens: none !important;
+                -webkit-hyphens: none !important;
+            }
+            .agri-welcome-title {
+                font-size: 14px;
+                font-weight: 700;
+                color: #10B981;
+                margin-bottom: 6px;
+                line-height: 1.4;
+                text-align: left;
+            }
+            .agri-welcome-desc {
+                font-size: 13px;
+                color: #F1F5F9;
+                line-height: 1.5;
+                margin-bottom: 6px;
+                text-align: left;
+            }
+            .agri-welcome-lang {
+                font-size: 12px;
+                color: #94A3B8;
+                font-style: italic;
+                line-height: 1.4;
+                text-align: left;
             }
             .msg-bubble a {
                 color: #38BDF8;
@@ -575,7 +653,7 @@ const AgriSenseChatbot = {
             if (data.status === "success" && data.languages) {
                 const selectEl = document.getElementById("agri-chat-lang-select");
                 if (selectEl) {
-                    const autoOption = `<option value="auto">🌐 Auto Language</option>`;
+                    const autoOption = `<option value="auto">🌐 Auto</option>`;
                     selectEl.innerHTML = autoOption + data.languages.map(l =>
                         `<option value="${l.code}">${l.flag} ${l.native} (${l.name})</option>`
                     ).join("");
@@ -739,10 +817,13 @@ const AgriSenseChatbot = {
         msgDiv.id = id;
         msgDiv.className = `chat-msg ${sender}-msg`;
 
-        // Format markdown basic bold/newlines
-        const formattedText = text
+        // Format markdown basic bold/newlines and clean whitespace
+        const cleanText = (text || "").trim();
+        const formattedText = cleanText
+            .replace(/\r\n/g, '\n')
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" style="color: #38BDF8; text-decoration: underline;">$1</a>');
+            .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" style="color: #38BDF8; text-decoration: underline;">$1</a>')
+            .replace(/\n/g, '<br/>');
 
         msgDiv.innerHTML = `<div class="msg-bubble">${formattedText}</div>`;
         msgContainer.appendChild(msgDiv);
